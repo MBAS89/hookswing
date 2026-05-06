@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import axios from 'axios';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
@@ -134,13 +135,18 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
 
   try {
     const start = Date.now();
-    const response = await fetch(targetUrl, {
-      method: webhook.method,
+    const response = await axios({
+      method: webhook.method as any,
+      url: targetUrl,
       headers: {
         ...(webhook.headers as Record<string, string>),
         ...headers,
       },
-      body: body ? JSON.stringify(body) : undefined,
+      data: body ? JSON.stringify(body) : undefined,
+      timeout: 30000,
+      validateStatus: () => true,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
     });
     const responseTime = Date.now() - start;
 
@@ -153,7 +159,7 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
       ip: '127.0.0.1',
       userAgent: 'WebhookVault-Replay',
       statusCode: response.status,
-      responseBody: await response.text().catch(() => null),
+      responseBody: typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
       responseTime,
       isReplay: true,
       originalId: webhook.id,
@@ -168,7 +174,11 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
       responseTime,
     });
   } catch (err: any) {
-    res.status(502).json({ error: 'Replay failed', message: err.message });
+    const message = err.code === 'ECONNREFUSED' ? 'Connection refused — target URL is unreachable'
+      : err.code === 'ENOTFOUND' ? 'DNS lookup failed — target URL does not exist'
+      : err.code === 'ETIMEDOUT' ? 'Connection timed out'
+      : err.message;
+    res.status(502).json({ error: 'Replay failed', message });
   }
 });
 

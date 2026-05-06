@@ -1,4 +1,5 @@
 import { Queue, Worker } from 'bullmq';
+import axios from 'axios';
 import { redis } from '../lib/redis';
 import { prisma } from '../lib/prisma';
 import { getIO } from '../lib/socketio';
@@ -17,13 +18,18 @@ const replayWorker = new Worker(
     if (!webhook) throw new Error('Webhook not found');
 
     const start = Date.now();
-    const response = await fetch(targetUrl, {
-      method: webhook.method,
+    const response = await axios({
+      method: webhook.method as any,
+      url: targetUrl,
       headers: {
         ...(webhook.headers as Record<string, string>),
         ...headers,
       },
-      body: body ? JSON.stringify(body) : undefined,
+      data: body ? JSON.stringify(body) : undefined,
+      timeout: 30000,
+      validateStatus: () => true,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
     });
     const responseTime = Date.now() - start;
 
@@ -36,7 +42,7 @@ const replayWorker = new Worker(
       ip: '127.0.0.1',
       userAgent: 'WebhookVault-Replay',
       statusCode: response.status,
-      responseBody: await response.text().catch(() => null),
+      responseBody: typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
       responseTime,
       isReplay: true,
       originalId: webhook.id,
