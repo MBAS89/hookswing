@@ -2,15 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useWebhooks } from '../hooks/useWebhooks';
 import { useSocket } from '../hooks/useSocket';
+import { useAuth } from '../hooks/useAuth';
 import WebhookCard from '../components/webhook/WebhookCard';
 import WebhookDetail from '../components/webhook/WebhookDetail';
-import { Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish } from 'lucide-react';
+import {
+  Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish,
+  Edit3, X, Globe, Crown,
+} from 'lucide-react';
 import { api } from '../lib/api';
 
 interface Project {
   id: string;
   name: string;
   slug: string;
+  customSlug: string | null;
   description: string | null;
   webhookUrl: string;
   webhookCount: number;
@@ -19,6 +24,7 @@ interface Project {
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [projectLoading, setProjectLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -26,11 +32,22 @@ export default function ProjectPage() {
   const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
   const [filterMethod, setFilterMethod] = useState('');
 
+  // Custom slug editing
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [customSlugInput, setCustomSlugInput] = useState('');
+  const [slugError, setSlugError] = useState('');
+  const [savingSlug, setSavingSlug] = useState(false);
+
+  const canUseCustomSlug = user?.plan === 'PRO' || user?.plan === 'TEAM';
+
   useEffect(() => {
     if (!id) return;
     setProjectLoading(true);
     api.get(`/projects/${id}`)
-      .then((res) => setProject(res.data))
+      .then((res) => {
+        setProject(res.data);
+        setCustomSlugInput(res.data.customSlug || '');
+      })
       .catch(() => setProject(null))
       .finally(() => setProjectLoading(false));
   }, [id]);
@@ -51,6 +68,22 @@ export default function ProjectPage() {
     navigator.clipboard.writeText(project.webhookUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const saveCustomSlug = async () => {
+    if (!project) return;
+    setSlugError('');
+    setSavingSlug(true);
+    try {
+      const value = customSlugInput.trim() || null;
+      const res = await api.patch(`/projects/${project.id}`, { customSlug: value });
+      setProject({ ...project, customSlug: res.data.customSlug, webhookUrl: res.data.customSlug ? project.webhookUrl.replace(project.slug, res.data.customSlug) : project.webhookUrl });
+      setEditingSlug(false);
+    } catch (err: any) {
+      setSlugError(err.response?.data?.error || 'Failed to update');
+    } finally {
+      setSavingSlug(false);
+    }
   };
 
   const filtered = filterMethod
@@ -88,6 +121,7 @@ export default function ProjectPage() {
           </div>
         </div>
 
+        {/* Webhook URL */}
         {project?.webhookUrl && (
           <div className="mt-4">
             <label className="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">
@@ -108,6 +142,68 @@ export default function ProjectPage() {
             </div>
           </div>
         )}
+
+        {/* Custom Slug */}
+        <div className="mt-3 pt-3 border-t border-slate-800">
+          {editingSlug ? (
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span className="text-sm text-slate-400">{window.location.origin}/hook/</span>
+                  <input
+                    type="text"
+                    value={customSlugInput}
+                    onChange={(e) => setCustomSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="my-company"
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-emerald-500 font-mono"
+                    autoFocus
+                  />
+                </div>
+                {slugError && <p className="text-xs text-red-400 mt-1 ml-6">{slugError}</p>}
+              </div>
+              <button
+                onClick={saveCustomSlug}
+                disabled={savingSlug}
+                className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                {savingSlug ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+              </button>
+              <button
+                onClick={() => { setEditingSlug(false); setSlugError(''); setCustomSlugInput(project?.customSlug || ''); }}
+                className="text-slate-400 hover:text-white p-1.5"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-slate-500" />
+                <span className="text-sm text-slate-400">Custom subdomain:</span>
+                {project?.customSlug ? (
+                  <code className="text-sm text-emerald-400 font-mono">{project.customSlug}</code>
+                ) : (
+                  <span className="text-sm text-slate-600">Not set</span>
+                )}
+              </div>
+              {canUseCustomSlug ? (
+                <button
+                  onClick={() => setEditingSlug(true)}
+                  className="text-xs flex items-center gap-1 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-md transition-colors"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  {project?.customSlug ? 'Edit' : 'Set custom'}
+                </button>
+              ) : (
+                <span className="text-xs flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md">
+                  <Crown className="w-3 h-3" />
+                  Pro/Team only
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Webhook Feed */}

@@ -88,6 +88,7 @@ model Project {
   id          String    @id @default(cuid())
   name        String
   slug        String    @unique
+  customSlug  String?   @unique @map("custom_slug")
   description String?
   userId      String?   @map("user_id")
   teamId      String?   @map("team_id")

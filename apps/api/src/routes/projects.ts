@@ -141,11 +141,16 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
   const webhookCount = await prisma.webhook.count({ where: countWhere });
 
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+
   res.json({
     ...project,
     webhookCount,
     historyLimitDays: cutoff ? Math.round((Date.now() - cutoff.getTime()) / (24 * 60 * 60 * 1000)) : null,
-    webhookUrl: `${req.protocol}://${req.get('host')}/hook/${project.slug}`,
+    webhookUrl: project.customSlug
+      ? `${baseUrl}/hook/${project.customSlug}`
+      : `${baseUrl}/hook/${project.slug}`,
+    customSlug: project.customSlug,
   });
 });
 
@@ -153,12 +158,26 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   const schema = z.object({
     name: z.string().min(1).max(100).optional(),
     description: z.string().max(500).optional(),
+    customSlug: z.string().min(3).max(50).regex(/^[a-z0-9-]+$/).optional().nullable(),
   });
 
   const result = schema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({ error: 'Invalid input' });
   }
+
+  // Custom slug requires Pro or Team plan
+  if (result.data.customSlug !== undefined) {
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (user?.plan === 'FREE') {
+      return res.status(403).json({ error: 'Custom subdomains require Pro or Team plan' });
+    }
+  }
+
+  const data: any = {};
+  if (result.data.name !== undefined) data.name = result.data.name;
+  if (result.data.description !== undefined) data.description = result.data.description;
+  if (result.data.customSlug !== undefined) data.customSlug = result.data.customSlug;
 
   const project = await prisma.project.updateMany({
     where: {
@@ -172,7 +191,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
         },
       ],
     },
-    data: result.data,
+    data,
   });
 
   if (project.count === 0) {

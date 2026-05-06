@@ -57,10 +57,18 @@ app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 async function handleHook(req: express.Request, res: express.Response) {
   const slug = req.params.slug;
 
-  const project = await prisma.project.findUnique({
-    where: { slug },
+  // Try customSlug first, then fall back to auto-generated slug
+  let project = await prisma.project.findUnique({
+    where: { customSlug: slug },
     include: { user: true, team: { include: { members: true } } },
   });
+
+  if (!project) {
+    project = await prisma.project.findUnique({
+      where: { slug },
+      include: { user: true, team: { include: { members: true } } },
+    });
+  }
 
   if (!project) {
     return res.status(404).json({ error: 'Hook not found' });
