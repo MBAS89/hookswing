@@ -5,6 +5,20 @@ import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 import { getIO } from '../lib/socketio';
 
+function getHistoryCutoff(plan: string): Date | null {
+  const now = new Date();
+  switch (plan) {
+    case 'FREE':
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    case 'PRO':
+      return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    case 'TEAM':
+      return null;
+    default:
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  }
+}
+
 const router = Router();
 
 router.use(authMiddleware);
@@ -29,6 +43,7 @@ router.get('/projects/:projectId/webhooks', async (req: AuthRequest, res) => {
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
   const method = req.query.method as string | undefined;
   const search = req.query.search as string | undefined;
+  const cutoff = getHistoryCutoff(req.user!.plan);
 
   const where: any = { projectId: req.params.projectId };
   if (method) where.method = method.toUpperCase();
@@ -39,6 +54,7 @@ router.get('/projects/:projectId/webhooks', async (req: AuthRequest, res) => {
       { source: { contains: search } },
     ];
   }
+  if (cutoff) where.createdAt = { gte: cutoff };
 
   const [webhooks, total] = await Promise.all([
     prisma.webhook.findMany({

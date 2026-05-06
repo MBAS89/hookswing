@@ -14,6 +14,7 @@ interface Project {
   description: string | null;
   webhookUrl: string;
   webhookCount: number;
+  historyLimitDays: number | null;
 }
 
 export default function ProjectPage() {
@@ -78,6 +79,12 @@ export default function ProjectPage() {
           <div className="text-right shrink-0">
             <p className="text-xs text-slate-500 uppercase tracking-wider">Webhooks this month</p>
             <p className="text-xl font-bold text-white">{project?.webhookCount || 0}</p>
+            {project?.historyLimitDays && (
+              <p className="text-xs text-amber-400 mt-0.5">{project.historyLimitDays}-day history</p>
+            )}
+            {project?.historyLimitDays === null && (
+              <p className="text-xs text-emerald-400 mt-0.5">Unlimited history</p>
+            )}
           </div>
         </div>
 
@@ -107,6 +114,16 @@ export default function ProjectPage() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-white">Webhook Feed</h2>
+          {project?.historyLimitDays && (
+            <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
+              {project.historyLimitDays}-day history
+            </span>
+          )}
+          {project?.historyLimitDays === null && (
+            <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+              Unlimited history
+            </span>
+          )}
           <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-full">
             {filtered.length} webhooks
           </span>

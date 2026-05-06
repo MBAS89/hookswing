@@ -12,6 +12,20 @@ function generateSlug(): string {
   ).join('');
 }
 
+function getHistoryCutoff(plan: string): Date | null {
+  const now = new Date();
+  switch (plan) {
+    case 'FREE':
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    case 'PRO':
+      return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    case 'TEAM':
+      return null; // unlimited
+    default:
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  }
+}
+
 router.use(authMiddleware);
 router.use(apiRateLimit);
 
@@ -121,15 +135,16 @@ router.get('/:id', async (req: AuthRequest, res) => {
     return res.status(404).json({ error: 'Project not found' });
   }
 
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const webhookCount = await prisma.webhook.count({
-    where: { projectId: project.id, createdAt: { gte: monthStart } },
-  });
+  const cutoff = getHistoryCutoff(req.user!.plan);
+  const countWhere: any = { projectId: project.id };
+  if (cutoff) countWhere.createdAt = { gte: cutoff };
+
+  const webhookCount = await prisma.webhook.count({ where: countWhere });
 
   res.json({
     ...project,
     webhookCount,
+    historyLimitDays: cutoff ? Math.round((Date.now() - cutoff.getTime()) / (24 * 60 * 60 * 1000)) : null,
     webhookUrl: `${req.protocol}://${req.get('host')}/hook/${project.slug}`,
   });
 });
@@ -209,9 +224,11 @@ router.get('/:projectId/webhooks', async (req: AuthRequest, res) => {
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
   const method = req.query.method as string | undefined;
+  const cutoff = getHistoryCutoff(req.user!.plan);
 
   const where: any = { projectId: req.params.projectId };
   if (method) where.method = method.toUpperCase();
+  if (cutoff) where.createdAt = { gte: cutoff };
 
   const [webhooks, total] = await Promise.all([
     prisma.webhook.findMany({
