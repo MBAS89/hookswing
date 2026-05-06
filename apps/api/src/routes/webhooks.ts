@@ -2,6 +2,7 @@ import { Router } from 'express';
 import axios from 'axios';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { logActivity } from '../lib/activity';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 import { getIO } from '../lib/socketio';
@@ -168,6 +169,19 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
 
     getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
 
+    // Log replay activity for team projects
+    const proj = await prisma.project.findUnique({ where: { id: webhook.projectId }, select: { teamId: true } });
+    if (proj?.teamId) {
+      await logActivity({
+        teamId: proj.teamId,
+        userId: req.user!.id,
+        action: 'webhook_replayed',
+        targetType: 'webhook',
+        targetId: webhook.id,
+        metadata: { targetUrl, status: response.status },
+      });
+    }
+
     res.json({
       replayId: replayWebhook.id,
       status: response.status,
@@ -197,6 +211,23 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 
   if (webhook.count === 0) {
     return res.status(404).json({ error: 'Webhook not found' });
+  }
+
+  const wh = await prisma.webhook.findUnique({
+    where: { id: req.params.id },
+    select: { projectId: true },
+  });
+  if (wh) {
+    const proj = await prisma.project.findUnique({ where: { id: wh.projectId }, select: { teamId: true } });
+    if (proj?.teamId) {
+      await logActivity({
+        teamId: proj.teamId,
+        userId: req.user!.id,
+        action: 'webhook_deleted',
+        targetType: 'webhook',
+        targetId: req.params.id,
+      });
+    }
   }
 
   res.json({ success: true });
@@ -261,6 +292,17 @@ router.get('/projects/:projectId/export/json', async (req: AuthRequest, res) => 
     orderBy: { createdAt: 'desc' },
   });
 
+  if (project.teamId) {
+    await logActivity({
+      teamId: project.teamId,
+      userId: req.user!.id,
+      action: 'export_downloaded',
+      targetType: 'project',
+      targetId: project.id,
+      metadata: { format: 'json' },
+    });
+  }
+
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename="${project.name}-webhooks.json"`);
   res.send(JSON.stringify(webhooks, null, 2));
@@ -310,9 +352,145 @@ router.get('/projects/:projectId/export/csv', async (req: AuthRequest, res) => {
     ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
   ].join('\n');
 
+  if (project.teamId) {
+    await logActivity({
+      teamId: project.teamId,
+      userId: req.user!.id,
+      action: 'export_downloaded',
+      targetType: 'project',
+      targetId: project.id,
+      metadata: { format: 'csv' },
+    });
+  }
+
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="${project.name}-webhooks.csv"`);
   res.send(csv);
+});
+
+// --- Webhook comments (Team plan only) ---
+
+router.get('/:id/comments', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (user?.plan !== 'TEAM') {
+    return res.status(403).json({ error: 'Comments require Team plan' });
+  }
+
+  const webhook = await prisma.webhook.findFirst({
+    where: {
+      id: req.params.id,
+      project: {
+        OR: [
+          { userId: req.user!.id },
+          { team: { members: { some: { userId: req.user!.id } } } },
+        ],
+      },
+    },
+  });
+
+  if (!webhook) {
+    return res.status(404).json({ error: 'Webhook not found' });
+  }
+
+  const comments = await prisma.webhookComment.findMany({
+    where: { webhookId: req.params.id },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  res.json(comments);
+});
+
+router.post('/:id/comments', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (user?.plan !== 'TEAM') {
+    return res.status(403).json({ error: 'Comments require Team plan' });
+  }
+
+  const schema = z.object({
+    content: z.string().min(1).max(2000),
+  });
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const webhook = await prisma.webhook.findFirst({
+    where: {
+      id: req.params.id,
+      project: {
+        OR: [
+          { userId: req.user!.id },
+          { team: { members: { some: { userId: req.user!.id } } } },
+        ],
+      },
+    },
+    include: { project: { select: { teamId: true } } },
+  });
+
+  if (!webhook) {
+    return res.status(404).json({ error: 'Webhook not found' });
+  }
+
+  const comment = await prisma.webhookComment.create({
+    data: {
+      webhookId: req.params.id,
+      userId: req.user!.id,
+      content: result.data.content,
+    },
+    include: { user: { select: { id: true, name: true, email: true } } },
+  });
+
+  if (webhook.project.teamId) {
+    await logActivity({
+      teamId: webhook.project.teamId,
+      userId: req.user!.id,
+      action: 'comment_added',
+      targetType: 'webhook',
+      targetId: req.params.id,
+    });
+  }
+
+  res.status(201).json(comment);
+});
+
+router.delete('/:id/comments/:commentId', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (user?.plan !== 'TEAM') {
+    return res.status(403).json({ error: 'Comments require Team plan' });
+  }
+
+  const comment = await prisma.webhookComment.findFirst({
+    where: {
+      id: req.params.commentId,
+      webhookId: req.params.id,
+      userId: req.user!.id,
+    },
+    include: {
+      webhook: {
+        include: { project: { select: { teamId: true } } },
+      },
+    },
+  });
+
+  if (!comment) {
+    return res.status(404).json({ error: 'Comment not found' });
+  }
+
+  await prisma.webhookComment.delete({ where: { id: req.params.commentId } });
+
+  if (comment.webhook.project.teamId) {
+    await logActivity({
+      teamId: comment.webhook.project.teamId,
+      userId: req.user!.id,
+      action: 'comment_deleted',
+      targetType: 'webhook',
+      targetId: req.params.id,
+    });
+  }
+
+  res.json({ success: true });
 });
 
 export default router;

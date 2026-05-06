@@ -26,6 +26,8 @@ model User {
   teams         TeamMember[]
   teamsOwned    Team[]
   sessions      Session[]
+  comments      WebhookComment[]
+  activityLogs  ActivityLog[]
 
   @@map("users")
 }
@@ -62,6 +64,7 @@ model Team {
   owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members     TeamMember[]
   projects    Project[]
+  activityLogs ActivityLog[]
 
   @@map("teams")
 }
@@ -138,6 +141,7 @@ model Webhook {
   createdAt   DateTime @default(now()) @map("created_at")
 
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  comments    WebhookComment[]
 
   @@index([projectId, createdAt])
   @@map("webhooks")
@@ -159,4 +163,36 @@ enum IntegrationType {
   SLACK
   DISCORD
   EMAIL
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  teamId     String   @map("team_id")
+  userId     String   @map("user_id")
+  action     String   // e.g. 'project_created', 'webhook_replayed', 'member_invited'
+  targetType String?  @map("target_type") // 'project', 'webhook', 'member', 'team'
+  targetId   String?  @map("target_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, createdAt])
+  @@map("activity_logs")
+}
+
+model WebhookComment {
+  id        String   @id @default(cuid())
+  webhookId String   @map("webhook_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  webhook   Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId, createdAt])
+  @@map("webhook_comments")
 }

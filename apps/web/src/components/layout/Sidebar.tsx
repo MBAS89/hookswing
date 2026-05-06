@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2
+  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
@@ -34,6 +34,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const teamProjects = projects.filter((p) => p.team);
 
   const teamOptions = user?.teams?.map((t) => ({ id: t.team.id, name: t.team.name })) || [];
+  const isTeamPlan = user?.plan === 'TEAM';
 
   return (
     <>
@@ -105,6 +106,31 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               )}
             </nav>
           </div>
+
+          {/* Workspaces (Team plan only) */}
+          {isTeamPlan && user?.teams && user.teams.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between px-3 mb-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Workspaces</span>
+              </div>
+              <nav className="space-y-1">
+                {user.teams.map((membership) => (
+                  <Link
+                    key={membership.team.id}
+                    to={`/dashboard/workspace/${membership.team.id}`}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      location.pathname === `/dashboard/workspace/${membership.team.id}`
+                        ? 'bg-amber-500/10 text-amber-400'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <Globe className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span className="truncate">{membership.team.name}</span>
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          )}
 
           {/* Team Projects */}
           {teamProjects.length > 0 && (

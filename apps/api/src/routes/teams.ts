@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { logActivity } from '../lib/activity';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 
@@ -123,6 +124,15 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     },
   });
 
+  await logActivity({
+    teamId: req.params.id,
+    userId: req.user!.id,
+    action: 'team_renamed',
+    targetType: 'team',
+    targetId: req.params.id,
+    metadata: { oldName: team.name, newName: result.data.name },
+  });
+
   res.json(updated);
 });
 
@@ -141,6 +151,90 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 
   await prisma.team.delete({ where: { id: req.params.id } });
   res.json({ success: true });
+});
+
+// --- Workspace data (Team plan only) ---
+router.get('/:id/workspace', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (user?.plan !== 'TEAM') {
+    return res.status(403).json({ error: 'Workspace requires Team plan' });
+  }
+
+  const team = await prisma.team.findFirst({
+    where: {
+      id: req.params.id,
+      members: { some: { userId: req.user!.id } },
+    },
+    include: {
+      members: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+      },
+      projects: {
+        select: { id: true, name: true, slug: true, description: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      },
+    },
+  });
+
+  if (!team) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  const projectIds = team.projects.map((p) => p.id);
+  const totalWebhooks = await prisma.webhook.count({
+    where: { projectId: { in: projectIds } },
+  });
+  const recentWebhooks = await prisma.webhook.findMany({
+    where: { projectId: { in: projectIds } },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+    include: { project: { select: { id: true, name: true } } },
+  });
+
+  res.json({
+    team: {
+      id: team.id,
+      name: team.name,
+      ownerId: team.ownerId,
+      members: team.members,
+      projects: team.projects,
+    },
+    aggregate: {
+      totalProjects: team.projects.length,
+      totalWebhooks,
+      recentWebhooks,
+    },
+  });
+});
+
+// --- Activity log ---
+router.get('/:id/activity', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (user?.plan !== 'TEAM') {
+    return res.status(403).json({ error: 'Activity log requires Team plan' });
+  }
+
+  const team = await prisma.team.findFirst({
+    where: {
+      id: req.params.id,
+      members: { some: { userId: req.user!.id } },
+    },
+  });
+
+  if (!team) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  const logs = await prisma.activityLog.findMany({
+    where: { teamId: req.params.id },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
+
+  res.json(logs);
 });
 
 // --- Leave team (non-owner) ---
@@ -213,6 +307,14 @@ router.post('/:id/transfer', async (req: AuthRequest, res) => {
     data: { ownerId: result.data.newOwnerId },
   });
 
+  await logActivity({
+    teamId: req.params.id,
+    userId: req.user!.id,
+    action: 'team_transferred',
+    targetType: 'member',
+    targetId: result.data.newOwnerId,
+  });
+
   res.json({ success: true });
 });
 
@@ -264,6 +366,15 @@ router.post('/:id/members', async (req: AuthRequest, res) => {
     include: { user: { select: { id: true, email: true, name: true } } },
   });
 
+  await logActivity({
+    teamId: req.params.id,
+    userId: req.user!.id,
+    action: 'member_invited',
+    targetType: 'member',
+    targetId: invitedUser.id,
+    metadata: { email: invitedUser.email, role: result.data.role || 'MEMBER' },
+  });
+
   res.status(201).json(member);
 });
 
@@ -299,6 +410,15 @@ router.patch('/:id/members/:userId', async (req: AuthRequest, res) => {
     data: { role: result.data.role },
   });
 
+  await logActivity({
+    teamId: req.params.id,
+    userId: req.user!.id,
+    action: 'member_role_changed',
+    targetType: 'member',
+    targetId: req.params.userId,
+    metadata: { newRole: result.data.role },
+  });
+
   res.json({ success: true });
 });
 
@@ -325,6 +445,14 @@ router.delete('/:id/members/:userId', async (req: AuthRequest, res) => {
       teamId: req.params.id,
       userId: req.params.userId,
     },
+  });
+
+  await logActivity({
+    teamId: req.params.id,
+    userId: req.user!.id,
+    action: 'member_removed',
+    targetType: 'member',
+    targetId: req.params.userId,
   });
 
   res.json({ success: true });

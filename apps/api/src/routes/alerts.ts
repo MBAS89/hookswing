@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { logActivity } from '../lib/activity';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 
@@ -92,6 +93,17 @@ router.post('/', async (req: AuthRequest, res) => {
 
   const alert = await prisma.alertConfig.create({ data });
 
+  if (project.teamId) {
+    await logActivity({
+      teamId: project.teamId,
+      userId: req.user!.id,
+      action: 'alert_added',
+      targetType: 'project',
+      targetId: project.id,
+      metadata: { alertType: result.data.type },
+    });
+  }
+
   res.status(201).json(alert);
 });
 
@@ -132,6 +144,21 @@ router.patch('/:alertId', async (req: AuthRequest, res) => {
     return res.status(404).json({ error: 'Alert not found' });
   }
 
+  const proj = await prisma.project.findUnique({
+    where: { id: req.params.projectId },
+    select: { teamId: true },
+  });
+  if (proj?.teamId && result.data.enabled !== undefined) {
+    await logActivity({
+      teamId: proj.teamId,
+      userId: req.user!.id,
+      action: 'alert_toggled',
+      targetType: 'project',
+      targetId: req.params.projectId,
+      metadata: { alertId: req.params.alertId, enabled: result.data.enabled },
+    });
+  }
+
   res.json({ success: true });
 });
 
@@ -154,6 +181,17 @@ router.delete('/:alertId', async (req: AuthRequest, res) => {
   await prisma.alertConfig.deleteMany({
     where: { id: req.params.alertId, projectId: req.params.projectId },
   });
+
+  if (project.teamId) {
+    await logActivity({
+      teamId: project.teamId,
+      userId: req.user!.id,
+      action: 'alert_removed',
+      targetType: 'project',
+      targetId: project.id,
+      metadata: { alertId: req.params.alertId },
+    });
+  }
 
   res.json({ success: true });
 });

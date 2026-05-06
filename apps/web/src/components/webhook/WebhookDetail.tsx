@@ -1,8 +1,17 @@
-import { useState } from 'react';
-import { X, Copy, Play, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2 } from 'lucide-react';
 import { methodColor, formatDate, formatBytes } from '../../lib/utils';
+import { api } from '../../lib/api';
+import { useAuth } from '../../hooks/useAuth';
 import JsonViewer from './JsonViewer';
 import type { Webhook } from '../../hooks/useWebhooks';
+
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: { id: string; name: string | null; email: string };
+}
 
 export default function WebhookDetail({
   webhook,
@@ -17,9 +26,50 @@ export default function WebhookDetail({
   onReplay: (id: string, url: string) => void;
   canReplay?: boolean;
 }) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body'>('overview');
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'comments'>('overview');
   const [replayUrl, setReplayUrl] = useState('http://localhost:3000/webhook');
   const [showReplay, setShowReplay] = useState(false);
+
+  // Comments (Team plan only)
+  const isTeamPlan = user?.plan === 'TEAM';
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isTeamPlan) return;
+    setCommentsLoading(true);
+    api.get(`/webhooks/${webhook.id}/comments`)
+      .then((res) => setComments(res.data))
+      .catch(() => setComments([]))
+      .finally(() => setCommentsLoading(false));
+  }, [webhook.id, isTeamPlan]);
+
+  const addComment = async () => {
+    if (!commentText.trim()) return;
+    setCommentLoading(true);
+    try {
+      const res = await api.post(`/webhooks/${webhook.id}/comments`, { content: commentText.trim() });
+      setComments((prev) => [...prev, res.data]);
+      setCommentText('');
+    } catch {
+      alert('Failed to add comment');
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  const deleteComment = async (commentId: string) => {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      await api.delete(`/webhooks/${webhook.id}/comments/${commentId}`);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch {
+      alert('Failed to delete comment');
+    }
+  };
 
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
 
@@ -81,17 +131,21 @@ export default function WebhookDetail({
       )}
 
       <div className="flex border-b border-slate-800">
-        {(['overview', 'headers', 'body'] as const).map((tab) => (
+        {(['overview', 'headers', 'body', 'comments'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2.5 text-sm font-medium capitalize transition-colors ${
+            className={`flex-1 py-2.5 text-sm font-medium capitalize transition-colors flex items-center justify-center gap-1.5 ${
               activeTab === tab
                 ? 'text-emerald-400 border-b-2 border-emerald-500'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
+            {tab === 'comments' && <MessageSquare className="w-3.5 h-3.5" />}
             {tab}
+            {tab === 'comments' && comments.length > 0 && (
+              <span className="text-[10px] bg-slate-700 text-slate-300 px-1 rounded-full">{comments.length}</span>
+            )}
           </button>
         ))}
       </div>
@@ -162,6 +216,74 @@ export default function WebhookDetail({
               <JsonViewer data={webhook.body} />
             ) : (
               <p className="text-slate-500 text-sm">No body</p>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'comments' && (
+          <div className="space-y-3">
+            {!isTeamPlan ? (
+              <div className="text-center py-8 text-slate-500">
+                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Comments require Team plan</p>
+              </div>
+            ) : (
+              <>
+                {/* Add comment */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addComment()}
+                    placeholder="Add a comment..."
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    onClick={addComment}
+                    disabled={commentLoading || !commentText.trim()}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                  >
+                    {commentLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Comments list */}
+                {commentsLoading ? (
+                  <div className="flex items-center justify-center h-20">
+                    <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                  </div>
+                ) : comments.length === 0 ? (
+                  <p className="text-sm text-slate-600 text-center py-4">No comments yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {comments.map((comment) => (
+                      <div key={comment.id} className="bg-slate-800/50 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[10px] font-bold">
+                              {(comment.user.name || comment.user.email).charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-xs font-medium text-slate-300">
+                              {comment.user.name || comment.user.email}
+                            </span>
+                            <span className="text-xs text-slate-600">{formatDate(comment.createdAt)}</span>
+                          </div>
+                          {comment.user.id === user?.id && (
+                            <button
+                              onClick={() => deleteComment(comment.id)}
+                              className="text-slate-600 hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-200">{comment.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

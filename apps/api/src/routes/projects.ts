@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { logActivity } from '../lib/activity';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 
@@ -106,6 +107,17 @@ router.post('/', async (req: AuthRequest, res) => {
     },
   });
 
+  if (teamId) {
+    await logActivity({
+      teamId,
+      userId,
+      action: 'project_created',
+      targetType: 'project',
+      targetId: project.id,
+      metadata: { name: project.name },
+    });
+  }
+
   res.status(201).json({
     ...project,
     webhookUrl: `${req.protocol}://${req.get('host')}/hook/${slug}`,
@@ -199,6 +211,19 @@ router.patch('/:id', async (req: AuthRequest, res) => {
   }
 
   const updated = await prisma.project.findUnique({ where: { id: req.params.id } });
+
+  if (updated?.teamId) {
+    const action = result.data.customSlug !== undefined ? 'custom_slug_changed' : 'project_updated';
+    await logActivity({
+      teamId: updated.teamId,
+      userId: req.user!.id,
+      action,
+      targetType: 'project',
+      targetId: updated.id,
+      metadata: { name: updated.name, changes: Object.keys(result.data) },
+    });
+  }
+
   res.json(updated);
 });
 
@@ -219,6 +244,22 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 
   if (project.count === 0) {
     return res.status(404).json({ error: 'Project not found or unauthorized' });
+  }
+
+  // Log activity before deletion (need to fetch teamId first)
+  const deletedProject = await prisma.project.findUnique({
+    where: { id: req.params.id },
+    select: { teamId: true, name: true },
+  });
+  if (deletedProject?.teamId) {
+    await logActivity({
+      teamId: deletedProject.teamId,
+      userId: req.user!.id,
+      action: 'project_deleted',
+      targetType: 'project',
+      targetId: req.params.id,
+      metadata: { name: deletedProject.name },
+    });
   }
 
   res.json({ success: true });
