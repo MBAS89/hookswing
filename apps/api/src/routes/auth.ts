@@ -266,7 +266,12 @@ router.get('/me', async (req: AuthRequest, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
+      select: {
+        id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true,
+        teams: {
+          select: { team: { select: { id: true, name: true } }, role: true },
+        },
+      },
     });
     if (!user) return res.status(401).json({ error: 'User not found' });
     res.json({ user });

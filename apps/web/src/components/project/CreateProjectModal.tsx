@@ -1,15 +1,22 @@
 import { useState } from 'react';
-import { X, FolderGit2, Loader2 } from 'lucide-react';
+import { X, FolderGit2, Loader2, Users } from 'lucide-react';
+
+interface TeamOption {
+  id: string;
+  name: string;
+}
 
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, description?: string) => Promise<void>;
+  onCreate: (name: string, description?: string, teamId?: string) => Promise<void>;
+  teams?: TeamOption[];
 }
 
-export default function CreateProjectModal({ isOpen, onClose, onCreate }: CreateProjectModalProps) {
+export default function CreateProjectModal({ isOpen, onClose, onCreate, teams }: CreateProjectModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [teamId, setTeamId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,9 +33,10 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate }: Create
 
     setLoading(true);
     try {
-      await onCreate(name.trim(), description.trim() || undefined);
+      await onCreate(name.trim(), description.trim() || undefined, teamId || undefined);
       setName('');
       setDescription('');
+      setTeamId('');
       onClose();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to create project');
@@ -41,6 +49,7 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate }: Create
     if (!loading) {
       setName('');
       setDescription('');
+      setTeamId('');
       setError('');
       onClose();
     }
@@ -91,6 +100,28 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate }: Create
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
             />
           </div>
+
+          {teams && teams.length > 0 && (
+            <div>
+              <label htmlFor="project-team" className="block text-sm font-medium text-slate-300 mb-1.5">
+                Team <span className="text-slate-500">(optional)</span>
+              </label>
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <select
+                  id="project-team"
+                  value={teamId}
+                  onChange={(e) => setTeamId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
+                >
+                  <option value="">Personal</option>
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           <div>
             <label htmlFor="project-description" className="block text-sm font-medium text-slate-300 mb-1.5">

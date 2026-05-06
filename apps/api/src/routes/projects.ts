@@ -43,6 +43,7 @@ router.post('/', async (req: AuthRequest, res) => {
   const schema = z.object({
     name: z.string().min(1).max(100),
     description: z.string().max(500).optional(),
+    teamId: z.string().optional(),
   });
 
   const result = schema.safeParse(req.body);
@@ -50,13 +51,26 @@ router.post('/', async (req: AuthRequest, res) => {
     return res.status(400).json({ error: 'Invalid input' });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: req.user!.id },
-    include: { _count: { select: { projects: true } } },
-  });
+  const { teamId } = result.data;
+  const userId = req.user!.id;
 
-  if (user?.plan === 'FREE' && user._count.projects >= 3) {
-    return res.status(403).json({ error: 'Free plan limited to 3 projects' });
+  // If creating for a team, verify membership
+  if (teamId) {
+    const membership = await prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId, userId } },
+    });
+    if (!membership) {
+      return res.status(403).json({ error: 'You are not a member of this team' });
+    }
+  } else {
+    // Personal project: check plan limit
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { _count: { select: { projects: true } } },
+    });
+    if (user?.plan === 'FREE' && user._count.projects >= 3) {
+      return res.status(403).json({ error: 'Free plan limited to 3 projects' });
+    }
   }
 
   let slug = generateSlug();
@@ -69,7 +83,12 @@ router.post('/', async (req: AuthRequest, res) => {
       name: result.data.name,
       description: result.data.description,
       slug,
-      userId: req.user!.id,
+      userId: teamId ? null : userId,
+      teamId: teamId || null,
+    },
+    include: {
+      _count: { select: { webhooks: true } },
+      team: { select: { id: true, name: true } },
     },
   });
 

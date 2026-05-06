@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '../hooks/useProjects';
-import { FolderGit2, Webhook, Activity, Plus } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { FolderGit2, Webhook, Activity, Plus, Users2 } from 'lucide-react';
 import CreateProjectModal from '../components/project/CreateProjectModal';
 
 export default function DashboardPage() {
   const { projects, loading, createProject } = useProjects();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -15,10 +17,14 @@ export default function DashboardPage() {
     }
   }, [loading, projects, navigate]);
 
-  const handleCreate = async (name: string, description?: string) => {
-    const project = await createProject(name, description);
+  const handleCreate = async (name: string, description?: string, teamId?: string) => {
+    const project = await createProject(name, description, teamId);
     navigate(`/dashboard/projects/${project.id}`);
   };
+
+  const personalProjects = projects.filter((p) => !p.team);
+  const teamProjectList = projects.filter((p) => p.team);
+  const teamOptions = user?.teams?.map((t) => ({ id: t.team.id, name: t.team.name })) || [];
 
   if (loading) {
     return <div className="text-slate-400">Loading...</div>;
@@ -49,34 +55,74 @@ export default function DashboardPage() {
           </button>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <button
-              key={project.id}
-              onClick={() => navigate(`/dashboard/projects/${project.id}`)}
-              className="bg-slate-900 rounded-xl border border-slate-800 p-6 text-left hover:border-slate-700 transition-all hover:scale-[1.01]"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-                  <FolderGit2 className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">{project.name}</h3>
-                  <p className="text-xs text-slate-500 font-mono">{project.slug}</p>
-                </div>
+        <div className="space-y-8">
+          {/* Personal Projects */}
+          {personalProjects.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Personal Projects</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {personalProjects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => navigate(`/dashboard/projects/${project.id}`)}
+                    className="bg-slate-900 rounded-xl border border-slate-800 p-6 text-left hover:border-slate-700 transition-all hover:scale-[1.01]"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+                        <FolderGit2 className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white">{project.name}</h3>
+                        <p className="text-xs text-slate-500 font-mono">{project.slug}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <Webhook className="w-4 h-4" />
+                        <span>{project._count?.webhooks || 0} webhooks</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
-              <div className="flex items-center gap-4 text-sm text-slate-400">
-                <div className="flex items-center gap-1.5">
-                  <Webhook className="w-4 h-4" />
-                  <span>{project._count?.webhooks || 0} webhooks</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Activity className="w-4 h-4" />
-                  <span>{project.team ? 'Team' : 'Personal'}</span>
-                </div>
+            </div>
+          )}
+
+          {/* Team Projects */}
+          {teamProjectList.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Team Projects</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {teamProjectList.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => navigate(`/dashboard/projects/${project.id}`)}
+                    className="bg-slate-900 rounded-xl border border-slate-800 p-6 text-left hover:border-slate-700 transition-all hover:scale-[1.01]"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
+                        <Users2 className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white">{project.name}</h3>
+                        <p className="text-xs text-slate-500 font-mono">{project.slug}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <Webhook className="w-4 h-4" />
+                        <span>{project._count?.webhooks || 0} webhooks</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Users2 className="w-4 h-4 text-amber-400" />
+                        <span className="text-amber-400">{project.team?.name}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
-            </button>
-          ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -84,6 +130,7 @@ export default function DashboardPage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreate={handleCreate}
+        teams={teamOptions}
       />
     </div>
   );

@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { api } from '../lib/api';
 
+interface TeamMembership {
+  team: { id: string; name: string };
+  role: string;
+}
+
 interface User {
   id: string;
   email: string;
@@ -8,6 +13,7 @@ interface User {
   role: string;
   plan: string;
   twoFactorEnabled: boolean;
+  teams?: TeamMembership[];
 }
 
 interface AuthContextType {

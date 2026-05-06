@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderGit2, Users, Settings, X, Plus
+  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
@@ -12,7 +12,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const location = useLocation();
   const navigate = useNavigate();
   const { projects, createProject } = useProjects();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     onClose();
@@ -25,10 +25,15 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
 
   const [modalOpen, setModalOpen] = useState(false);
 
-  const handleCreate = async (name: string, description?: string) => {
-    const project = await createProject(name, description);
+  const handleCreate = async (name: string, description?: string, teamId?: string) => {
+    const project = await createProject(name, description, teamId);
     navigate(`/dashboard/projects/${project.id}`);
   };
+
+  const personalProjects = projects.filter((p) => !p.team);
+  const teamProjects = projects.filter((p) => p.team);
+
+  const teamOptions = user?.teams?.map((t) => ({ id: t.team.id, name: t.team.name })) || [];
 
   return (
     <>
@@ -49,6 +54,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         </div>
 
         <div className="flex-1 overflow-auto py-4 px-3 space-y-6">
+          {/* Menu */}
           <div>
             <div className="flex items-center justify-between px-3 mb-2">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Menu</span>
@@ -71,6 +77,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             </nav>
           </div>
 
+          {/* Personal Projects */}
           <div>
             <div className="flex items-center justify-between px-3 mb-2">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Projects</span>
@@ -79,7 +86,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               </button>
             </div>
             <nav className="space-y-1">
-              {projects.map((project) => (
+              {personalProjects.map((project) => (
                 <Link
                   key={project.id}
                   to={`/dashboard/projects/${project.id}`}
@@ -93,11 +100,36 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   <span className="truncate">{project.name}</span>
                 </Link>
               ))}
-              {projects.length === 0 && (
+              {personalProjects.length === 0 && teamProjects.length === 0 && (
                 <p className="px-3 text-xs text-slate-600">No projects yet</p>
               )}
             </nav>
           </div>
+
+          {/* Team Projects */}
+          {teamProjects.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between px-3 mb-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Team Projects</span>
+              </div>
+              <nav className="space-y-1">
+                {teamProjects.map((project) => (
+                  <Link
+                    key={project.id}
+                    to={`/dashboard/projects/${project.id}`}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      location.pathname === `/dashboard/projects/${project.id}`
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <Users2 className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span className="truncate">{project.name}</span>
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          )}
         </div>
 
         <div className="p-3 border-t border-slate-800">
@@ -115,6 +147,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreate={handleCreate}
+        teams={teamOptions}
       />
     </>
   );

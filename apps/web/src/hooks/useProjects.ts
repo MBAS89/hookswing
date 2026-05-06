@@ -31,8 +31,8 @@ export function useProjects() {
     fetchProjects();
   }, [fetchProjects]);
 
-  const createProject = useCallback(async (name: string, description?: string) => {
-    const res = await api.post('/projects', { name, description });
+  const createProject = useCallback(async (name: string, description?: string, teamId?: string) => {
+    const res = await api.post('/projects', { name, description, teamId });
     setProjects((prev) => [res.data, ...prev]);
     return res.data;
   }, []);
