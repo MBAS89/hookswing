@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { Server as SocketIOServer } from 'socket.io';
@@ -19,7 +20,7 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL || true,
     credentials: true,
   },
   path: '/socket.io',
@@ -32,7 +33,7 @@ const wsConnections = new Map<string, Set<any>>();
 app.set('trust proxy', 1);
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || true,
   credentials: true,
 }));
 
@@ -130,6 +131,15 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/billing', billingRoutes);
+
+// Serve frontend static files (production only)
+const webDistPath = path.resolve(__dirname, '../../web/dist');
+app.use(express.static(webDistPath));
+
+// SPA catch-all — serve index.html for any non-API route
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(webDistPath, 'index.html'));
+});
 
 // Socket.IO auth middleware
 io.use((socket, next) => {
