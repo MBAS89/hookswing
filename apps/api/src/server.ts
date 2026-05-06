@@ -98,6 +98,11 @@ app.all('/hook/:slug', hookRateLimit, express.raw({ type: '*/*', limit: '1mb' })
   res.status(200).json({ ok: true, dropped: isDropped });
 });
 
+// Healthcheck endpoint (must be public, no auth)
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // JSON parser for all other routes
 app.use(express.json({ limit: '1mb' }));
 
