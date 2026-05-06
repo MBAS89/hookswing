@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderGit2, CreditCard, Users, Settings, X, Plus
+  LayoutDashboard, FolderGit2, Users, Settings, X, Plus
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
@@ -20,7 +20,6 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-    { icon: CreditCard, label: 'Billing', href: '/dashboard/billing' },
     { icon: Users, label: 'Team', href: '/dashboard/team' },
   ];
 

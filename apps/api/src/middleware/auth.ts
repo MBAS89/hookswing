@@ -9,6 +9,7 @@ export interface AuthRequest extends Request {
     name: string | null;
     role: string;
     plan: string;
+    twoFactorEnabled: boolean;
   };
 }
 
@@ -31,7 +32,7 @@ export async function authMiddleware(
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true, role: true, plan: true },
+      select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
     });
 
     if (!user) {

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import speakeasy from 'speakeasy';
+import QRCode from 'qrcode';
 import { prisma } from '../lib/prisma';
 import { authRateLimit } from '../middleware/rateLimit';
 import type { AuthRequest } from '../middleware/auth';
@@ -19,6 +21,11 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
+const login2faSchema = z.object({
+  tempToken: z.string(),
+  code: z.string().min(6).max(8),
+});
+
 function generateTokens(userId: string) {
   const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET!, {
     expiresIn: '15m',
@@ -29,6 +36,18 @@ function generateTokens(userId: string) {
   return { accessToken, refreshToken };
 }
 
+function generateBackupCodes(): { codes: string[]; hashed: string[] } {
+  const codes: string[] = [];
+  const hashed: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    codes.push(code);
+    hashed.push(bcrypt.hashSync(code, 10));
+  }
+  return { codes, hashed };
+}
+
+// --- Registration ---
 router.post('/register', authRateLimit, async (req, res) => {
   const result = registerSchema.safeParse(req.body);
   if (!result.success) {
@@ -45,7 +64,7 @@ router.post('/register', authRateLimit, async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: { email, passwordHash, name },
-    select: { id: true, email: true, name: true, role: true, plan: true },
+    select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
   });
 
   const { accessToken, refreshToken } = generateTokens(user.id);
@@ -61,6 +80,7 @@ router.post('/register', authRateLimit, async (req, res) => {
   res.json({ user, accessToken, refreshToken });
 });
 
+// --- Login ---
 router.post('/login', authRateLimit, async (req, res) => {
   const result = loginSchema.safeParse(req.body);
   if (!result.success) {
@@ -77,6 +97,16 @@ router.post('/login', authRateLimit, async (req, res) => {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  // If 2FA is enabled, return a temp token
+  if (user.twoFactorEnabled) {
+    const tempToken = jwt.sign(
+      { userId: user.id, step: '2fa' },
+      process.env.JWT_SECRET!,
+      { expiresIn: '5m' }
+    );
+    return res.json({ requires2FA: true, tempToken });
   }
 
   const { accessToken, refreshToken } = generateTokens(user.id);
@@ -96,12 +126,96 @@ router.post('/login', authRateLimit, async (req, res) => {
       name: user.name,
       role: user.role,
       plan: user.plan,
+      twoFactorEnabled: user.twoFactorEnabled,
     },
     accessToken,
     refreshToken,
   });
 });
 
+// --- Login 2FA verification ---
+router.post('/login/2fa', authRateLimit, async (req, res) => {
+  const result = login2faSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const { tempToken, code } = result.data;
+
+  let decoded: { userId: string; step: string };
+  try {
+    decoded = jwt.verify(tempToken, process.env.JWT_SECRET!) as any;
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  if (decoded.step !== '2fa') {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.userId },
+  });
+
+  if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+    return res.status(401).json({ error: '2FA not enabled' });
+  }
+
+  // Verify TOTP code
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token: code,
+    window: 1,
+  });
+
+  // Check backup codes if TOTP fails
+  let backupCodeUsed = false;
+  if (!verified && user.twoFactorBackupCodes) {
+    const hashedCodes = JSON.parse(user.twoFactorBackupCodes) as string[];
+    for (let i = 0; i < hashedCodes.length; i++) {
+      if (await bcrypt.compare(code, hashedCodes[i])) {
+        backupCodeUsed = true;
+        // Remove used backup code
+        hashedCodes.splice(i, 1);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { twoFactorBackupCodes: JSON.stringify(hashedCodes) },
+        });
+        break;
+      }
+    }
+  }
+
+  if (!verified && !backupCodeUsed) {
+    return res.status(401).json({ error: 'Invalid 2FA code' });
+  }
+
+  const { accessToken, refreshToken } = generateTokens(user.id);
+
+  await prisma.session.create({
+    data: {
+      userId: user.id,
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  res.json({
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      plan: user.plan,
+      twoFactorEnabled: user.twoFactorEnabled,
+    },
+    accessToken,
+    refreshToken,
+  });
+});
+
+// --- Refresh ---
 router.post('/refresh', async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
@@ -131,6 +245,7 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
+// --- Logout ---
 router.post('/logout', async (req: AuthRequest, res) => {
   const { refreshToken } = req.body;
   if (refreshToken) {
@@ -139,6 +254,7 @@ router.post('/logout', async (req: AuthRequest, res) => {
   res.json({ success: true });
 });
 
+// --- Get current user ---
 router.get('/me', async (req: AuthRequest, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -150,13 +266,264 @@ router.get('/me', async (req: AuthRequest, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true, role: true, plan: true },
+      select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
     });
     if (!user) return res.status(401).json({ error: 'User not found' });
     res.json({ user });
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
+});
+
+// --- Update profile ---
+router.patch('/me', async (req: AuthRequest, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.slice(7);
+  let userId: string;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    userId = decoded.userId;
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const schema = z.object({
+    name: z.string().min(1).max(100).optional(),
+    email: z.string().email().optional(),
+  });
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const { name, email } = result.data;
+  const data: any = {};
+  if (name !== undefined) data.name = name;
+  if (email !== undefined) {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing && existing.id !== userId) {
+      return res.status(409).json({ error: 'Email already in use' });
+    }
+    data.email = email;
+  }
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data,
+    select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
+  });
+
+  res.json({ user });
+});
+
+// --- Change password ---
+router.post('/change-password', async (req: AuthRequest, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.slice(7);
+  let userId: string;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    userId = decoded.userId;
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const schema = z.object({
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(6),
+  });
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const { currentPassword, newPassword } = result.data;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) {
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+
+  // Invalidate all sessions
+  await prisma.session.deleteMany({ where: { userId } });
+
+  res.json({ success: true });
+});
+
+// --- 2FA: Setup (generate secret + QR) ---
+router.post('/2fa/setup', async (req: AuthRequest, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.slice(7);
+  let userId: string;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    userId = decoded.userId;
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (user.twoFactorEnabled) {
+    return res.status(400).json({ error: '2FA is already enabled' });
+  }
+
+  const secret = speakeasy.generateSecret({
+    name: `WebhookVault (${user.email})`,
+    length: 32,
+  });
+
+  // Store secret temporarily (not enabled yet)
+  await prisma.user.update({
+    where: { id: userId },
+    data: { twoFactorSecret: secret.base32 },
+  });
+
+  const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
+
+  res.json({
+    secret: secret.base32,
+    qrCode: qrCodeUrl,
+  });
+});
+
+// --- 2FA: Verify and enable ---
+router.post('/2fa/verify', async (req: AuthRequest, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.slice(7);
+  let userId: string;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    userId = decoded.userId;
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const schema = z.object({ code: z.string().min(6).max(8) });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || !user.twoFactorSecret) {
+    return res.status(400).json({ error: '2FA setup not initiated' });
+  }
+  if (user.twoFactorEnabled) {
+    return res.status(400).json({ error: '2FA is already enabled' });
+  }
+
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token: result.data.code,
+    window: 1,
+  });
+
+  if (!verified) {
+    return res.status(401).json({ error: 'Invalid code' });
+  }
+
+  const { codes, hashed } = generateBackupCodes();
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      twoFactorEnabled: true,
+      twoFactorBackupCodes: JSON.stringify(hashed),
+    },
+  });
+
+  res.json({
+    enabled: true,
+    backupCodes: codes,
+  });
+});
+
+// --- 2FA: Disable ---
+router.post('/2fa/disable', async (req: AuthRequest, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.slice(7);
+  let userId: string;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    userId = decoded.userId;
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const schema = z.object({
+    password: z.string().min(1),
+    code: z.string().min(6).max(8),
+  });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const { password, code } = result.data;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+    return res.status(400).json({ error: '2FA is not enabled' });
+  }
+
+  const validPassword = await bcrypt.compare(password, user.passwordHash);
+  if (!validPassword) {
+    return res.status(401).json({ error: 'Password is incorrect' });
+  }
+
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token: code,
+    window: 1,
+  });
+
+  if (!verified) {
+    return res.status(401).json({ error: 'Invalid 2FA code' });
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      twoFactorEnabled: false,
+      twoFactorSecret: null,
+      twoFactorBackupCodes: null,
+    },
+  });
+
+  res.json({ disabled: true });
 });
 
 export default router;

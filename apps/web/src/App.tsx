@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import ProjectPage from './pages/ProjectPage';
 import BillingPage from './pages/BillingPage';
 import TeamPage from './pages/TeamPage';
+import AccountPage from './pages/AccountPage';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -25,7 +26,8 @@ function AppRoutes() {
       <Route path="/docs" element={<DocsPage />} />
       <Route path="/dashboard" element={<PrivateRoute><DashboardLayout><DashboardPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/projects/:id" element={<PrivateRoute><DashboardLayout><ProjectPage /></DashboardLayout></PrivateRoute>} />
-      <Route path="/dashboard/billing" element={<PrivateRoute><DashboardLayout><BillingPage /></DashboardLayout></PrivateRoute>} />
+      <Route path="/dashboard/billing" element={<Navigate to="/dashboard/account" replace />} />
+      <Route path="/dashboard/account" element={<PrivateRoute><DashboardLayout><AccountPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/team" element={<PrivateRoute><DashboardLayout><TeamPage /></DashboardLayout></PrivateRoute>} />
     </Routes>
   );

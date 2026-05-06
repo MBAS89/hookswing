@@ -7,14 +7,17 @@ interface User {
   name: string | null;
   role: string;
   plan: string;
+  twoFactorEnabled: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
+  verify2FA: (tempToken: string, code: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -40,6 +43,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
+    if (res.data.requires2FA) {
+      return res.data; // { requires2FA: true, tempToken }
+    }
+    localStorage.setItem('accessToken', res.data.accessToken);
+    localStorage.setItem('refreshToken', res.data.refreshToken);
+    setUser(res.data.user);
+    return res.data;
+  }, []);
+
+  const verify2FA = useCallback(async (tempToken: string, code: string) => {
+    const res = await api.post('/auth/login/2fa', { tempToken, code });
     localStorage.setItem('accessToken', res.data.accessToken);
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
@@ -60,8 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateUser = useCallback((updatedUser: User) => {
+    setUser(updatedUser);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, verify2FA, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
