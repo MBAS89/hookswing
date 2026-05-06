@@ -1,0 +1,104 @@
+const WebSocket = require('ws');
+const axios = require('axios');
+const chalk = require('chalk');
+const { readConfig } = require('../lib/config');
+const { formatWebhookLine } = require('../lib/formatter');
+
+async function forward(slug, localUrl, options) {
+  const config = readConfig();
+  if (!config?.accessToken) {
+    console.error(chalk.red('Not authenticated. Run: webhookvault login'));
+    process.exit(1);
+  }
+
+  const apiUrl = config.apiUrl || 'https://api.webhookvault.io';
+  const wsUrl = apiUrl.replace(/^http/, 'ws');
+
+  // Get project info
+  let projectName = slug;
+  try {
+    const projects = await axios.get(`${apiUrl}/api/projects`, {
+      headers: { Authorization: `Bearer ${config.accessToken}` },
+    });
+    const project = projects.data.projects.find((p) => p.slug === slug);
+    if (project) projectName = project.name;
+  } catch {
+    // ignore
+  }
+
+  console.log(chalk.cyan('🪝 WebhookVault Forwarder'));
+  console.log(chalk.gray(`   Project: ${projectName} (${slug})`));
+  console.log(chalk.gray(`   Target:  ${localUrl}`));
+  console.log();
+  console.log(chalk.gray('   [Press Ctrl+C to stop]'));
+  console.log();
+
+  let total = 0;
+  let success = 0;
+  let failed = 0;
+
+  const ws = new WebSocket(`${wsUrl}/ws?token=${config.accessToken}`);
+
+  ws.on('open', () => {
+    ws.send(JSON.stringify({ action: 'subscribe', slug }));
+  });
+
+  ws.on('message', async (data) => {
+    try {
+      const msg = JSON.parse(data.toString());
+      if (msg.type !== 'webhook' || !msg.data) return;
+
+      const webhook = msg.data;
+      total++;
+
+      try {
+        const start = Date.now();
+        const res = await axios({
+          method: webhook.method,
+          url: localUrl,
+          headers: webhook.headers,
+          data: webhook.body,
+          timeout: 30000,
+          validateStatus: () => true,
+        });
+        const responseTime = Date.now() - start;
+
+        webhook.statusCode = res.status;
+        webhook.responseTime = responseTime;
+
+        if (res.status >= 200 && res.status < 300) success++;
+        else failed++;
+      } catch (err) {
+        webhook.statusCode = 0;
+        webhook.responseTime = 0;
+        failed++;
+      }
+
+      if (!options.quiet) {
+        console.log(formatWebhookLine(webhook, options.verbose));
+      } else if (failed > 0 && webhook.statusCode >= 500) {
+        console.log(formatWebhookLine(webhook, false));
+      }
+
+      if (total === 50) {
+        console.log();
+        console.log(chalk.yellow('💡 Unlock 90-day history and replay at webhookvault.io'));
+      }
+    } catch {
+      // ignore invalid messages
+    }
+  });
+
+  ws.on('error', (err) => {
+    console.error(chalk.red('WebSocket error:'), err.message);
+  });
+
+  process.on('SIGINT', () => {
+    console.log();
+    console.log(chalk.gray(`Requests: ${total}  │  Success: ${success}  │  Failed: ${failed}`));
+    ws.close();
+    process.exit(0);
+  });
+}
+
+module.exports = forward;
