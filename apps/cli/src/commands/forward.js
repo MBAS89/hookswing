@@ -63,9 +63,10 @@ async function forward(slug, localUrl, options) {
         delete headers['expect'];
         delete headers['keep-alive'];
 
-        // Serialize body properly
-        let body = webhook.body;
-        if (body && typeof body === 'object') {
+        // Use rawBody when available (preserves exact bytes for signature verification)
+        // Fall back to parsed body for older webhooks or non-JSON payloads
+        let body = webhook.rawBody || webhook.body;
+        if (!webhook.rawBody && body && typeof body === 'object') {
           body = JSON.stringify(body);
           headers['content-type'] = headers['content-type'] || 'application/json';
         }

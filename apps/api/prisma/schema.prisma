@@ -105,6 +105,7 @@ model Webhook {
   method      String
   headers     Json
   body        Json?
+  rawBody     String?  @map("raw_body")
   query       Json?
   ip          String
   userAgent   String?  @map("user_agent")

@@ -57,11 +57,12 @@ async function handleHook(req: express.Request, res: express.Response) {
   const limit = plan === 'FREE' ? 500 : 10000;
   const isDropped = webhookCount >= limit;
 
-  // Parse body
+  // Parse body — keep raw for signature verification, parsed for UI
   let body = null;
+  let rawBody = null;
   const contentType = req.headers['content-type'] || '';
   if (req.body && req.body.length > 0) {
-    const rawBody = req.body.toString('utf-8');
+    rawBody = req.body.toString('utf-8');
     if (contentType.includes('application/json')) {
       try { body = JSON.parse(rawBody); } catch { body = rawBody; }
     } else {
@@ -76,6 +77,7 @@ async function handleHook(req: express.Request, res: express.Response) {
       method: req.method,
       headers: req.headers as any,
       body,
+      rawBody,
       query: req.query as any,
       ip: req.ip || 'unknown',
       userAgent: req.headers['user-agent'] || null,
