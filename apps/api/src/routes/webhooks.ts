@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
-import { broadcastToProject } from '../lib/sse';
+import { getIO } from '../lib/socketio';
 
 const router = Router();
 
@@ -144,7 +144,7 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
     };
     const replayWebhook = await prisma.webhook.create({ data: createData });
 
-    broadcastToProject(webhook.projectId, { type: 'webhook', data: replayWebhook });
+    getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
 
     res.json({
       replayId: replayWebhook.id,

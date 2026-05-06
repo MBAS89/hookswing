@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useWebhooks } from '../hooks/useWebhooks';
-import { useSSE } from '../hooks/useSSE';
+import { useSocket } from '../hooks/useSocket';
 import WebhookCard from '../components/webhook/WebhookCard';
 import WebhookDetail from '../components/webhook/WebhookDetail';
 import { Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish } from 'lucide-react';
@@ -34,10 +34,8 @@ export default function ProjectPage() {
       .finally(() => setProjectLoading(false));
   }, [id]);
 
-  useSSE(id || null, useCallback((data) => {
-    if (data.type === 'webhook' && data.data) {
-      addWebhook(data.data);
-    }
+  useSocket(id || null, useCallback((webhook) => {
+    addWebhook(webhook);
   }, [addWebhook]));
 
   const handleBulkDelete = async () => {

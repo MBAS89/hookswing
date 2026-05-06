@@ -1,7 +1,7 @@
 import { Queue, Worker } from 'bullmq';
 import { redis } from '../lib/redis';
 import { prisma } from '../lib/prisma';
-import { broadcastToProject } from '../lib/sse';
+import { getIO } from '../lib/socketio';
 
 export const replayQueue = new Queue('replay', { connection: redis });
 
@@ -43,7 +43,7 @@ const replayWorker = new Worker(
     };
     const replayWebhook = await prisma.webhook.create({ data: createData });
 
-    broadcastToProject(webhook.projectId, { type: 'webhook', data: replayWebhook });
+    getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
 
     return { status: response.status, responseTime };
   },

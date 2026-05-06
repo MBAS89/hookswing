@@ -2,8 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
+import { Server as SocketIOServer } from 'socket.io';
 import { prisma } from './lib/prisma';
-import { broadcastToProject, addSSEClient } from './lib/sse';
 import { hookRateLimit } from './middleware/rateLimit';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
@@ -12,10 +12,19 @@ import webhookRoutes from './routes/webhooks';
 import teamRoutes from './routes/teams';
 import billingRoutes from './routes/billing';
 import jwt from 'jsonwebtoken';
+import { setIO } from './lib/socketio';
 
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
+  },
+  path: '/socket.io',
+});
+setIO(io);
 
 // WebSocket connections: slug -> Set<WebSocket>
 const wsConnections = new Map<string, Set<any>>();
@@ -86,9 +95,10 @@ async function handleHook(req: express.Request, res: express.Response) {
   });
 
   if (!isDropped) {
-    broadcastToProject(project.id, { type: 'webhook', data: webhook });
+    // Socket.IO broadcast to project room
+    io.to(project.id).emit('webhook', webhook);
 
-    // Broadcast to WebSocket clients
+    // Broadcast to WebSocket clients (CLI)
     const connections = wsConnections.get(slug);
     if (connections) {
       const payload = JSON.stringify({ type: 'webhook', data: webhook });
@@ -121,29 +131,29 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/billing', billingRoutes);
 
-// SSE Stream
-app.get('/api/stream', (req, res) => {
-  const token = req.query.token as string;
-  const projectId = req.query.projectId as string;
-
-  if (!token || !projectId) {
-    return res.status(400).json({ error: 'Missing token or projectId' });
+// Socket.IO auth middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token as string;
+  if (!token) {
+    return next(new Error('Authentication error: no token'));
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.flushHeaders?.();
-
-    res.write(':ok\n\n');
-    addSSEClient(projectId, res);
+    jwt.verify(token, process.env.JWT_SECRET!);
+    next();
   } catch {
-    res.status(401).json({ error: 'Invalid token' });
+    next(new Error('Authentication error: invalid token'));
   }
+});
+
+io.on('connection', (socket) => {
+  socket.on('subscribe', (projectId: string) => {
+    socket.join(projectId);
+  });
+
+  socket.on('unsubscribe', (projectId: string) => {
+    socket.leave(projectId);
+  });
 });
 
 function inferSource(headers: any): string | null {
