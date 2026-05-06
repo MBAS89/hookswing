@@ -6,10 +6,19 @@
   "bin": {
     "webhookvault": "./bin/webhookvault.js"
   },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["webhook", "cli", "debugging", "ngrok-alternative"],
+  "keywords": ["webhook", "cli", "debugging", "ngrok-alternative", "webhook-forwarding", "webhook-replay"],
   "author": "WebhookVault",
   "license": "MIT",
   "dependencies": {
