@@ -31,7 +31,8 @@ app.use(cors({
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 
 // Public Hook Receiver — raw body BEFORE json parser
-app.all('/hook/:slug', hookRateLimit, express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+// Handles /hook/:slug and /hook/:slug/any/extra/paths (some services append paths)
+async function handleHook(req: express.Request, res: express.Response) {
   const slug = req.params.slug;
 
   const project = await prisma.project.findUnique({
@@ -98,7 +99,10 @@ app.all('/hook/:slug', hookRateLimit, express.raw({ type: '*/*', limit: '1mb' })
   }
 
   res.status(200).json({ ok: true, dropped: isDropped });
-});
+}
+
+app.all('/hook/:slug', hookRateLimit, express.raw({ type: '*/*', limit: '1mb' }), handleHook);
+app.all('/hook/:slug/*', hookRateLimit, express.raw({ type: '*/*', limit: '1mb' }), handleHook);
 
 // Healthcheck endpoint (must be public, no auth)
 app.get('/health', (_req, res) => {
