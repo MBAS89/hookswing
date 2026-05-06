@@ -5,9 +5,11 @@ import { useSocket } from '../hooks/useSocket';
 import { useAuth } from '../hooks/useAuth';
 import WebhookCard from '../components/webhook/WebhookCard';
 import WebhookDetail from '../components/webhook/WebhookDetail';
+import WebhookCompare from '../components/webhook/WebhookCompare';
 import {
   Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish,
   Edit3, X, Globe, Crown, Bell, MessageSquare, ToggleLeft, ToggleRight, Send,
+  GitCompare,
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -31,6 +33,13 @@ export default function ProjectPage() {
   const { webhooks, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook } = useWebhooks(id || null);
   const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
   const [filterMethod, setFilterMethod] = useState('');
+
+  // Compare mode
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelection, setCompareSelection] = useState<string[]>([]);
+  const [compareWebhooks, setCompareWebhooks] = useState<[any, any] | null>(null);
+
+  const canCompare = user?.plan === 'PRO' || user?.plan === 'TEAM';
 
   // Custom slug editing
   const [editingSlug, setEditingSlug] = useState(false);
@@ -91,6 +100,31 @@ export default function ProjectPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const toggleCompare = (webhookId: string) => {
+    if (!canCompare) return;
+    setCompareSelection((prev) => {
+      if (prev.includes(webhookId)) {
+        return prev.filter((id) => id !== webhookId);
+      }
+      if (prev.length >= 2) {
+        return [prev[1], webhookId];
+      }
+      return [...prev, webhookId];
+    });
+  };
+
+  useEffect(() => {
+    if (compareSelection.length === 2) {
+      const left = webhooks.find((w) => w.id === compareSelection[0]);
+      const right = webhooks.find((w) => w.id === compareSelection[1]);
+      if (left && right) {
+        setCompareWebhooks([left, right]);
+        setCompareMode(false);
+        setCompareSelection([]);
+      }
+    }
+  }, [compareSelection, webhooks]);
 
   const saveCustomSlug = async () => {
     if (!project) return;
@@ -406,6 +440,27 @@ export default function ProjectPage() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {compareMode && (
+            <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded-full animate-pulse">
+              Select 2 webhooks to compare
+            </span>
+          )}
+          {canCompare && (
+            <button
+              onClick={() => {
+                setCompareMode(!compareMode);
+                setCompareSelection([]);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                compareMode
+                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <GitCompare className="w-3.5 h-3.5" />
+              {compareMode ? 'Cancel' : 'Compare'}
+            </button>
+          )}
           <div className="relative">
             <Filter className="w-4 h-4 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <select
@@ -454,7 +509,16 @@ export default function ProjectPage() {
                   key={webhook.id}
                   webhook={webhook}
                   selected={selectedWebhook?.id === webhook.id}
-                  onClick={() => setSelectedWebhook(webhook)}
+                  onClick={() => {
+                    if (compareMode) {
+                      toggleCompare(webhook.id);
+                    } else {
+                      setSelectedWebhook(webhook);
+                    }
+                  }}
+                  onCompare={canCompare ? () => toggleCompare(webhook.id) : undefined}
+                  compareMode={compareMode}
+                  isCompareSelected={compareSelection.includes(webhook.id)}
                 />
               ))}
             </div>
@@ -470,6 +534,14 @@ export default function ProjectPage() {
           />
         )}
       </div>
+
+      {compareWebhooks && (
+        <WebhookCompare
+          left={compareWebhooks[0]}
+          right={compareWebhooks[1]}
+          onClose={() => setCompareWebhooks(null)}
+        />
+      )}
     </div>
   );
 }
