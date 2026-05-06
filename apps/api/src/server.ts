@@ -137,7 +137,16 @@ const webDistPath = path.resolve(__dirname, '../../web/dist');
 app.use(express.static(webDistPath));
 
 // SPA catch-all — serve index.html for any non-API route
-app.get('*', (_req, res) => {
+app.get('*', (req, res, next) => {
+  if (
+    req.path.startsWith('/api') ||
+    req.path.startsWith('/hook') ||
+    req.path.startsWith('/ws') ||
+    req.path.startsWith('/health') ||
+    req.path.startsWith('/socket.io')
+  ) {
+    return next();
+  }
   res.sendFile(path.join(webDistPath, 'index.html'));
 });
 
