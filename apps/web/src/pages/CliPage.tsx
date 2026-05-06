@@ -1,0 +1,381 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { api } from '../lib/api';
+import { io, Socket } from 'socket.io-client';
+import { Terminal, Trash2 } from 'lucide-react';
+
+type LineType = 'input' | 'output' | 'error' | 'success' | 'webhook' | 'info';
+
+interface Line {
+  type: LineType;
+  text: string;
+  timestamp: string;
+}
+
+const API_URL = window.location.origin;
+
+export default function CliPage() {
+  const { user } = useAuth();
+  const [lines, setLines] = useState<Line[]>([]);
+  const [input, setInput] = useState('');
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [listening, setListening] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const linesEndRef = useRef<HTMLDivElement>(null);
+
+  const addLine = useCallback((type: LineType, text: string) => {
+    setLines((prev) => [...prev, { type, text, timestamp: new Date().toLocaleTimeString() }]);
+  }, []);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    linesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [lines]);
+
+  // Focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Initial welcome message
+  useEffect(() => {
+    if (lines.length === 0) {
+      addLine('info', 'WebhookVault Browser CLI v1.0.0');
+      addLine('info', 'Type "help" for available commands.');
+      addLine('info', '');
+    }
+  }, [addLine, lines.length]);
+
+  const stopListening = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    setListening(false);
+  }, []);
+
+  const startListening = useCallback((slug: string) => {
+    stopListening();
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      addLine('error', 'Not authenticated. Please log in.');
+      return;
+    }
+
+    // Find project by slug to get projectId
+    api.get('/projects')
+      .then((res) => {
+        const project = res.data.projects.find((p: any) => p.slug === slug);
+        if (!project) {
+          addLine('error', `Project "${slug}" not found.`);
+          return;
+        }
+
+        addLine('info', `Subscribing to ${project.name} (${slug})...`);
+
+        const socket = io(API_URL, {
+          auth: { token },
+          transports: ['websocket', 'polling'],
+        });
+
+        socketRef.current = socket;
+        setListening(true);
+
+        socket.on('connect', () => {
+          addLine('success', 'Connected. Waiting for webhooks...');
+          addLine('info', 'Type "stop" to disconnect.');
+          socket.emit('subscribe', project.id);
+        });
+
+        socket.on('webhook', (webhook: any) => {
+          const size = webhook.body ? JSON.stringify(webhook.body).length : 0;
+          const sizeStr = size > 1024 ? `${(size / 1024).toFixed(1)}KB` : `${size}B`;
+          const text = `[${new Date(webhook.createdAt).toLocaleTimeString()}]  ${webhook.method.padEnd(6)}  ${webhook.source || webhook.ip}  ${sizeStr}`;
+          addLine('webhook', text);
+          if (webhook.body && typeof webhook.body === 'object') {
+            const bodyPreview = JSON.stringify(webhook.body).slice(0, 120);
+            addLine('webhook', `  → ${bodyPreview}${bodyPreview.length >= 120 ? '...' : ''}`);
+          }
+        });
+
+        socket.on('disconnect', () => {
+          addLine('info', 'Disconnected.');
+          setListening(false);
+        });
+
+        socket.on('connect_error', (err) => {
+          addLine('error', `Connection error: ${err.message}`);
+          setListening(false);
+        });
+      })
+      .catch(() => {
+        addLine('error', 'Failed to fetch projects.');
+      });
+  }, [addLine, stopListening]);
+
+  const executeCommand = useCallback(async (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+
+    // Add to history
+    setHistory((prev) => [trimmed, ...prev].slice(0, 100));
+    setHistoryIndex(-1);
+
+    addLine('input', `> ${trimmed}`);
+
+    const parts = trimmed.split(/\s+/);
+    const cmd = parts[0].toLowerCase();
+    const args = parts.slice(1);
+
+    switch (cmd) {
+      case 'help':
+      case '?':
+        addLine('output', 'Available commands:');
+        addLine('output', '  help                Show this help message');
+        addLine('output', '  whoami              Show current user');
+        addLine('output', '  projects, list      List your projects');
+        addLine('output', '  webhooks <slug>     List recent webhooks for a project');
+        addLine('output', '  listen <slug>       Listen for webhooks in real-time');
+        addLine('output', '  stop                Stop listening');
+        addLine('output', '  replay <id> <url>   Replay a webhook to a URL');
+        addLine('output', '  curl <id>           Copy curl command to replay a webhook');
+        addLine('output', '  clear               Clear terminal');
+        break;
+
+      case 'whoami':
+        if (user) {
+          addLine('output', `Email:    ${user.email}`);
+          addLine('output', `Name:     ${user.name || '—'}`);
+          addLine('output', `Plan:     ${user.plan}`);
+          addLine('output', `Teams:    ${user.teams?.length || 0}`);
+        } else {
+          addLine('error', 'Not authenticated.');
+        }
+        break;
+
+      case 'projects':
+      case 'list':
+        try {
+          const res = await api.get('/projects');
+          const projects = res.data.projects;
+          if (projects.length === 0) {
+            addLine('output', 'No projects yet.');
+          } else {
+            addLine('output', `${'Slug'.padEnd(14)} ${'Name'.padEnd(22)} Webhooks`);
+            addLine('output', '─'.repeat(50));
+            for (const p of projects) {
+              const count = p._count?.webhooks || 0;
+              const teamBadge = p.team ? '[T]' : '[P]';
+              addLine('output', `${teamBadge} ${p.slug.padEnd(12)} ${p.name.slice(0, 20).padEnd(22)} ${count}`);
+            }
+          }
+        } catch {
+          addLine('error', 'Failed to fetch projects.');
+        }
+        break;
+
+      case 'webhooks': {
+        const slug = args[0];
+        if (!slug) {
+          addLine('error', 'Usage: webhooks <project-slug>');
+          break;
+        }
+        try {
+          const res = await api.get('/projects');
+          const project = res.data.projects.find((p: any) => p.slug === slug);
+          if (!project) {
+            addLine('error', `Project "${slug}" not found.`);
+            break;
+          }
+          const whRes = await api.get(`/projects/${project.id}/webhooks?limit=10`);
+          const webhooks = whRes.data.webhooks;
+          if (webhooks.length === 0) {
+            addLine('output', 'No webhooks yet.');
+          } else {
+            addLine('output', `${'Method'.padEnd(8)} ${'Source'.padEnd(18)} ${'Size'.padEnd(8)} Time`);
+            addLine('output', '─'.repeat(60));
+            for (const w of webhooks) {
+              const size = w.body ? JSON.stringify(w.body).length : 0;
+              const sizeStr = size > 1024 ? `${(size / 1024).toFixed(1)}KB` : `${size}B`;
+              const time = new Date(w.createdAt).toLocaleTimeString();
+              addLine('output', `${w.method.padEnd(8)} ${(w.source || w.ip).slice(0, 18).padEnd(18)} ${sizeStr.padEnd(8)} ${time}`);
+            }
+          }
+        } catch {
+          addLine('error', 'Failed to fetch webhooks.');
+        }
+        break;
+      }
+
+      case 'listen': {
+        const listenSlug = args[0];
+        if (!listenSlug) {
+          addLine('error', 'Usage: listen <project-slug>');
+          break;
+        }
+        if (listening) {
+          addLine('error', 'Already listening. Type "stop" first.');
+          break;
+        }
+        startListening(listenSlug);
+        break;
+      }
+
+      case 'stop':
+        if (!listening) {
+          addLine('error', 'Not currently listening.');
+        } else {
+          stopListening();
+          addLine('info', 'Stopped listening.');
+        }
+        break;
+
+      case 'replay': {
+        const replayId = args[0];
+        const replayUrl = args[1];
+        if (!replayId || !replayUrl) {
+          addLine('error', 'Usage: replay <webhook-id> <target-url>');
+          break;
+        }
+        try {
+          addLine('info', `Replaying ${replayId} → ${replayUrl}...`);
+          const res = await api.post(`/webhooks/${replayId}/replay`, { targetUrl: replayUrl });
+          const { status, responseTime } = res.data;
+          const color = status >= 200 && status < 300 ? 'success' : 'error';
+          addLine(color as LineType, `  Response: ${status} in ${responseTime}ms`);
+        } catch (err: any) {
+          addLine('error', err.response?.data?.error || err.message || 'Replay failed');
+        }
+        break;
+      }
+
+      case 'curl': {
+        const curlId = args[0];
+        if (!curlId) {
+          addLine('error', 'Usage: curl <webhook-id>');
+          break;
+        }
+        try {
+          const res = await api.get(`/webhooks/${curlId}`);
+          const wh = res.data;
+          const headers = Object.entries(wh.headers || {})
+            .map(([k, v]) => `-H "${k}: ${v}"`)
+            .join(' ');
+          const body = wh.body ? `-d '${JSON.stringify(wh.body).replace(/'/g, "'\"'\"'")}'` : '';
+          const cmd = `curl -X ${wh.method} ${headers} ${body} <your-url>`;
+          addLine('output', cmd);
+          navigator.clipboard.writeText(cmd);
+          addLine('success', 'Copied to clipboard!');
+        } catch {
+          addLine('error', `Webhook "${curlId}" not found.`);
+        }
+        break;
+      }
+
+      case 'clear':
+      case 'cls':
+        setLines([]);
+        break;
+
+      default:
+        addLine('error', `Unknown command: "${cmd}". Type "help" for available commands.`);
+    }
+  }, [addLine, user, listening, startListening, stopListening]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      executeCommand(input);
+      setInput('');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHistoryIndex((prev) => {
+        const next = Math.min(prev + 1, history.length - 1);
+        if (history[next]) setInput(history[next]);
+        return next;
+      });
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHistoryIndex((prev) => {
+        const next = Math.max(prev - 1, -1);
+        if (next === -1) setInput('');
+        else if (history[next]) setInput(history[next]);
+        return next;
+      });
+    }
+  };
+
+  const lineColor = (type: LineType) => {
+    switch (type) {
+      case 'input': return 'text-emerald-400';
+      case 'error': return 'text-red-400';
+      case 'success': return 'text-emerald-400';
+      case 'webhook': return 'text-sky-400';
+      case 'info': return 'text-slate-500';
+      default: return 'text-slate-300';
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800">
+        <div className="flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-emerald-400" />
+          <span className="text-sm font-medium text-white">WebhookVault CLI</span>
+          {listening && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+              Listening
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => setLines([])}
+          className="text-slate-500 hover:text-white transition-colors"
+          title="Clear"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Terminal output */}
+      <div
+        className="flex-1 overflow-auto p-4 font-mono text-sm"
+        onClick={() => inputRef.current?.focus()}
+      >
+        {lines.map((line, i) => (
+          <div key={i} className={`${lineColor(line.type)} whitespace-pre-wrap break-all leading-relaxed`}>
+            {line.type === 'webhook' ? (
+              <span>{line.text}</span>
+            ) : line.type === 'info' ? (
+              <span className="text-slate-600"># {line.text}</span>
+            ) : (
+              <span>{line.text}</span>
+            )}
+          </div>
+        ))}
+        <div ref={linesEndRef} />
+      </div>
+
+      {/* Input line */}
+      <div className="flex items-center gap-2 px-4 py-3 bg-slate-900 border-t border-slate-800">
+        <span className="text-emerald-400 font-mono text-sm shrink-0">{'>'}</span>
+        <input
+          ref={inputRef}
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="flex-1 bg-transparent text-slate-200 font-mono text-sm outline-none placeholder-slate-600"
+          placeholder={listening ? 'Type "stop" to disconnect...' : 'Type a command...'}
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </div>
+    </div>
+  );
+}
