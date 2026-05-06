@@ -17,15 +17,27 @@ import { setIO } from './lib/socketio';
 
 const app = express();
 const server = createServer(app);
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wss = new WebSocketServer({ noServer: true });
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || true,
+    origin: true,
     credentials: true,
   },
   path: '/socket.io',
 });
 setIO(io);
+
+// Route WebSocket upgrades manually to avoid ws <-> Socket.IO conflict
+server.on('upgrade', (request, socket, head) => {
+  const pathname = new URL(request.url || '/', `http://${request.headers.host}`).pathname;
+
+  if (pathname === '/ws') {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  }
+  // Socket.IO handles /socket.io upgrades internally
+});
 
 // WebSocket connections: slug -> Set<WebSocket>
 const wsConnections = new Map<string, Set<any>>();
@@ -33,7 +45,7 @@ const wsConnections = new Map<string, Set<any>>();
 app.set('trust proxy', 1);
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || true,
+  origin: true,
   credentials: true,
 }));
 
