@@ -1,11 +1,13 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '../hooks/useProjects';
 import { FolderGit2, Webhook, Activity, Plus } from 'lucide-react';
+import CreateProjectModal from '../components/project/CreateProjectModal';
 
 export default function DashboardPage() {
   const { projects, loading, createProject } = useProjects();
   const navigate = useNavigate();
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && projects.length > 0) {
@@ -13,10 +15,8 @@ export default function DashboardPage() {
     }
   }, [loading, projects, navigate]);
 
-  const handleCreateProject = async () => {
-    const name = prompt('Project name:');
-    if (!name) return;
-    const project = await createProject(name);
+  const handleCreate = async (name: string, description?: string) => {
+    const project = await createProject(name, description);
     navigate(`/dashboard/projects/${project.id}`);
   };
 
@@ -41,7 +41,7 @@ export default function DashboardPage() {
             Create your first project to get a unique webhook URL and start catching payloads.
           </p>
           <button
-            onClick={handleCreateProject}
+            onClick={() => setModalOpen(true)}
             className="bg-emerald-500 hover:bg-emerald-400 text-white px-6 py-2.5 rounded-lg font-semibold inline-flex items-center gap-2 transition-all hover:scale-[1.02]"
           >
             <Plus className="w-4 h-4" />
@@ -79,6 +79,12 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+
+      <CreateProjectModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onCreate={handleCreate}
+      />
     </div>
   );
 }

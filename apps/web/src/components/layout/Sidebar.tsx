@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderGit2, CreditCard, Users, Settings, X, Plus
@@ -6,6 +6,7 @@ import {
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
 import { useAuth } from '../../hooks/useAuth';
+import CreateProjectModal from '../project/CreateProjectModal';
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const location = useLocation();
@@ -23,10 +24,10 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
     { icon: Users, label: 'Team', href: '/dashboard/team' },
   ];
 
-  const handleNewProject = async () => {
-    const name = prompt('Project name:');
-    if (!name) return;
-    const project = await createProject(name);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const handleCreate = async (name: string, description?: string) => {
+    const project = await createProject(name, description);
     navigate(`/dashboard/projects/${project.id}`);
   };
 
@@ -74,7 +75,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
           <div>
             <div className="flex items-center justify-between px-3 mb-2">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Projects</span>
-              <button onClick={handleNewProject} className="text-slate-500 hover:text-emerald-400 transition-colors">
+              <button onClick={() => setModalOpen(true)} className="text-slate-500 hover:text-emerald-400 transition-colors">
                 <Plus className="w-4 h-4" />
               </button>
             </div>
@@ -110,6 +111,12 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
           </button>
         </div>
       </aside>
+
+      <CreateProjectModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onCreate={handleCreate}
+      />
     </>
   );
 }
