@@ -53,13 +53,32 @@ async function forward(slug, localUrl, options) {
 
       try {
         const start = Date.now();
+
+        // Sanitize headers — remove hop-by-hop and length headers
+        const headers = { ...webhook.headers };
+        delete headers['content-length'];
+        delete headers['transfer-encoding'];
+        delete headers['connection'];
+        delete headers['host'];
+        delete headers['expect'];
+        delete headers['keep-alive'];
+
+        // Serialize body properly
+        let body = webhook.body;
+        if (body && typeof body === 'object') {
+          body = JSON.stringify(body);
+          headers['content-type'] = headers['content-type'] || 'application/json';
+        }
+
         const res = await axios({
           method: webhook.method,
           url: localUrl,
-          headers: webhook.headers,
-          data: webhook.body,
+          headers,
+          data: body,
           timeout: 30000,
           validateStatus: () => true,
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
         });
         const responseTime = Date.now() - start;
 
