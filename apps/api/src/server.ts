@@ -12,7 +12,9 @@ import projectRoutes from './routes/projects';
 import webhookRoutes from './routes/webhooks';
 import teamRoutes from './routes/teams';
 import billingRoutes from './routes/billing';
+import alertRoutes from './routes/alerts';
 import jwt from 'jsonwebtoken';
+import axios from 'axios';
 import { setIO } from './lib/socketio';
 
 const app = express();
@@ -129,9 +131,78 @@ async function handleHook(req: express.Request, res: express.Response) {
         }
       });
     }
+
+    // Fire alerts (async, don't block response)
+    fireAlerts(project.id, webhook, req.headers['host'] as string);
   }
 
   res.status(200).json({ ok: true, dropped: isDropped });
+}
+
+async function fireAlerts(projectId: string, webhook: any, host: string) {
+  try {
+    const alerts = await prisma.alertConfig.findMany({
+      where: { projectId, enabled: true },
+    });
+
+    for (const alert of alerts) {
+      try {
+        if (alert.type === 'slack') {
+          await axios.post(alert.url, {
+            text: `🪝 Webhook received`,
+            blocks: [
+              {
+                type: 'header',
+                text: { type: 'plain_text', text: '🪝 WebhookVault Alert', emoji: true },
+              },
+              {
+                type: 'section',
+                fields: [
+                  { type: 'mrkdwn', text: `*Method:*\n${webhook.method}` },
+                  { type: 'mrkdwn', text: `*Source:*\n${webhook.source || 'Unknown'}` },
+                  { type: 'mrkdwn', text: `*Time:*\n${new Date(webhook.createdAt).toLocaleString()}` },
+                  { type: 'mrkdwn', text: `*IP:*\n${webhook.ip}` },
+                ],
+              },
+              {
+                type: 'section',
+                text: { type: 'mrkdwn', text: `\`\`\`json\n${JSON.stringify(webhook.body || {}, null, 2).slice(0, 2800)}\n\`\`\`` },
+              },
+              {
+                type: 'context',
+                elements: [
+                  { type: 'mrkdwn', text: `<https://${host}/dashboard/projects/${projectId}|View in WebhookVault>` },
+                ],
+              },
+            ],
+          }, { timeout: 5000 });
+        } else if (alert.type === 'discord') {
+          await axios.post(alert.url, {
+            embeds: [
+              {
+                title: '🪝 Webhook Received',
+                color: 0x10b981,
+                fields: [
+                  { name: 'Method', value: webhook.method, inline: true },
+                  { name: 'Source', value: webhook.source || 'Unknown', inline: true },
+                  { name: 'IP', value: webhook.ip, inline: true },
+                  { name: 'Time', value: new Date(webhook.createdAt).toLocaleString(), inline: true },
+                  { name: 'Body', value: '```json\n' + JSON.stringify(webhook.body || {}, null, 2).slice(0, 1000) + '\n```' },
+                ],
+                footer: { text: 'WebhookVault' },
+                timestamp: new Date(webhook.createdAt).toISOString(),
+              },
+            ],
+          }, { timeout: 5000 });
+        }
+      } catch (err) {
+        // Silently fail individual alerts so one bad URL doesn't break others
+        console.error(`Alert failed (${alert.type}):`, (err as any).message);
+      }
+    }
+  } catch {
+    // Silently fail alerts
+  }
 }
 
 app.all('/hook/:slug', hookRateLimit, express.raw({ type: '*/*', limit: '1mb' }), handleHook);
@@ -151,6 +222,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/projects/:projectId/alerts', alertRoutes);
 
 // Serve frontend static files (production only)
 const webDistPath = path.resolve(__dirname, '../../web/dist');

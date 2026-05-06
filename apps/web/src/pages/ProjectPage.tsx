@@ -7,7 +7,7 @@ import WebhookCard from '../components/webhook/WebhookCard';
 import WebhookDetail from '../components/webhook/WebhookDetail';
 import {
   Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish,
-  Edit3, X, Globe, Crown,
+  Edit3, X, Globe, Crown, Bell, MessageSquare, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -38,7 +38,26 @@ export default function ProjectPage() {
   const [slugError, setSlugError] = useState('');
   const [savingSlug, setSavingSlug] = useState(false);
 
+  // Alerts
+  const [alerts, setAlerts] = useState<Array<{ id: string; type: string; url: string; enabled: boolean }>>([]);
+  const [canUseAlerts, setCanUseAlerts] = useState(false);
+  const [showAlertForm, setShowAlertForm] = useState(false);
+  const [alertType, setAlertType] = useState<'slack' | 'discord'>('slack');
+  const [alertUrl, setAlertUrl] = useState('');
+  const [alertLoading, setAlertLoading] = useState(false);
+
   const canUseCustomSlug = user?.plan === 'PRO' || user?.plan === 'TEAM';
+
+  const fetchAlerts = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/projects/${id}/alerts`);
+      setAlerts(res.data.alerts);
+      setCanUseAlerts(res.data.canUseAlerts);
+    } catch {
+      setAlerts([]);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -50,7 +69,8 @@ export default function ProjectPage() {
       })
       .catch(() => setProject(null))
       .finally(() => setProjectLoading(false));
-  }, [id]);
+    fetchAlerts();
+  }, [id, fetchAlerts]);
 
   useSocket(id || null, useCallback((webhook) => {
     addWebhook(webhook);
@@ -83,6 +103,40 @@ export default function ProjectPage() {
       setSlugError(err.response?.data?.error || 'Failed to update');
     } finally {
       setSavingSlug(false);
+    }
+  };
+
+  const addAlert = async () => {
+    if (!id || !alertUrl.trim()) return;
+    setAlertLoading(true);
+    try {
+      await api.post(`/projects/${id}/alerts`, { type: alertType, url: alertUrl.trim() });
+      setAlertUrl('');
+      setShowAlertForm(false);
+      fetchAlerts();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to add alert');
+    } finally {
+      setAlertLoading(false);
+    }
+  };
+
+  const toggleAlert = async (alertId: string, enabled: boolean) => {
+    try {
+      await api.patch(`/projects/${id}/alerts/${alertId}`, { enabled: !enabled });
+      fetchAlerts();
+    } catch {
+      alert('Failed to toggle alert');
+    }
+  };
+
+  const deleteAlert = async (alertId: string) => {
+    if (!confirm('Delete this alert?')) return;
+    try {
+      await api.delete(`/projects/${id}/alerts/${alertId}`);
+      fetchAlerts();
+    } catch {
+      alert('Failed to delete alert');
     }
   };
 
@@ -142,6 +196,100 @@ export default function ProjectPage() {
             </div>
           </div>
         )}
+
+        {/* Alerts */}
+        <div className="mt-3 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Bell className="w-4 h-4 text-slate-500" />
+              <span className="text-sm font-medium text-white">Alerts</span>
+              {alerts.length > 0 && (
+                <span className="text-xs bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full">{alerts.length}</span>
+              )}
+            </div>
+            {canUseAlerts ? (
+              <button
+                onClick={() => setShowAlertForm(!showAlertForm)}
+                className="text-xs flex items-center gap-1 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-md transition-colors"
+              >
+                <Bell className="w-3 h-3" />
+                {showAlertForm ? 'Cancel' : 'Add Alert'}
+              </button>
+            ) : (
+              <span className="text-xs flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md">
+                <Crown className="w-3 h-3" />
+                Pro/Team only
+              </span>
+            )}
+          </div>
+
+          {showAlertForm && (
+            <div className="bg-slate-800 rounded-lg p-3 mb-2 space-y-2">
+              <div className="flex gap-2">
+                <select
+                  value={alertType}
+                  onChange={(e) => setAlertType(e.target.value as 'slack' | 'discord')}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm"
+                >
+                  <option value="slack">Slack</option>
+                  <option value="discord">Discord</option>
+                </select>
+                <input
+                  type="url"
+                  value={alertUrl}
+                  onChange={(e) => setAlertUrl(e.target.value)}
+                  placeholder={alertType === 'slack' ? 'https://hooks.slack.com/services/...' : 'https://discord.com/api/webhooks/...'}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  onClick={addAlert}
+                  disabled={alertLoading || !alertUrl.trim()}
+                  className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                >
+                  {alertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Paste your {alertType === 'slack' ? 'Slack Incoming Webhook URL' : 'Discord Webhook URL'} here.
+              </p>
+            </div>
+          )}
+
+          {alerts.length === 0 && !showAlertForm && (
+            <p className="text-xs text-slate-600">No alerts configured. Add one to get notified on every webhook.</p>
+          )}
+
+          <div className="space-y-1.5">
+            {alerts.map((alert) => (
+              <div key={alert.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2">
+                  {alert.type === 'slack' ? (
+                    <MessageSquare className="w-4 h-4 text-purple-400" />
+                  ) : (
+                    <MessageSquare className="w-4 h-4 text-indigo-400" />
+                  )}
+                  <span className="text-sm text-white capitalize">{alert.type}</span>
+                  <span className="text-xs text-slate-500 truncate max-w-[200px]">{alert.url}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleAlert(alert.id, alert.enabled)}
+                    className="text-slate-400 hover:text-white transition-colors"
+                    title={alert.enabled ? 'Disable' : 'Enable'}
+                  >
+                    {alert.enabled ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-5 h-5" />}
+                  </button>
+                  <button
+                    onClick={() => deleteAlert(alert.id)}
+                    className="text-slate-500 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Custom Slug */}
         <div className="mt-3 pt-3 border-t border-slate-800">
