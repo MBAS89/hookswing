@@ -48,8 +48,8 @@ app.all('/hook/:slug', hookRateLimit, express.raw({ type: '*/*', limit: '1mb' })
     where: { projectId: project.id, createdAt: { gte: monthStart } },
   });
 
-  const owner = project.user || project.team?.ownerId;
-  const ownerUser = await prisma.user.findUnique({ where: { id: owner || '' } });
+  const ownerId = project.userId || project.team?.ownerId;
+  const ownerUser = await prisma.user.findUnique({ where: { id: ownerId || '' } });
   const plan = ownerUser?.plan || 'FREE';
   const limit = plan === 'FREE' ? 500 : 10000;
   const isDropped = webhookCount >= limit;

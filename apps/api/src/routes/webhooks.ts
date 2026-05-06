@@ -128,22 +128,21 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
     });
     const responseTime = Date.now() - start;
 
-    const replayWebhook = await prisma.webhook.create({
-      data: {
-        projectId: webhook.projectId,
-        method: webhook.method,
-        headers: { ...(webhook.headers as any), ...headers },
-        body: body || webhook.body,
-        query: webhook.query,
-        ip: '127.0.0.1',
-        userAgent: 'WebhookVault-Replay',
-        statusCode: response.status,
-        responseBody: await response.text().catch(() => null),
-        responseTime,
-        isReplay: true,
-        originalId: webhook.id,
-      },
-    });
+    const createData: any = {
+      projectId: webhook.projectId,
+      method: webhook.method,
+      headers: { ...(webhook.headers as any), ...headers },
+      body: body || webhook.body,
+      query: webhook.query,
+      ip: '127.0.0.1',
+      userAgent: 'WebhookVault-Replay',
+      statusCode: response.status,
+      responseBody: await response.text().catch(() => null),
+      responseTime,
+      isReplay: true,
+      originalId: webhook.id,
+    };
+    const replayWebhook = await prisma.webhook.create({ data: createData });
 
     broadcastToProject(webhook.projectId, { type: 'webhook', data: replayWebhook });
 
