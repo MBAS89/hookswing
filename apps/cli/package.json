@@ -1,6 +1,6 @@
 {
   "name": "webhookvault-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI for WebhookVault — forward and replay webhooks",
   "main": "src/index.js",
   "bin": {

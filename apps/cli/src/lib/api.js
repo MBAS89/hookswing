@@ -3,7 +3,7 @@ const { readConfig } = require('./config');
 
 function getApi() {
   const config = readConfig();
-  const baseURL = config?.apiUrl || 'https://api.webhookvault.io';
+  const baseURL = process.env.WEBHOOKVAULT_API_URL || config?.apiUrl || 'https://api.webhookvault.io';
   const token = config?.accessToken;
 
   return axios.create({

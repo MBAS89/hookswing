@@ -1,7 +1,7 @@
 const inquirer = require('inquirer');
-const axios = require('axios');
 const chalk = require('chalk');
 const { writeConfig } = require('../lib/config');
+const { getApi } = require('../lib/api');
 
 async function login() {
   const answers = await inquirer.prompt([
@@ -10,13 +10,16 @@ async function login() {
   ]);
 
   try {
-    const res = await axios.post('https://api.webhookvault.io/api/auth/login', {
+    const api = getApi();
+    const res = await api.post('/auth/login', {
       email: answers.email,
       password: answers.password,
     });
 
+    const baseURL = api.defaults.baseURL.replace('/api', '');
+
     writeConfig({
-      apiUrl: 'https://api.webhookvault.io',
+      apiUrl: baseURL,
       accessToken: res.data.accessToken,
       refreshToken: res.data.refreshToken,
     });
