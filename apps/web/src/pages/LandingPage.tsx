@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Zap, Trash2, Laptop, GitCompare, SatelliteDish, Search, Repeat,
+  Trash2, Laptop, GitCompare, SatelliteDish, Search, Repeat,
   Terminal, Users, MessageSquare, Check, ChevronDown, ChevronUp,
   Menu, X, Github, Twitter, Globe
 } from 'lucide-react';
+import Logo from '../components/Logo';
 
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -21,9 +22,7 @@ function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
+            <Logo className="w-8 h-8" />
             <span className="text-xl font-bold text-white">WebhookVault</span>
           </Link>
 
@@ -116,7 +115,7 @@ function Hero() {
 
 function LogoBar() {
   const logos = [
-    { name: 'Stripe', icon: <Zap className="w-6 h-6" /> },
+    { name: 'Stripe', icon: <div className="w-6 h-6 rounded-full bg-slate-600" /> },
     { name: 'GitHub', icon: <Github className="w-6 h-6" /> },
     { name: 'Twilio', icon: <MessageSquare className="w-6 h-6" /> },
     { name: 'Vercel', icon: <Globe className="w-6 h-6" /> },
@@ -580,9 +579,7 @@ function Footer() {
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-between pt-8 border-t border-slate-800">
           <div className="flex items-center gap-2 mb-4 sm:mb-0">
-            <div className="w-6 h-6 bg-emerald-500 rounded-md flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
+            <Logo className="w-6 h-6" />
             <span className="text-sm text-slate-500">© 2026 WebhookVault. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-4">

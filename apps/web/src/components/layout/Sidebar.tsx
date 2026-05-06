@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Zap, LayoutDashboard, FolderGit2, CreditCard, Users, Settings, X, Plus
+  LayoutDashboard, FolderGit2, CreditCard, Users, Settings, X, Plus
 } from 'lucide-react';
+import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -39,9 +40,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between h-16 px-4 border-b border-slate-800">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
+            <Logo className="w-8 h-8" />
             <span className="text-lg font-bold text-white">WebhookVault</span>
           </Link>
           <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-white">
