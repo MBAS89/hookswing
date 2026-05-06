@@ -171,4 +171,48 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   res.json({ success: true });
 });
 
+// Webhook list nested under project (matches spec: GET /api/projects/:projectId/webhooks)
+router.get('/:projectId/webhooks', async (req: AuthRequest, res) => {
+  const project = await prisma.project.findFirst({
+    where: {
+      id: req.params.projectId,
+      OR: [
+        { userId: req.user!.id },
+        { team: { members: { some: { userId: req.user!.id } } } },
+      ],
+    },
+  });
+
+  if (!project) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+  const method = req.query.method as string | undefined;
+
+  const where: any = { projectId: req.params.projectId };
+  if (method) where.method = method.toUpperCase();
+
+  const [webhooks, total] = await Promise.all([
+    prisma.webhook.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.webhook.count({ where }),
+  ]);
+
+  res.json({
+    webhooks,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
+});
+
 export default router;
