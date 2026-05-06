@@ -20,6 +20,8 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 // WebSocket connections: slug -> Set<WebSocket>
 const wsConnections = new Map<string, Set<any>>();
 
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
