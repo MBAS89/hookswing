@@ -19,6 +19,10 @@ router.get('/', async (req: AuthRequest, res) => {
       members: {
         include: { user: { select: { id: true, email: true, name: true } } },
       },
+      projects: {
+        select: { id: true, name: true, slug: true, description: true },
+        orderBy: { createdAt: 'desc' },
+      },
       _count: { select: { projects: true } },
     },
     orderBy: { createdAt: 'desc' },

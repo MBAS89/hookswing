@@ -350,7 +350,7 @@ export default function TeamPage() {
                 </div>
 
                 {/* Projects */}
-                {team.projects.length > 0 && (
+                {team.projects && team.projects.length > 0 && (
                   <div className="px-6 py-4 border-b border-slate-800">
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Projects</h3>
                     <div className="grid sm:grid-cols-2 gap-2">
