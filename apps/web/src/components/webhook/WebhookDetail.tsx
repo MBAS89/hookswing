@@ -9,11 +9,13 @@ export default function WebhookDetail({
   onClose,
   onDelete,
   onReplay,
+  canReplay,
 }: {
   webhook: Webhook;
   onClose: () => void;
   onDelete: (id: string) => void;
   onReplay: (id: string, url: string) => void;
+  canReplay?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body'>('overview');
   const [replayUrl, setReplayUrl] = useState('http://localhost:3000/webhook');
@@ -33,13 +35,15 @@ export default function WebhookDetail({
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setShowReplay(!showReplay)}
-            className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded transition-colors"
-            title="Replay"
-          >
-            <Play className="w-4 h-4" />
-          </button>
+          {canReplay && (
+            <button
+              onClick={() => setShowReplay(!showReplay)}
+              className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded transition-colors"
+              title="Replay"
+            >
+              <Play className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => onDelete(webhook.id)}
             className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"

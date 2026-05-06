@@ -57,8 +57,15 @@ export function useWebhooks(projectId: string | null) {
   }, []);
 
   const replayWebhook = useCallback(async (id: string, targetUrl: string) => {
-    const res = await api.post(`/webhooks/${id}/replay`, { targetUrl });
-    return res.data;
+    try {
+      const res = await api.post(`/webhooks/${id}/replay`, { targetUrl });
+      return res.data;
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        throw new Error(err.response.data.error || 'Replay requires Pro or Team plan');
+      }
+      throw new Error('Replay failed');
+    }
   }, []);
 
   return { webhooks, pagination, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook };

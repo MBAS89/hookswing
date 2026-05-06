@@ -235,4 +235,84 @@ router.post('/projects/:projectId/webhooks/bulk-delete', async (req: AuthRequest
   res.json({ deleted: count });
 });
 
+// Export webhooks as JSON (Pro/Team only)
+router.get('/projects/:projectId/export/json', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (user?.plan === 'FREE') {
+    return res.status(403).json({ error: 'Export requires Pro or Team plan' });
+  }
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: req.params.projectId,
+      OR: [
+        { userId: req.user!.id },
+        { team: { members: { some: { userId: req.user!.id } } } },
+      ],
+    },
+  });
+
+  if (!project) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+
+  const webhooks = await prisma.webhook.findMany({
+    where: { projectId: req.params.projectId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="${project.name}-webhooks.json"`);
+  res.send(JSON.stringify(webhooks, null, 2));
+});
+
+// Export webhooks as CSV (Pro/Team only)
+router.get('/projects/:projectId/export/csv', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (user?.plan === 'FREE') {
+    return res.status(403).json({ error: 'Export requires Pro or Team plan' });
+  }
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: req.params.projectId,
+      OR: [
+        { userId: req.user!.id },
+        { team: { members: { some: { userId: req.user!.id } } } },
+      ],
+    },
+  });
+
+  if (!project) {
+    return res.status(404).json({ error: 'Project not found' });
+  }
+
+  const webhooks = await prisma.webhook.findMany({
+    where: { projectId: req.params.projectId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const headers = ['id', 'method', 'source', 'ip', 'status_code', 'body', 'headers', 'query', 'created_at'];
+  const rows = webhooks.map((w) => [
+    w.id,
+    w.method,
+    w.source || '',
+    w.ip,
+    w.statusCode?.toString() || '',
+    JSON.stringify(w.body || '').replace(/"/g, '""'),
+    JSON.stringify(w.headers || '').replace(/"/g, '""'),
+    JSON.stringify(w.query || '').replace(/"/g, '""'),
+    w.createdAt.toISOString(),
+  ]);
+
+  const csv = [
+    headers.join(','),
+    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+  ].join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${project.name}-webhooks.csv"`);
+  res.send(csv);
+});
+
 export default router;

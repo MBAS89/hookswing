@@ -9,7 +9,7 @@ import WebhookCompare from '../components/webhook/WebhookCompare';
 import {
   Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish,
   Edit3, X, Globe, Crown, Bell, MessageSquare, ToggleLeft, ToggleRight, Send,
-  GitCompare,
+  GitCompare, FileDown,
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -40,6 +40,7 @@ export default function ProjectPage() {
   const [compareWebhooks, setCompareWebhooks] = useState<[any, any] | null>(null);
 
   const canCompare = user?.plan === 'PRO' || user?.plan === 'TEAM';
+  const canReplay = user?.plan === 'PRO' || user?.plan === 'TEAM';
 
   // Custom slug editing
   const [editingSlug, setEditingSlug] = useState(false);
@@ -139,6 +140,28 @@ export default function ProjectPage() {
       setSlugError(err.response?.data?.error || 'Failed to update');
     } finally {
       setSavingSlug(false);
+    }
+  };
+
+  const exportWebhooks = async (format: 'json' | 'csv') => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/webhooks/projects/${id}/export/${format}`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], {
+        type: format === 'json' ? 'application/json' : 'text/csv',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project?.name || 'webhooks'}-webhooks.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Export failed');
     }
   };
 
@@ -461,6 +484,31 @@ export default function ProjectPage() {
               {compareMode ? 'Cancel' : 'Compare'}
             </button>
           )}
+          {canReplay ? (
+            <>
+              <button
+                onClick={() => exportWebhooks('json')}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors text-xs font-medium border border-slate-700"
+                title="Export JSON"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                JSON
+              </button>
+              <button
+                onClick={() => exportWebhooks('csv')}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors text-xs font-medium border border-slate-700"
+                title="Export CSV"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                CSV
+              </button>
+            </>
+          ) : (
+            <span className="text-xs flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg">
+              <Crown className="w-3 h-3" />
+              Export: Pro/Team
+            </span>
+          )}
           <div className="relative">
             <Filter className="w-4 h-4 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <select
@@ -530,7 +578,14 @@ export default function ProjectPage() {
             webhook={selectedWebhook}
             onClose={() => setSelectedWebhook(null)}
             onDelete={(id) => { deleteWebhook(id); setSelectedWebhook(null); }}
-            onReplay={(id, url) => { replayWebhook(id, url); }}
+            onReplay={async (id, url) => {
+              try {
+                await replayWebhook(id, url);
+              } catch (err: any) {
+                alert(err.message || 'Replay failed');
+              }
+            }}
+            canReplay={canReplay}
           />
         )}
       </div>
