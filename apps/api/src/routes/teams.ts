@@ -41,6 +41,21 @@ router.post('/', async (req: AuthRequest, res) => {
   res.status(201).json(team);
 });
 
+router.get('/', async (req: AuthRequest, res) => {
+  const teams = await prisma.team.findMany({
+    where: {
+      members: { some: { userId: req.user!.id } },
+    },
+    include: {
+      members: {
+        include: { user: { select: { id: true, email: true, name: true } } },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json(teams);
+});
+
 router.get('/:id', async (req: AuthRequest, res) => {
   const team = await prisma.team.findFirst({
     where: {
