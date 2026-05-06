@@ -107,8 +107,9 @@ model Project {
 model AlertConfig {
   id        String   @id @default(cuid())
   projectId String   @map("project_id")
-  type      String   // 'slack' | 'discord'
+  type      String   // 'slack' | 'discord' | 'telegram'
   url       String
+  config    Json?    // type-specific extra data (e.g. telegram chatId)
   enabled   Boolean  @default(true) @map("enabled")
   createdAt DateTime @default(now()) @map("created_at")
 

@@ -43,10 +43,21 @@ router.post('/', async (req: AuthRequest, res) => {
     return res.status(403).json({ error: 'Alerts require Pro or Team plan' });
   }
 
-  const schema = z.object({
-    type: z.enum(['slack', 'discord']),
-    url: z.string().url(),
-  });
+  const schema = z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('slack'),
+      url: z.string().url(),
+    }),
+    z.object({
+      type: z.literal('discord'),
+      url: z.string().url(),
+    }),
+    z.object({
+      type: z.literal('telegram'),
+      botToken: z.string().min(1),
+      chatId: z.string().min(1),
+    }),
+  ]);
 
   const result = schema.safeParse(req.body);
   if (!result.success) {
@@ -67,13 +78,19 @@ router.post('/', async (req: AuthRequest, res) => {
     return res.status(404).json({ error: 'Project not found' });
   }
 
-  const alert = await prisma.alertConfig.create({
-    data: {
-      projectId: req.params.projectId,
-      type: result.data.type,
-      url: result.data.url,
-    },
-  });
+  const data: any = {
+    projectId: req.params.projectId,
+    type: result.data.type,
+  };
+
+  if (result.data.type === 'slack' || result.data.type === 'discord') {
+    data.url = result.data.url;
+  } else if (result.data.type === 'telegram') {
+    data.url = `https://api.telegram.org/bot${result.data.botToken}/sendMessage`;
+    data.config = { chatId: result.data.chatId, botToken: result.data.botToken };
+  }
+
+  const alert = await prisma.alertConfig.create({ data });
 
   res.status(201).json(alert);
 });
@@ -82,7 +99,6 @@ router.post('/', async (req: AuthRequest, res) => {
 router.patch('/:alertId', async (req: AuthRequest, res) => {
   const schema = z.object({
     enabled: z.boolean().optional(),
-    url: z.string().url().optional(),
   });
 
   const result = schema.safeParse(req.body);
@@ -106,7 +122,6 @@ router.patch('/:alertId', async (req: AuthRequest, res) => {
 
   const data: any = {};
   if (result.data.enabled !== undefined) data.enabled = result.data.enabled;
-  if (result.data.url !== undefined) data.url = result.data.url;
 
   const alert = await prisma.alertConfig.updateMany({
     where: { id: req.params.alertId, projectId: req.params.projectId },

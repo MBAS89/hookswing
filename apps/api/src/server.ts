@@ -194,6 +194,28 @@ async function fireAlerts(projectId: string, webhook: any, host: string) {
               },
             ],
           }, { timeout: 5000 });
+        } else if (alert.type === 'telegram') {
+          const config = alert.config as any;
+          const text = [
+            '🪝 <b>WebhookVault Alert</b>',
+            '',
+            `<b>Method:</b> ${webhook.method}`,
+            `<b>Source:</b> ${webhook.source || 'Unknown'}`,
+            `<b>IP:</b> ${webhook.ip}`,
+            `<b>Time:</b> ${new Date(webhook.createdAt).toLocaleString()}`,
+            '',
+            '<b>Body:</b>',
+            '<pre>' + JSON.stringify(webhook.body || {}, null, 2).slice(0, 3500) + '</pre>',
+            '',
+            `<a href="https://${host}/dashboard/projects/${projectId}">View in WebhookVault</a>`,
+          ].join('\n');
+
+          await axios.post(alert.url, {
+            chat_id: config?.chatId,
+            text,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true,
+          }, { timeout: 5000 });
         }
       } catch (err) {
         // Silently fail individual alerts so one bad URL doesn't break others

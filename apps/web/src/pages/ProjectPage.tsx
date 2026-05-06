@@ -7,7 +7,7 @@ import WebhookCard from '../components/webhook/WebhookCard';
 import WebhookDetail from '../components/webhook/WebhookDetail';
 import {
   Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish,
-  Edit3, X, Globe, Crown, Bell, MessageSquare, ToggleLeft, ToggleRight,
+  Edit3, X, Globe, Crown, Bell, MessageSquare, ToggleLeft, ToggleRight, Send,
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -39,11 +39,13 @@ export default function ProjectPage() {
   const [savingSlug, setSavingSlug] = useState(false);
 
   // Alerts
-  const [alerts, setAlerts] = useState<Array<{ id: string; type: string; url: string; enabled: boolean }>>([]);
+  const [alerts, setAlerts] = useState<Array<{ id: string; type: string; url: string; enabled: boolean; config?: any }>>([]);
   const [canUseAlerts, setCanUseAlerts] = useState(false);
   const [showAlertForm, setShowAlertForm] = useState(false);
-  const [alertType, setAlertType] = useState<'slack' | 'discord'>('slack');
+  const [alertType, setAlertType] = useState<'slack' | 'discord' | 'telegram'>('slack');
   const [alertUrl, setAlertUrl] = useState('');
+  const [alertBotToken, setAlertBotToken] = useState('');
+  const [alertChatId, setAlertChatId] = useState('');
   const [alertLoading, setAlertLoading] = useState(false);
 
   const canUseCustomSlug = user?.plan === 'PRO' || user?.plan === 'TEAM';
@@ -107,11 +109,20 @@ export default function ProjectPage() {
   };
 
   const addAlert = async () => {
-    if (!id || !alertUrl.trim()) return;
+    if (!id) return;
     setAlertLoading(true);
     try {
-      await api.post(`/projects/${id}/alerts`, { type: alertType, url: alertUrl.trim() });
+      const payload: any = { type: alertType };
+      if (alertType === 'telegram') {
+        payload.botToken = alertBotToken.trim();
+        payload.chatId = alertChatId.trim();
+      } else {
+        payload.url = alertUrl.trim();
+      }
+      await api.post(`/projects/${id}/alerts`, payload);
       setAlertUrl('');
+      setAlertBotToken('');
+      setAlertChatId('');
       setShowAlertForm(false);
       fetchAlerts();
     } catch (err: any) {
@@ -228,29 +239,51 @@ export default function ProjectPage() {
               <div className="flex gap-2">
                 <select
                   value={alertType}
-                  onChange={(e) => setAlertType(e.target.value as 'slack' | 'discord')}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm"
+                  onChange={(e) => setAlertType(e.target.value as 'slack' | 'discord' | 'telegram')}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm shrink-0"
                 >
                   <option value="slack">Slack</option>
                   <option value="discord">Discord</option>
+                  <option value="telegram">Telegram</option>
                 </select>
-                <input
-                  type="url"
-                  value={alertUrl}
-                  onChange={(e) => setAlertUrl(e.target.value)}
-                  placeholder={alertType === 'slack' ? 'https://hooks.slack.com/services/...' : 'https://discord.com/api/webhooks/...'}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                />
+                {alertType === 'telegram' ? (
+                  <>
+                    <input
+                      type="text"
+                      value={alertBotToken}
+                      onChange={(e) => setAlertBotToken(e.target.value)}
+                      placeholder="Bot Token (from @BotFather)"
+                      className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    />
+                    <input
+                      type="text"
+                      value={alertChatId}
+                      onChange={(e) => setAlertChatId(e.target.value)}
+                      placeholder="Chat ID"
+                      className="w-28 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                    />
+                  </>
+                ) : (
+                  <input
+                    type="url"
+                    value={alertUrl}
+                    onChange={(e) => setAlertUrl(e.target.value)}
+                    placeholder={alertType === 'slack' ? 'https://hooks.slack.com/services/...' : 'https://discord.com/api/webhooks/...'}
+                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                )}
                 <button
                   onClick={addAlert}
-                  disabled={alertLoading || !alertUrl.trim()}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                  disabled={alertLoading || (alertType === 'telegram' ? (!alertBotToken.trim() || !alertChatId.trim()) : !alertUrl.trim())}
+                  className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 shrink-0"
                 >
                   {alertLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
                 </button>
               </div>
               <p className="text-xs text-slate-500">
-                Paste your {alertType === 'slack' ? 'Slack Incoming Webhook URL' : 'Discord Webhook URL'} here.
+                {alertType === 'slack' && 'Paste your Slack Incoming Webhook URL here.'}
+                {alertType === 'discord' && 'Paste your Discord Webhook URL here.'}
+                {alertType === 'telegram' && 'Get your Bot Token from @BotFather and Chat ID from @userinfobot.'}
               </p>
             </div>
           )}
@@ -263,13 +296,13 @@ export default function ProjectPage() {
             {alerts.map((alert) => (
               <div key={alert.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2">
                 <div className="flex items-center gap-2">
-                  {alert.type === 'slack' ? (
-                    <MessageSquare className="w-4 h-4 text-purple-400" />
-                  ) : (
-                    <MessageSquare className="w-4 h-4 text-indigo-400" />
-                  )}
+                  {alert.type === 'slack' && <MessageSquare className="w-4 h-4 text-purple-400" />}
+                  {alert.type === 'discord' && <MessageSquare className="w-4 h-4 text-indigo-400" />}
+                  {alert.type === 'telegram' && <Send className="w-4 h-4 text-sky-400" />}
                   <span className="text-sm text-white capitalize">{alert.type}</span>
-                  <span className="text-xs text-slate-500 truncate max-w-[200px]">{alert.url}</span>
+                  <span className="text-xs text-slate-500 truncate max-w-[200px]">
+                    {alert.type === 'telegram' ? `Chat: ${alert.config?.chatId || '...'}` : alert.url}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
