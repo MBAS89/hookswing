@@ -150,10 +150,19 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
   const effectivePlan = project.teamId ? 'TEAM' : req.user!.plan;
   const cutoff = getHistoryCutoff(effectivePlan);
-  const countWhere: any = { projectId: project.id };
-  if (cutoff) countWhere.createdAt = { gte: cutoff };
 
-  const webhookCount = await prisma.webhook.count({ where: countWhere });
+  // Use immutable WebhookUsage for the monthly count (can't be gamed by deleting)
+  const now = new Date();
+  const usage = await prisma.webhookUsage.findUnique({
+    where: {
+      projectId_year_month: {
+        projectId: project.id,
+        year: now.getFullYear(),
+        month: now.getMonth(),
+      },
+    },
+  });
+  const webhookCount = usage?.count || 0;
 
   const baseUrl = `${req.protocol}://${req.get('host')}`;
 

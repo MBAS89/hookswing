@@ -78,18 +78,22 @@ async function handleHook(req: express.Request, res: express.Response) {
     return res.status(404).json({ error: 'Hook not found' });
   }
 
-  // Check plan limits
+  // Check plan limits using immutable usage counter (not stored webhook count)
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const webhookCount = await prisma.webhook.count({
-    where: { projectId: project.id, createdAt: { gte: monthStart } },
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const usage = await prisma.webhookUsage.upsert({
+    where: { projectId_year_month: { projectId: project.id, year, month } },
+    update: { count: { increment: 1 } },
+    create: { projectId: project.id, year, month, count: 1 },
   });
 
   const ownerId = project.userId || project.team?.ownerId;
   const ownerUser = await prisma.user.findUnique({ where: { id: ownerId || '' } });
   const plan = ownerUser?.plan || 'FREE';
   const limit = plan === 'FREE' ? 500 : 10000;
-  const isDropped = webhookCount >= limit;
+  const isDropped = usage.count > limit;
 
   // Parse body — keep raw for signature verification, parsed for UI
   let body = null;

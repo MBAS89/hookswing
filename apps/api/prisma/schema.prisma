@@ -147,6 +147,19 @@ model Webhook {
   @@map("webhooks")
 }
 
+model WebhookUsage {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id")
+  year      Int
+  month     Int      // 0-11
+  count     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([projectId, year, month])
+  @@map("webhook_usage")
+}
+
 model Integration {
   id        String   @id @default(cuid())
   projectId String   @map("project_id")

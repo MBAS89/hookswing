@@ -124,12 +124,18 @@ router.get('/stats', async (req: AuthRequest, res) => {
   );
   const topProjects = projectCounts.sort((a, b) => b.count - a.count).slice(0, 5);
 
-  // Plan limit: free users only get charged for personal projects, not team projects
+  // Plan limit: use immutable WebhookUsage counters (not stored webhook count)
   const isFree = req.user!.plan === 'FREE';
   const limit = isFree ? 500 : 10000;
-  const planLimitUsed = isFree
-    ? await prisma.webhook.count({ where: { projectId: { in: personalProjectIds }, createdAt: { gte: monthStart } } })
-    : totalMonth;
+  const usageProjectIds = isFree ? personalProjectIds : projectIds;
+  const usageRows = await prisma.webhookUsage.findMany({
+    where: {
+      projectId: { in: usageProjectIds },
+      year: now.getFullYear(),
+      month: now.getMonth(),
+    },
+  });
+  const planLimitUsed = usageRows.reduce((sum, r) => sum + r.count, 0);
 
   res.json({
     totalWebhooksToday: totalToday,
