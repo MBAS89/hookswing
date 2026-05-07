@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2 } from 'lucide-react';
+import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2, Check, AlertCircle } from 'lucide-react';
 import { methodColor, formatDate, formatBytes } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
@@ -28,8 +28,10 @@ export default function WebhookDetail({
 }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'comments'>('overview');
-  const [replayUrl, setReplayUrl] = useState('http://localhost:3000/webhook');
+  const [replayUrl, setReplayUrl] = useState(() => localStorage.getItem('lastReplayUrl') || 'http://localhost:3000/webhook');
   const [showReplay, setShowReplay] = useState(false);
+  const [replayLoading, setReplayLoading] = useState(false);
+  const [replayResult, setReplayResult] = useState<{status: number; responseTime: number} | null>(null);
 
   // Comments (Team plan only)
   const isTeamPlan = user?.plan === 'TEAM';
@@ -111,22 +113,64 @@ export default function WebhookDetail({
       </div>
 
       {showReplay && (
-        <div className="p-4 border-b border-slate-800 bg-emerald-500/5">
-          <label className="block text-xs font-medium text-slate-400 mb-1.5">Target URL</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={replayUrl}
-              onChange={(e) => setReplayUrl(e.target.value)}
-              className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-            <button
-              onClick={() => { onReplay(webhook.id, replayUrl); setShowReplay(false); }}
-              className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-            >
-              Replay
-            </button>
+        <div className="p-4 border-b border-slate-800 bg-emerald-500/5 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Target URL</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={replayUrl}
+                onChange={(e) => { setReplayUrl(e.target.value); localStorage.setItem('lastReplayUrl', e.target.value); }}
+                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <button
+                onClick={async () => {
+                  setReplayLoading(true);
+                  setReplayResult(null);
+                  try {
+                    const res = await api.post(`/webhooks/${webhook.id}/replay`, { targetUrl: replayUrl });
+                    setReplayResult(res.data);
+                  } catch (err: any) {
+                    setReplayResult({ status: 0, responseTime: 0 });
+                    alert(err.response?.data?.error || err.message || 'Replay failed');
+                  } finally {
+                    setReplayLoading(false);
+                  }
+                }}
+                disabled={replayLoading}
+                className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {replayLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                Replay
+              </button>
+            </div>
           </div>
+
+          {replayResult && (
+            <div className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg ${
+              replayResult.status >= 200 && replayResult.status < 300
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : replayResult.status === 0
+                ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+            }`}>
+              {replayResult.status >= 200 && replayResult.status < 300 ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <AlertCircle className="w-3.5 h-3.5" />
+              )}
+              {replayResult.status === 0 ? 'Replay failed' : `Response: ${replayResult.status} in ${replayResult.responseTime}ms`}
+            </div>
+          )}
+
+          {webhook.body && (
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Body Preview</label>
+              <div className="bg-slate-800 rounded-lg p-2.5 max-h-32 overflow-auto">
+                <pre className="text-xs text-slate-300 font-mono">{JSON.stringify(webhook.body, null, 2)}</pre>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

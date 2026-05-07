@@ -143,7 +143,9 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
         ...(webhook.headers as Record<string, string>),
         ...headers,
       },
-      data: body ? JSON.stringify(body) : undefined,
+      data: body !== undefined
+        ? JSON.stringify(body)
+        : (webhook.rawBody || (webhook.body ? JSON.stringify(webhook.body) : undefined)),
       timeout: 30000,
       validateStatus: () => true,
       maxBodyLength: Infinity,
