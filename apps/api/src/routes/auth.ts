@@ -258,6 +258,10 @@ router.post('/login', authRateLimit, async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
+  if (!user.passwordHash) {
+    return res.status(401).json({ error: 'This account uses GitHub login. Please sign in with GitHub.' });
+  }
+
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     return res.status(401).json({ error: 'Invalid credentials' });
@@ -533,6 +537,10 @@ router.post('/change-password', async (req: AuthRequest, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
+  if (!user.passwordHash) {
+    return res.status(400).json({ error: 'This account uses GitHub login. Please set a password first.' });
+  }
+
   const valid = await bcrypt.compare(currentPassword, user.passwordHash);
   if (!valid) {
     return res.status(401).json({ error: 'Current password is incorrect' });
@@ -675,6 +683,10 @@ router.post('/2fa/disable', async (req: AuthRequest, res) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
     return res.status(400).json({ error: '2FA is not enabled' });
+  }
+
+  if (!user.passwordHash) {
+    return res.status(400).json({ error: 'This account uses GitHub login.' });
   }
 
   const validPassword = await bcrypt.compare(password, user.passwordHash);
