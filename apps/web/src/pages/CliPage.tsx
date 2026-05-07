@@ -107,7 +107,7 @@ export default function CliPage() {
 
     api.get('/projects')
       .then((res) => {
-        const project = res.data.projects.find((p: any) => p.slug === slug);
+        const project = res.data.projects.find((p: any) => p.slug === slug || p.customSlug === slug);
         if (!project) {
           liveRef.addLine('error', `Project "${slug}" not found.`);
           return;
@@ -281,7 +281,7 @@ export default function CliPage() {
         }
         try {
           const res = await api.get('/projects');
-          const project = res.data.projects.find((p: any) => p.slug === slug);
+          const project = res.data.projects.find((p: any) => p.slug === slug || p.customSlug === slug);
           if (!project) {
             liveRef.addLine('error', `Project "${slug}" not found.`);
             break;
