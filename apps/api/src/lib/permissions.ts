@@ -5,7 +5,12 @@ import { prisma } from './prisma';
  * - Team projects: any team member gets 'TEAM' privileges
  * - Personal projects: user's own plan applies
  */
-export async function getEffectivePlan(userId: string, projectId: string): Promise<string> {
+export async function getEffectivePlan(userId: string, projectId?: string | null): Promise<string> {
+  if (!projectId) {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+    return user?.plan || 'FREE';
+  }
+
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: { teamId: true },

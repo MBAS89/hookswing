@@ -170,10 +170,10 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
     };
     const replayWebhook = await prisma.webhook.create({ data: createData });
 
-    getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
+    if (webhook.projectId) getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
 
     // Log replay activity for team projects
-    const proj = await prisma.project.findUnique({ where: { id: webhook.projectId }, select: { teamId: true } });
+    const proj = webhook.projectId ? await prisma.project.findUnique({ where: { id: webhook.projectId }, select: { teamId: true } }) : null;
     if (proj?.teamId) {
       await logActivity({
         teamId: proj.teamId,
@@ -253,9 +253,9 @@ router.post('/:id/replay-record', async (req: AuthRequest, res) => {
 
   const replayWebhook = await prisma.webhook.create({ data: createData });
 
-  getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
+  if (webhook.projectId) getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
 
-  const proj = await prisma.project.findUnique({ where: { id: webhook.projectId }, select: { teamId: true } });
+  const proj = webhook.projectId ? await prisma.project.findUnique({ where: { id: webhook.projectId }, select: { teamId: true } }) : null;
   if (proj?.teamId) {
     await logActivity({
       teamId: proj.teamId,
@@ -296,7 +296,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     select: { projectId: true },
   });
   if (wh) {
-    const proj = await prisma.project.findUnique({ where: { id: wh.projectId }, select: { teamId: true } });
+    const proj = wh?.projectId ? await prisma.project.findUnique({ where: { id: wh.projectId }, select: { teamId: true } }) : null;
     if (proj?.teamId) {
       await logActivity({
         teamId: proj.teamId,
@@ -520,7 +520,7 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
     include: { user: { select: { id: true, name: true, email: true } } },
   });
 
-  if (webhook.project.teamId) {
+  if (webhook.project?.teamId) {
     await logActivity({
       teamId: webhook.project.teamId,
       userId: req.user!.id,
@@ -558,7 +558,7 @@ router.delete('/:id/comments/:commentId', async (req: AuthRequest, res) => {
 
   await prisma.webhookComment.delete({ where: { id: req.params.commentId } });
 
-  if (comment.webhook.project.teamId) {
+  if (comment.webhook.project?.teamId) {
     await logActivity({
       teamId: comment.webhook.project.teamId,
       userId: req.user!.id,

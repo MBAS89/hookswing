@@ -49,7 +49,7 @@ const replayWorker = new Worker(
     };
     const replayWebhook = await prisma.webhook.create({ data: createData });
 
-    getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
+    if (webhook.projectId) getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
 
     return { status: response.status, responseTime };
   },

@@ -243,7 +243,7 @@ router.patch('/:id', async (req: AuthRequest, res) => {
 });
 
 router.delete('/:id', async (req: AuthRequest, res) => {
-  const project = await prisma.project.deleteMany({
+  const project = await prisma.project.findFirst({
     where: {
       id: req.params.id,
       OR: [
@@ -257,23 +257,34 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     },
   });
 
-  if (project.count === 0) {
+  if (!project) {
     return res.status(404).json({ error: 'Project not found or unauthorized' });
   }
 
-  // Log activity before deletion (need to fetch teamId first)
-  const deletedProject = await prisma.project.findUnique({
-    where: { id: req.params.id },
-    select: { teamId: true, name: true },
+  // Personal projects: deletion requires Pro or Team plan
+  if (!project.teamId) {
+    const effectivePlan = await getEffectivePlan(req.user!.id, project.id);
+    if (effectivePlan === 'FREE') {
+      return res.status(403).json({ error: 'Deleting projects requires Pro or Team plan' });
+    }
+  }
+
+  // Disassociate webhooks so they survive project deletion (preserves webhook counts)
+  await prisma.webhook.updateMany({
+    where: { projectId: project.id },
+    data: { projectId: null },
   });
-  if (deletedProject?.teamId) {
+
+  await prisma.project.delete({ where: { id: project.id } });
+
+  if (project.teamId) {
     await logActivity({
-      teamId: deletedProject.teamId,
+      teamId: project.teamId,
       userId: req.user!.id,
       action: 'project_deleted',
       targetType: 'project',
-      targetId: req.params.id,
-      metadata: { name: deletedProject.name },
+      targetId: project.id,
+      metadata: { name: project.name },
     });
   }
 
