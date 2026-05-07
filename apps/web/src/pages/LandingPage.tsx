@@ -3,13 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Trash2, Laptop, GitCompare, SatelliteDish, Search, Repeat,
   Terminal, Users, MessageSquare, Check, ChevronDown, ChevronUp,
-  Menu, X, Github, Globe
+  Menu, X, Github, Globe, LayoutDashboard, LogOut, User
 } from 'lucide-react';
 import Logo from '../components/Logo';
+import { useAuth } from '../hooks/useAuth';
 
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -34,8 +37,30 @@ function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login" className="text-slate-300 hover:text-white px-4 py-2 text-sm font-medium transition-colors">Log In</Link>
-            <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Sign Up Free</Link>
+            {user ? (
+              <>
+                <Link to="/dashboard" className="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors inline-flex items-center gap-1.5">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </Link>
+                <Link to="/dashboard/account" className="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors inline-flex items-center gap-1.5">
+                  <User className="w-4 h-4" />
+                  Account
+                </Link>
+                <button
+                  onClick={() => { logout(); navigate('/'); }}
+                  className="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors inline-flex items-center gap-1.5"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="text-slate-300 hover:text-white px-4 py-2 text-sm font-medium transition-colors">Log In</Link>
+                <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Sign Up Free</Link>
+              </>
+            )}
           </div>
 
           <button className="md:hidden text-slate-300" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -52,8 +77,27 @@ function Navbar() {
             <Link to="/docs" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">Docs</Link>
             <a href="#cli" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">CLI</a>
             <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">
-              <Link to="/login" className="text-slate-300 hover:text-white py-2 text-center">Log In</Link>
-              <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 rounded-lg text-center font-semibold">Sign Up Free</Link>
+              {user ? (
+                <>
+                  <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-slate-300 hover:text-white py-2 text-center inline-flex items-center justify-center gap-1.5">
+                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                  </Link>
+                  <Link to="/dashboard/account" onClick={() => setMobileOpen(false)} className="text-slate-300 hover:text-white py-2 text-center inline-flex items-center justify-center gap-1.5">
+                    <User className="w-4 h-4" /> Account
+                  </Link>
+                  <button
+                    onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
+                    className="text-slate-300 hover:text-white py-2 text-center inline-flex items-center justify-center gap-1.5"
+                  >
+                    <LogOut className="w-4 h-4" /> Log Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="text-slate-300 hover:text-white py-2 text-center">Log In</Link>
+                  <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 rounded-lg text-center font-semibold">Sign Up Free</Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -64,6 +108,7 @@ function Navbar() {
 
 function Hero() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   return (
     <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900" />
@@ -78,8 +123,8 @@ function Hero() {
           No more lost payloads. No more ngrok nightmares. No more guessing what Stripe actually sent you.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button onClick={() => navigate('/register')} className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02]">
-            Start Catching Free
+          <button onClick={() => navigate(user ? '/dashboard' : '/register')} className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02]">
+            {user ? 'Go to Dashboard' : 'Start Catching Free'}
           </button>
           <a href="#how-it-works" className="w-full sm:w-auto border border-slate-600 text-slate-300 hover:text-white hover:border-slate-400 px-8 py-3 rounded-lg font-medium transition-all">
             View Demo
@@ -334,6 +379,7 @@ function HowItWorks() {
   ];
 
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <section id="how-it-works" className="py-24">
@@ -351,8 +397,8 @@ function HowItWorks() {
           ))}
         </div>
         <div className="text-center mt-12">
-          <button onClick={() => navigate('/register')} className="bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3 rounded-lg font-semibold transition-all hover:scale-[1.02]">
-            Start Catching Free — No credit card required
+          <button onClick={() => navigate(user ? '/dashboard' : '/register')} className="bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3 rounded-lg font-semibold transition-all hover:scale-[1.02]">
+            {user ? 'Go to Dashboard' : 'Start Catching Free — No credit card required'}
           </button>
         </div>
       </div>
@@ -363,6 +409,8 @@ function HowItWorks() {
 function PricingSection() {
   const [yearly, setYearly] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentPlan = user?.plan || 'FREE';
 
   const plans = [
     {
@@ -372,6 +420,7 @@ function PricingSection() {
       period: 'forever',
       features: ['3 projects', '500 webhooks/month', '7-day history', 'Basic inspection', 'CLI forwarding', 'Email support'],
       cta: 'Sign Up Free',
+      planKey: 'FREE',
       featured: false,
     },
     {
@@ -381,6 +430,7 @@ function PricingSection() {
       period: yearly ? '/year' : '/month',
       features: ['Unlimited projects', '10,000 webhooks/month', '90-day history', 'Replay (web + CLI)', 'Custom subdomains', 'Slack & Discord alerts', 'Request diff/comparison', 'Export JSON/CSV'],
       cta: 'Start Pro Trial',
+      planKey: 'PRO',
       featured: true,
     },
     {
@@ -390,9 +440,17 @@ function PricingSection() {
       period: yearly ? '/year' : '/month',
       features: ['Everything in Pro', 'Unlimited team members', 'Shared workspaces', 'Team activity log', 'Annotate & comment', 'Priority support'],
       cta: 'Start Team Trial',
+      planKey: 'TEAM',
       featured: false,
     },
   ];
+
+  function getCta(plan: typeof plans[0]) {
+    if (!user) return { text: plan.cta, action: () => navigate('/register') };
+    if (currentPlan === plan.planKey) return { text: 'Current Plan', action: () => navigate('/dashboard/account'), disabled: true };
+    if (plan.planKey === 'FREE') return { text: 'Downgrade', action: () => navigate('/dashboard/account') };
+    return { text: `Upgrade to ${plan.name}`, action: () => navigate('/dashboard/account') };
+  }
 
   return (
     <section id="pricing" className="py-24 bg-slate-800/30">
@@ -410,43 +468,55 @@ function PricingSection() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-xl p-8 border ${
-                plan.featured
-                  ? 'bg-slate-800 border-2 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
-                  : 'bg-slate-800 border-slate-700'
-              }`}
-            >
-              {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                  Most Popular
-                </div>
-              )}
-              <div className="text-sm text-slate-400 mb-2">{plan.badge}</div>
-              <div className="text-3xl font-bold text-white mb-1">{plan.price}</div>
-              <div className="text-sm text-slate-500 mb-6">{plan.period}</div>
-              <ul className="space-y-3 mb-8">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
-                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => navigate('/register')}
-                className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all hover:scale-[1.02] ${
+          {plans.map((plan) => {
+            const cta = getCta(plan);
+            const isCurrent = currentPlan === plan.planKey;
+            return (
+              <div
+                key={plan.name}
+                className={`relative rounded-xl p-8 border ${
                   plan.featured
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-white'
-                    : 'bg-slate-700 hover:bg-slate-600 text-white'
-                }`}
+                    ? 'bg-slate-800 border-2 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+                    : 'bg-slate-800 border-slate-700'
+                } ${isCurrent ? 'ring-2 ring-emerald-500/30' : ''}`}
               >
-                {plan.cta}
-              </button>
-            </div>
-          ))}
+                {plan.featured && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    Most Popular
+                  </div>
+                )}
+                {isCurrent && (
+                  <div className="absolute -top-3 right-4 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full">
+                    Your Plan
+                  </div>
+                )}
+                <div className="text-sm text-slate-400 mb-2">{plan.badge}</div>
+                <div className="text-3xl font-bold text-white mb-1">{plan.price}</div>
+                <div className="text-sm text-slate-500 mb-6">{plan.period}</div>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
+                      <Check className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={cta.action}
+                  disabled={cta.disabled}
+                  className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                    cta.disabled
+                      ? 'bg-emerald-500/20 text-emerald-400 cursor-default'
+                      : plan.featured
+                        ? 'bg-emerald-500 hover:bg-emerald-400 text-white hover:scale-[1.02]'
+                        : 'bg-slate-700 hover:bg-slate-600 text-white hover:scale-[1.02]'
+                  }`}
+                >
+                  {cta.text}
+                </button>
+              </div>
+            );
+          })}
         </div>
         <p className="text-center text-sm text-slate-500 mt-8">
           All plans include SSL, API access, and dark mode. Upgrade or downgrade anytime.
@@ -536,6 +606,7 @@ function FAQ() {
 
 function FinalCTA() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   return (
     <section className="py-24 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900" />
@@ -543,10 +614,12 @@ function FinalCTA() {
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="text-3xl sm:text-5xl font-bold text-white mb-6">Stop Debugging in the Dark</h2>
         <p className="text-lg text-slate-400 mb-10 max-w-xl mx-auto">
-          Join 500+ developers who stopped losing webhooks. Start free. Upgrade when you're ready.
+          {user
+            ? 'Welcome back. Your webhooks are waiting.'
+            : "Join 500+ developers who stopped losing webhooks. Start free. Upgrade when you're ready."}
         </p>
-        <button onClick={() => navigate('/register')} className="bg-emerald-500 hover:bg-emerald-400 text-white px-10 py-4 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02]">
-          Start Catching Free — No credit card required
+        <button onClick={() => navigate(user ? '/dashboard' : '/register')} className="bg-emerald-500 hover:bg-emerald-400 text-white px-10 py-4 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02]">
+          {user ? 'Go to Dashboard' : 'Start Catching Free — No credit card required'}
         </button>
       </div>
     </section>
