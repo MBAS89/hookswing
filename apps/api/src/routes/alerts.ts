@@ -72,7 +72,7 @@ router.post('/', async (req: AuthRequest, res) => {
       id: req.params.projectId,
       OR: [
         { userId: req.user!.id },
-        { team: { members: { some: { userId: req.user!.id, role: 'ADMIN' } } } },
+        { team: { members: { some: { userId: req.user!.id } } } },
       ],
     },
   });
@@ -125,7 +125,7 @@ router.patch('/:alertId', async (req: AuthRequest, res) => {
       id: req.params.projectId,
       OR: [
         { userId: req.user!.id },
-        { team: { members: { some: { userId: req.user!.id, role: 'ADMIN' } } } },
+        { team: { members: { some: { userId: req.user!.id } } } },
       ],
     },
   });
@@ -171,7 +171,7 @@ router.delete('/:alertId', async (req: AuthRequest, res) => {
       id: req.params.projectId,
       OR: [
         { userId: req.user!.id },
-        { team: { members: { some: { userId: req.user!.id, role: 'ADMIN' } } } },
+        { team: { members: { some: { userId: req.user!.id } } } },
       ],
     },
   });

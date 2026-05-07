@@ -320,7 +320,10 @@ router.patch('/me', async (req: AuthRequest, res) => {
   const user = await prisma.user.update({
     where: { id: userId },
     data,
-    select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
+    select: {
+      id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true,
+      teams: { include: { team: { select: { id: true, name: true } } } },
+    },
   });
 
   res.json({ user });

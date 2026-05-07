@@ -13,6 +13,9 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
+  FileText,
+  Calendar,
+  AlertCircle,
   Save,
   QrCode,
   RefreshCw,
@@ -26,6 +29,17 @@ const tabs = [
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'billing', label: 'Billing', icon: CreditCard },
 ];
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+  }).format(amount / 100);
+}
 
 export default function AccountPage() {
   const { user, updateUser, logout } = useAuth();
@@ -535,6 +549,8 @@ function BillingTab() {
     },
   ];
 
+  const sub = billing?.subscription;
+
   return (
     <div className="space-y-6">
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
@@ -557,7 +573,65 @@ function BillingTab() {
             </button>
           )}
         </div>
+
+        {sub && (
+          <div className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-slate-500" />
+              <div>
+                <p className="text-xs text-slate-500">Current period</p>
+                <p className="text-sm text-white">{formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Check className="w-4 h-4 text-emerald-400" />
+              <div>
+                <p className="text-xs text-slate-500">Status</p>
+                <p className="text-sm text-white capitalize">{sub.status}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <AlertCircle className={`w-4 h-4 ${sub.cancelAtPeriodEnd ? 'text-amber-400' : 'text-emerald-400'}`} />
+              <div>
+                <p className="text-xs text-slate-500">Renews</p>
+                <p className={`text-sm ${sub.cancelAtPeriodEnd ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {sub.cancelAtPeriodEnd ? 'Cancels on ' + formatDate(sub.currentPeriodEnd) : formatDate(sub.currentPeriodEnd)}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {billing?.invoices?.length > 0 && (
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-slate-500" />
+            Invoices
+          </h2>
+          <div className="space-y-2">
+            {billing.invoices.map((inv: any) => (
+              <div key={inv.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-4 py-3">
+                <div>
+                  <p className="text-sm text-white font-medium">Invoice #{inv.number}</p>
+                  <p className="text-xs text-slate-500">{formatDate(inv.created)}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    inv.status === 'paid' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                  }`}>
+                    {inv.status}
+                  </span>
+                  <span className="text-sm text-white font-medium">{formatCurrency(inv.amountPaid || inv.amountDue, inv.currency)}</span>
+                  {inv.pdfUrl && (
+                    <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-400 hover:text-emerald-300 underline">PDF</a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-4">
         {plans.map((plan) => (

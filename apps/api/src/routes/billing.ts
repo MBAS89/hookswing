@@ -16,13 +16,48 @@ router.get('/', async (req: AuthRequest, res) => {
       plan: true,
       stripeCustomerId: true,
       stripeSubscriptionId: true,
+      createdAt: true,
     },
   });
+
+  let subscription: any = null;
+  let invoices: any[] = [];
+
+  if (user?.stripeCustomerId && user?.stripeSubscriptionId) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+      subscription = {
+        status: sub.status,
+        currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
+        currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
+        cancelAtPeriodEnd: sub.cancel_at_period_end,
+      };
+
+      const invList = await stripe.invoices.list({
+        customer: user.stripeCustomerId,
+        limit: 10,
+      });
+      invoices = invList.data.map((inv) => ({
+        id: inv.id,
+        number: inv.number,
+        amountDue: inv.amount_due,
+        amountPaid: inv.amount_paid,
+        currency: inv.currency,
+        status: inv.status,
+        created: new Date(inv.created * 1000).toISOString(),
+        pdfUrl: inv.invoice_pdf,
+      }));
+    } catch {
+      // Stripe data may be stale; ignore errors
+    }
+  }
 
   res.json({
     plan: user?.plan || 'FREE',
     stripeCustomerId: user?.stripeCustomerId,
     stripeSubscriptionId: user?.stripeSubscriptionId,
+    subscription,
+    invoices,
   });
 });
 

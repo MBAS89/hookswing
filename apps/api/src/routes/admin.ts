@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { stripe } from '../lib/stripe';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import { apiRateLimit } from '../middleware/rateLimit';
@@ -267,7 +268,6 @@ router.get('/revenue', async (req: AuthRequest, res) => {
     prisma.user.count({ where: { plan: 'TEAM', createdAt: { gte: monthStart } } }),
   ]);
 
-  // Estimate MRR (you'll replace with actual Stripe data)
   const proPrice = 19;
   const teamPrice = 49;
   const estimatedMrr = proUsers * proPrice + teamUsers * teamPrice;
@@ -284,6 +284,48 @@ router.get('/revenue', async (req: AuthRequest, res) => {
     ORDER BY month ASC
   `;
 
+  // Fetch real Stripe subscriptions with user details
+  let stripeSubscriptions: any[] = [];
+  try {
+    const subs = await stripe.subscriptions.list({
+      status: 'all',
+      limit: 100,
+      expand: ['data.customer'],
+    });
+
+    const customerIds = subs.data.map((s) =>
+      typeof s.customer === 'string' ? s.customer : s.customer.id
+    );
+
+    const users = await prisma.user.findMany({
+      where: { stripeCustomerId: { in: customerIds } },
+      select: { id: true, name: true, email: true, stripeCustomerId: true },
+    });
+
+    const userByCustomer = new Map(users.map((u) => [u.stripeCustomerId, u]));
+
+    stripeSubscriptions = subs.data.map((sub) => {
+      const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
+      const user = userByCustomer.get(customerId);
+      return {
+        id: sub.id,
+        userId: user?.id,
+        userName: user?.name || user?.email || 'Unknown',
+        userEmail: user?.email,
+        status: sub.status,
+        plan: sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM ? 'TEAM' : 'PRO',
+        startDate: new Date(sub.start_date * 1000).toISOString(),
+        currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
+        currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
+        cancelAtPeriodEnd: sub.cancel_at_period_end,
+        amount: sub.items.data[0]?.price?.unit_amount,
+        currency: sub.items.data[0]?.price?.currency,
+      };
+    });
+  } catch {
+    // Stripe may not be configured; ignore
+  }
+
   res.json({
     subscriptions: {
       pro: { total: proUsers, newThisMonth: proUsersThisMonth, price: proPrice },
@@ -295,6 +337,7 @@ router.get('/revenue', async (req: AuthRequest, res) => {
       plan: m.plan,
       count: Number(m.count),
     })),
+    stripeSubscriptions,
   });
 });
 

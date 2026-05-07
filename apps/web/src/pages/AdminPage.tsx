@@ -414,6 +414,8 @@ function SubscriptionsTab() {
     return acc;
   }, []);
 
+  const subs = data.stripeSubscriptions || [];
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -426,6 +428,61 @@ function SubscriptionsTab() {
         </div>
         <StatCard icon={Crown} label="Pro Subscribers" value={data.subscriptions.pro.total} sub={`+${data.subscriptions.pro.newThisMonth} this month`} />
         <StatCard icon={Users2} label="Team Subscribers" value={data.subscriptions.team.total} sub={`+${data.subscriptions.team.newThisMonth} this month`} />
+      </div>
+
+      {/* Stripe Subscriptions Table */}
+      <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Active Subscriptions</h3>
+        {subs.length === 0 ? (
+          <p className="text-sm text-slate-500">No Stripe subscriptions found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-500">
+                  <th className="py-2 pr-4 font-medium">User</th>
+                  <th className="py-2 pr-4 font-medium">Plan</th>
+                  <th className="py-2 pr-4 font-medium">Status</th>
+                  <th className="py-2 pr-4 font-medium">Started</th>
+                  <th className="py-2 pr-4 font-medium">Current Period End</th>
+                  <th className="py-2 pr-4 font-medium">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {subs.map((sub: any) => (
+                  <tr key={sub.id}>
+                    <td className="py-2 pr-4 text-white">
+                      <p className="font-medium">{sub.userName}</p>
+                      <p className="text-xs text-slate-500">{sub.userEmail}</p>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        sub.plan === 'TEAM' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                      }`}>
+                        {sub.plan}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        sub.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' :
+                        sub.status === 'canceled' ? 'bg-red-500/10 text-red-400' :
+                        'bg-amber-500/10 text-amber-400'
+                      }`}>
+                        {sub.status}
+                      </span>
+                      {sub.cancelAtPeriodEnd && <span className="text-xs text-amber-400 ml-1">(ends)</span>}
+                    </td>
+                    <td className="py-2 pr-4 text-slate-400">{new Date(sub.startDate).toLocaleDateString()}</td>
+                    <td className="py-2 pr-4 text-slate-400">{new Date(sub.currentPeriodEnd).toLocaleDateString()}</td>
+                    <td className="py-2 pr-4 text-white">
+                      {sub.amount ? `$${(sub.amount / 100).toFixed(2)}` : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
