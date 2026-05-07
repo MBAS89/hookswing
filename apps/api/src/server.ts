@@ -334,28 +334,18 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  // Keepalive — ping every 30s, drop if no pong within 10s
-  let pongTimeout: NodeJS.Timeout | null = null;
+  // Data-frame heartbeat (proxies can't strip JSON like they can ping/pong)
+  let heartbeatTimeout: NodeJS.Timeout | null = null;
 
-  function resetPongTimeout() {
-    if (pongTimeout) clearTimeout(pongTimeout);
-    pongTimeout = setTimeout(() => {
-      console.log('[WS] Pong timeout — terminating connection');
+  function resetHeartbeatTimeout() {
+    if (heartbeatTimeout) clearTimeout(heartbeatTimeout);
+    heartbeatTimeout = setTimeout(() => {
+      console.log('[WS] Heartbeat timeout — terminating connection');
       ws.terminate();
-    }, 40000);
+    }, 45000);
   }
 
-  const pingInterval = setInterval(() => {
-    if (ws.readyState === 1) {
-      ws.ping();
-    }
-  }, 30000);
-
-  resetPongTimeout();
-
-  ws.on('pong', () => {
-    resetPongTimeout();
-  });
+  resetHeartbeatTimeout();
 
   ws.on('message', (message) => {
     try {
@@ -365,6 +355,11 @@ wss.on('connection', (ws, req) => {
         const connections = wsConnections.get(data.slug) || new Set();
         connections.add(ws);
         wsConnections.set(data.slug, connections);
+      } else if (data.action === 'heartbeat') {
+        resetHeartbeatTimeout();
+        if (ws.readyState === 1) {
+          ws.send(JSON.stringify({ type: 'heartbeat' }));
+        }
       }
     } catch {
       // ignore invalid messages
@@ -376,7 +371,7 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', (code, reason) => {
-    clearInterval(pingInterval);
+    if (heartbeatTimeout) clearTimeout(heartbeatTimeout);
     console.log(`[WS] Client disconnected — code: ${code}, reason: ${reason?.toString() || 'none'}`);
     wsConnections.forEach((connections, slug) => {
       connections.delete(ws);
