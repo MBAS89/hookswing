@@ -62,14 +62,16 @@ router.get('/', async (req: AuthRequest, res) => {
 });
 
 router.post('/checkout', async (req: AuthRequest, res) => {
-  const { plan } = req.body as { plan: 'pro' | 'team' };
+  const { plan, interval = 'month' } = req.body as { plan: 'pro' | 'team'; interval?: 'month' | 'year' };
+
+  const isYearly = interval === 'year';
   const priceId =
     plan === 'team'
-      ? process.env.STRIPE_PRICE_TEAM
-      : process.env.STRIPE_PRICE_PRO;
+      ? (isYearly ? process.env.STRIPE_PRICE_TEAM_YEARLY : process.env.STRIPE_PRICE_TEAM)
+      : (isYearly ? process.env.STRIPE_PRICE_PRO_YEARLY : process.env.STRIPE_PRICE_PRO);
 
   if (!priceId) {
-    return res.status(500).json({ error: 'Stripe price not configured' });
+    return res.status(500).json({ error: `Stripe ${interval}ly price not configured for ${plan}` });
   }
 
   let user = await prisma.user.findUnique({ where: { id: req.user!.id } });
@@ -146,8 +148,8 @@ router.post('/webhook', async (req, res) => {
   });
 
   const getPlanFromPrice = (priceId: string | undefined) => {
-    if (priceId === process.env.STRIPE_PRICE_TEAM) return 'TEAM';
-    if (priceId === process.env.STRIPE_PRICE_PRO) return 'PRO';
+    if (priceId === process.env.STRIPE_PRICE_TEAM || priceId === process.env.STRIPE_PRICE_TEAM_YEARLY) return 'TEAM';
+    if (priceId === process.env.STRIPE_PRICE_PRO || priceId === process.env.STRIPE_PRICE_PRO_YEARLY) return 'PRO';
     return 'FREE';
   };
 

@@ -313,7 +313,7 @@ router.get('/revenue', async (req: AuthRequest, res) => {
         userName: user?.name || user?.email || 'Unknown',
         userEmail: user?.email,
         status: sub.status,
-        plan: sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM ? 'TEAM' : 'PRO',
+        plan: (sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM || sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM_YEARLY) ? 'TEAM' : 'PRO',
         startDate: new Date(sub.start_date * 1000).toISOString(),
         currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
         currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import {
@@ -515,8 +516,10 @@ function SecurityTab({ user, updateUser, logout }: { user: any; updateUser: (u: 
 /* ---------- Billing Tab ---------- */
 function BillingTab() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [billing, setBilling] = useState<any>(null);
+  const [yearly, setYearly] = useState(searchParams.get('yearly') === 'true');
 
   useEffect(() => {
     api.get('/billing').then((res) => setBilling(res.data));
@@ -525,7 +528,7 @@ function BillingTab() {
   const handleCheckout = async (plan: 'pro' | 'team') => {
     setLoading(true);
     try {
-      const res = await api.post('/billing/checkout', { plan });
+      const res = await api.post('/billing/checkout', { plan, interval: yearly ? 'year' : 'month' });
       if (res.data.url) window.location.href = res.data.url;
     } finally {
       setLoading(false);
@@ -552,15 +555,15 @@ function BillingTab() {
     },
     {
       name: 'Pro',
-      price: '$19',
-      period: '/month',
+      price: yearly ? '$190' : '$19',
+      period: yearly ? '/year' : '/month',
       current: user?.plan === 'PRO',
       features: ['Unlimited projects', '10,000 webhooks/month', '90-day history', 'Replay', 'Slack/Discord alerts', 'Export JSON/CSV'],
     },
     {
       name: 'Team',
-      price: '$49',
-      period: '/month',
+      price: yearly ? '$490' : '$49',
+      period: yearly ? '/year' : '/month',
       current: user?.plan === 'TEAM',
       features: ['Everything in Pro', 'Unlimited team members', 'Shared workspaces', 'Team activity log', 'Priority support'],
     },
@@ -649,6 +652,17 @@ function BillingTab() {
           </div>
         </div>
       )}
+
+      <div className="flex items-center justify-center gap-3">
+        <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>Monthly</span>
+        <button
+          onClick={() => setYearly(!yearly)}
+          className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors"
+        >
+          <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${yearly ? 'translate-x-6' : ''}`} />
+        </button>
+        <span className={`text-sm ${yearly ? 'text-white' : 'text-slate-500'}`}>Yearly <span className="text-emerald-400">(save 2 months)</span></span>
+      </div>
 
       <div className="grid md:grid-cols-3 gap-4">
         {plans.map((plan) => (
