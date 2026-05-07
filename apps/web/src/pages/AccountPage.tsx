@@ -566,6 +566,9 @@ function BillingTab() {
     setCheckoutError('');
     try {
       const res = await api.post('/billing/checkout', { plan, interval: yearly ? 'year' : 'month' });
+      if (res.data.existingSubscriptions) {
+        setNotification({ type: 'info', message: 'You already have an active subscription. Redirecting to billing portal...' });
+      }
       if (res.data.url) window.location.href = res.data.url;
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Checkout failed. Please try again.';
@@ -674,6 +677,46 @@ function BillingTab() {
           </div>
         )}
       </div>
+
+      {billing?.subscriptions && billing.subscriptions.length > 0 && (
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-slate-500" />
+            Subscriptions
+          </h2>
+          <div className="space-y-2">
+            {billing.subscriptions.map((sub: any) => (
+              <div key={sub.id} className={`flex items-center justify-between rounded-lg px-4 py-3 ${
+                sub.status === 'active' ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-slate-800/50'
+              }`}>
+                <div>
+                  <p className="text-sm text-white font-medium">
+                    {sub.plan} — {sub.interval === 'year' ? 'Yearly' : 'Monthly'}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    sub.status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                  }`}>
+                    {sub.status}
+                  </span>
+                  {sub.cancelAtPeriodEnd && (
+                    <span className="text-xs text-amber-400">Cancels soon</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {billing.subscriptions.length > 1 && (
+            <p className="text-xs text-amber-400 mt-3">
+              ⚠️ You have multiple subscriptions. Click "Manage Billing" to cancel unwanted ones.
+            </p>
+          )}
+        </div>
+      )}
 
       {billing?.invoices?.length > 0 && (
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">

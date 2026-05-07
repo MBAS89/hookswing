@@ -154,18 +154,28 @@ router.get('/', async (req: AuthRequest, res) => {
     },
   });
 
-  let subscription: any = null;
+  let subscriptions: any[] = [];
   let invoices: any[] = [];
 
-  if (user?.stripeCustomerId && user?.stripeSubscriptionId) {
+  if (user?.stripeCustomerId) {
     try {
-      const sub = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-      subscription = {
+      // Fetch ALL subscriptions for this customer, not just the stored one
+      const subs = await stripe.subscriptions.list({
+        customer: user.stripeCustomerId,
+        status: 'all',
+        limit: 10,
+      });
+      subscriptions = subs.data.map((sub) => ({
+        id: sub.id,
         status: sub.status,
         currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
         currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
         cancelAtPeriodEnd: sub.cancel_at_period_end,
-      };
+        plan: sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM || sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM_YEARLY ? 'TEAM' : 'PRO',
+        amount: sub.items.data[0]?.price?.unit_amount,
+        currency: sub.items.data[0]?.price?.currency,
+        interval: sub.items.data[0]?.price?.recurring?.interval,
+      }));
 
       const invList = await stripe.invoices.list({
         customer: user.stripeCustomerId,
@@ -186,11 +196,15 @@ router.get('/', async (req: AuthRequest, res) => {
     }
   }
 
+  // Find the primary active subscription
+  const activeSub = subscriptions.find((s) => s.status === 'active' || s.status === 'trialing');
+
   res.json({
     plan: user?.plan || 'FREE',
     stripeCustomerId: user?.stripeCustomerId,
     stripeSubscriptionId: user?.stripeSubscriptionId,
-    subscription,
+    subscription: activeSub || null,
+    subscriptions,
     invoices,
   });
 });
@@ -232,6 +246,22 @@ router.post('/checkout', async (req: AuthRequest, res) => {
         where: { id: req.user!.id },
         data: { stripeCustomerId: customerId },
       });
+    }
+
+    // Check for existing active subscriptions — prevent duplicates
+    const existingSubs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'active',
+      limit: 10,
+    });
+
+    if (existingSubs.data.length > 0) {
+      console.log(`[Stripe Checkout] User already has ${existingSubs.data.length} active subscription(s). Redirecting to portal.`);
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/account`,
+      });
+      return res.json({ url: portalSession.url, existingSubscriptions: true });
     }
 
     console.log(`[Stripe Checkout] Creating session: customer=${customerId} price=${priceId}`);
