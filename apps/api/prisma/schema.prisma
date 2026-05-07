@@ -10,7 +10,8 @@ datasource db {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
-  passwordHash  String    @map("password_hash")
+  passwordHash  String?   @map("password_hash")
+  githubId      String?   @unique @map("github_id")
   name          String?
   role          UserRole  @default(USER)
   plan          Plan      @default(FREE)

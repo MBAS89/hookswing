@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, Shield, Mail, RotateCcw, ArrowLeft, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Shield, Mail, RotateCcw, ArrowLeft, KeyRound, Github } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
@@ -398,6 +398,23 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                   {mode === 'login' ? 'Sign In' : 'Create Account'}
                 </button>
               </form>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-800" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-slate-900 px-3 text-slate-500">or</span>
+                </div>
+              </div>
+
+              <a
+                href={`${import.meta.env.VITE_API_URL || 'https://hookswing.com'}/api/auth/github`}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2 border border-slate-700"
+              >
+                <Github className="w-5 h-5" />
+                Continue with GitHub
+              </a>
 
               <div className="mt-6 pt-6 border-t border-slate-800 text-center text-sm text-slate-400">
                 {mode === 'login' ? (
