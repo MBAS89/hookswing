@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "webhook_usage" (
     "id" TEXT NOT NULL,
-    "project_id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
     "year" INTEGER NOT NULL,
     "month" INTEGER NOT NULL,
     "count" INTEGER NOT NULL DEFAULT 0,
@@ -12,4 +12,4 @@ CREATE TABLE "webhook_usage" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "webhook_usage_project_id_year_month_key" ON "webhook_usage"("project_id", "year", "month");
+CREATE UNIQUE INDEX "webhook_usage_user_id_year_month_key" ON "webhook_usage"("user_id", "year", "month");

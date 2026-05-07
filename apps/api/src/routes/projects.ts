@@ -141,6 +141,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
     include: {
       _count: { select: { webhooks: true } },
       webhooks: { orderBy: { createdAt: 'desc' }, take: 1, select: { createdAt: true } },
+      team: { select: { ownerId: true } },
     },
   });
 
@@ -151,18 +152,19 @@ router.get('/:id', async (req: AuthRequest, res) => {
   const effectivePlan = project.teamId ? 'TEAM' : req.user!.plan;
   const cutoff = getHistoryCutoff(effectivePlan);
 
-  // Use immutable WebhookUsage for the monthly count (can't be gamed by deleting)
+  // Global monthly usage for the project owner (immutable, unaffected by deletion)
   const now = new Date();
-  const usage = await prisma.webhookUsage.findUnique({
+  const ownerId = project.userId || project.team?.ownerId;
+  const ownerUsage = await prisma.webhookUsage.findUnique({
     where: {
-      projectId_year_month: {
-        projectId: project.id,
+      userId_year_month: {
+        userId: ownerId || '',
         year: now.getFullYear(),
         month: now.getMonth(),
       },
     },
   });
-  const webhookCount = usage?.count || 0;
+  const webhookCount = ownerUsage?.count || 0;
 
   const baseUrl = `${req.protocol}://${req.get('host')}`;
 

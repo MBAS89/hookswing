@@ -24,7 +24,6 @@ router.get('/stats', async (req: AuthRequest, res) => {
   });
 
   const projectIds = projects.map((p) => p.id);
-  const personalProjectIds = projects.filter((p) => !p.team).map((p) => p.id);
 
   if (projectIds.length === 0) {
     return res.json({
@@ -45,21 +44,25 @@ router.get('/stats', async (req: AuthRequest, res) => {
   // Time ranges
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // Counts: today/week from stored webhooks (analytics), month from immutable usage
+  // Counts: today/week from stored webhooks (analytics)
   const [totalToday, totalWeek] = await Promise.all([
     prisma.webhook.count({ where: { projectId: { in: projectIds }, createdAt: { gte: todayStart } } }),
     prisma.webhook.count({ where: { projectId: { in: projectIds }, createdAt: { gte: weekStart } } }),
   ]);
 
-  const allUsageRows = await prisma.webhookUsage.findMany({
+  // Global monthly usage for the current user (immutable, unaffected by deletion)
+  const userUsage = await prisma.webhookUsage.findUnique({
     where: {
-      projectId: { in: projectIds },
-      year: now.getFullYear(),
-      month: now.getMonth(),
+      userId_year_month: {
+        userId: req.user!.id,
+        year: now.getFullYear(),
+        month: now.getMonth(),
+      },
     },
   });
-  const totalMonth = allUsageRows.reduce((sum: number, r: { count: number }) => sum + r.count, 0);
+  const totalMonth = userUsage?.count || 0;
 
   // Method breakdown
   const methodRows = await prisma.webhook.groupBy({
@@ -119,31 +122,21 @@ router.get('/stats', async (req: AuthRequest, res) => {
     },
   });
 
-  // Top projects by webhook count (this month) — from immutable usage
-  const usageByProject = new Map<string, number>();
-  for (const row of allUsageRows) {
-    usageByProject.set(row.projectId, (usageByProject.get(row.projectId) || 0) + row.count);
-  }
-  const topProjects = projectIds
-    .map((pid) => {
+  // Top projects by stored webhook count (this month) — analytics only
+  const projectCounts = await Promise.all(
+    projectIds.map(async (pid) => {
+      const count = await prisma.webhook.count({
+        where: { projectId: pid, createdAt: { gte: monthStart } },
+      });
       const proj = projects.find((p) => p.id === pid);
-      return { id: pid, name: proj?.name || 'Unknown', count: usageByProject.get(pid) || 0, teamName: proj?.team?.name };
+      return { id: pid, name: proj?.name || 'Unknown', count, teamName: proj?.team?.name };
     })
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+  );
+  const topProjects = projectCounts.sort((a, b) => b.count - a.count).slice(0, 5);
 
-  // Plan limit: use immutable WebhookUsage counters (not stored webhook count)
-  const isFree = req.user!.plan === 'FREE';
-  const limit = isFree ? 500 : 10000;
-  const usageProjectIds = isFree ? personalProjectIds : projectIds;
-  const usageRows = await prisma.webhookUsage.findMany({
-    where: {
-      projectId: { in: usageProjectIds },
-      year: now.getFullYear(),
-      month: now.getMonth(),
-    },
-  });
-  const planLimitUsed = usageRows.reduce((sum, r) => sum + r.count, 0);
+  // Plan limit: global user usage against their plan
+  const limit = req.user!.plan === 'FREE' ? 500 : 10000;
+  const planLimitUsed = totalMonth;
 
   res.json({
     totalWebhooksToday: totalToday,

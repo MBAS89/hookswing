@@ -149,14 +149,14 @@ model Webhook {
 
 model WebhookUsage {
   id        String   @id @default(cuid())
-  projectId String   @map("project_id")
+  userId    String   @map("user_id")
   year      Int
   month     Int      // 0-11
   count     Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([projectId, year, month])
+  @@unique([userId, year, month])
   @@map("webhook_usage")
 }
 
