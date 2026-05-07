@@ -11,6 +11,12 @@ import WorkspacePage from './pages/WorkspacePage';
 import CliPage from './pages/CliPage';
 import AdminPage from './pages/AdminPage';
 import AccountPage from './pages/AccountPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+import CookiePolicyPage from './pages/CookiePolicyPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import CareersPage from './pages/CareersPage';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -35,6 +41,12 @@ function AppRoutes() {
       <Route path="/dashboard/workspace/:teamId" element={<PrivateRoute><DashboardLayout><WorkspacePage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/cli" element={<PrivateRoute><DashboardLayout><CliPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/admin" element={<PrivateRoute><DashboardLayout><AdminPage /></DashboardLayout></PrivateRoute>} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsOfServicePage />} />
+      <Route path="/cookies" element={<CookiePolicyPage />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/careers" element={<CareersPage />} />
     </Routes>
   );
 }

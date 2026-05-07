@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Trash2, Laptop, GitCompare, SatelliteDish, Search, Repeat,
   Terminal, Users, MessageSquare, Check, ChevronDown, ChevronUp,
-  Menu, X, Github, Twitter, Globe
+  Menu, X, Github, Globe
 } from 'lucide-react';
 import Logo from '../components/Logo';
 
@@ -563,37 +563,31 @@ function Footer() {
             <ul className="space-y-2 text-sm text-slate-400">
               <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
               <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Changelog</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Roadmap</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Status Page</span></li>
+              <li><Link to="/docs" className="hover:text-white transition-colors">Documentation</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-4">Resources</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><Link to="/docs" className="hover:text-white transition-colors">Documentation</Link></li>
-              <li><Link to="/docs" className="hover:text-white transition-colors">CLI Reference</Link></li>
+              <li><Link to="/docs" className="hover:text-white transition-colors">Docs</Link></li>
+              <li><a href="https://github.com/MBAS89/hookswing-cli" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">CLI Repo</a></li>
               <li><Link to="/docs" className="hover:text-white transition-colors">API Reference</Link></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Blog</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Community</span></li>
             </ul>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><span className="hover:text-white transition-colors cursor-pointer">About</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Contact</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Careers</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Brand Assets</span></li>
+              <li><Link to="/about" className="hover:text-white transition-colors">About</Link></li>
+              <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
+              <li><Link to="/careers" className="hover:text-white transition-colors">Careers</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-4">Legal</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><span className="hover:text-white transition-colors cursor-pointer">Privacy Policy</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Terms of Service</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Cookie Policy</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">GDPR</span></li>
+              <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link to="/cookies" className="hover:text-white transition-colors">Cookie Policy</Link></li>
             </ul>
           </div>
         </div>
@@ -607,9 +601,8 @@ function Footer() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <a href="#" className="text-slate-500 hover:text-white transition-colors"><Twitter className="w-5 h-5" /></a>
-            <a href="#" className="text-slate-500 hover:text-white transition-colors"><Github className="w-5 h-5" /></a>
-            <a href="#" className="text-slate-500 hover:text-white transition-colors"><Globe className="w-5 h-5" /></a>
+            <a href="https://github.com/MBAS89/hookswing-cli" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white transition-colors" title="Open-source CLI"><Github className="w-5 h-5" /></a>
+            <a href="https://nuyvo.com" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white transition-colors" title="Nuyvo LLC"><Globe className="w-5 h-5" /></a>
           </div>
         </div>
       </div>
