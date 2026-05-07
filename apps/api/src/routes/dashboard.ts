@@ -24,6 +24,7 @@ router.get('/stats', async (req: AuthRequest, res) => {
   });
 
   const projectIds = projects.map((p) => p.id);
+  const personalProjectIds = projects.filter((p) => !p.team).map((p) => p.id);
 
   if (projectIds.length === 0) {
     return res.json({
@@ -123,8 +124,12 @@ router.get('/stats', async (req: AuthRequest, res) => {
   );
   const topProjects = projectCounts.sort((a, b) => b.count - a.count).slice(0, 5);
 
-  // Plan limit
-  const limit = req.user!.plan === 'FREE' ? 500 : 10000;
+  // Plan limit: free users only get charged for personal projects, not team projects
+  const isFree = req.user!.plan === 'FREE';
+  const limit = isFree ? 500 : 10000;
+  const planLimitUsed = isFree
+    ? await prisma.webhook.count({ where: { projectId: { in: personalProjectIds }, createdAt: { gte: monthStart } } })
+    : totalMonth;
 
   res.json({
     totalWebhooksToday: totalToday,
@@ -136,7 +141,7 @@ router.get('/stats', async (req: AuthRequest, res) => {
     hourlyVolume,
     dailyVolume,
     recentWebhooks,
-    planLimit: { used: totalMonth, limit },
+    planLimit: { used: planLimitUsed, limit },
     topProjects,
   });
 });

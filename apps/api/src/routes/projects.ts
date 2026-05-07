@@ -148,7 +148,8 @@ router.get('/:id', async (req: AuthRequest, res) => {
     return res.status(404).json({ error: 'Project not found' });
   }
 
-  const cutoff = getHistoryCutoff(req.user!.plan);
+  const effectivePlan = project.teamId ? 'TEAM' : req.user!.plan;
+  const cutoff = getHistoryCutoff(effectivePlan);
   const countWhere: any = { projectId: project.id };
   if (cutoff) countWhere.createdAt = { gte: cutoff };
 

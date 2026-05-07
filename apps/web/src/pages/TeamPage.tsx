@@ -162,7 +162,10 @@ export default function TeamPage() {
     }
   };
 
-  if (user?.plan !== 'TEAM') {
+  const isTeamPlan = user?.plan === 'TEAM';
+  const hasTeams = (user?.teams && user.teams.length > 0) || false;
+
+  if (!isTeamPlan && !hasTeams) {
     return (
       <div className="max-w-2xl mx-auto text-center py-16">
         <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -178,29 +181,31 @@ export default function TeamPage() {
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-white mb-6">Teams</h1>
 
-      {/* Create Team */}
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Users className="w-5 h-5 text-emerald-400" />
-          <h2 className="text-lg font-semibold text-white">Create a Team</h2>
+      {/* Create Team — only for Team plan holders */}
+      {isTeamPlan && (
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Users className="w-5 h-5 text-emerald-400" />
+            <h2 className="text-lg font-semibold text-white">Create a Team</h2>
+          </div>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={newTeamName}
+              onChange={(e) => setNewTeamName(e.target.value)}
+              placeholder="Team name (e.g. Backend Squad)"
+              className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+            <button
+              onClick={createTeam}
+              disabled={creating || !newTeamName.trim()}
+              className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Team'}
+            </button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={newTeamName}
-            onChange={(e) => setNewTeamName(e.target.value)}
-            placeholder="Team name (e.g. Backend Squad)"
-            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          />
-          <button
-            onClick={createTeam}
-            disabled={creating || !newTeamName.trim()}
-            className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-          >
-            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Team'}
-          </button>
-        </div>
-      </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">

@@ -35,10 +35,10 @@ export default function WorkspacePage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'activity'>('overview');
 
-  const isTeamPlan = user?.plan === 'TEAM';
+  const isTeamMember = user?.teams?.some((t) => t.team.id === teamId) || false;
 
   useEffect(() => {
-    if (!teamId || !isTeamPlan) {
+    if (!teamId || !isTeamMember) {
       setLoading(false);
       return;
     }
@@ -47,14 +47,14 @@ export default function WorkspacePage() {
       .then((res) => setData(res.data))
       .catch((err) => setError(err.response?.data?.error || 'Failed to load workspace'))
       .finally(() => setLoading(false));
-  }, [teamId, isTeamPlan]);
+  }, [teamId, isTeamMember]);
 
-  if (!isTeamPlan) {
+  if (!isTeamMember) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500">
         <Crown className="w-12 h-12 text-amber-400 mb-4" />
         <h2 className="text-lg font-bold text-white mb-1">Team Workspaces</h2>
-        <p className="text-sm">Upgrade to Team plan to unlock shared workspaces.</p>
+        <p className="text-sm">You do not have access to this workspace.</p>
       </div>
     );
   }

@@ -57,6 +57,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
 
   const teamOptions = user?.teams?.map((t) => ({ id: t.team.id, name: t.team.name })) || [];
   const isTeamPlan = user?.plan === 'TEAM';
+  const hasAnyTeams = (user?.teams && user.teams.length > 0) || false;
 
   return (
     <>
@@ -139,14 +140,14 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             </nav>
           </div>
 
-          {/* Workspaces (Team plan only) */}
-          {isTeamPlan && user?.teams && user.teams.length > 0 && (
+          {/* Workspaces */}
+          {hasAnyTeams && (
             <div>
               <div className="flex items-center justify-between px-3 mb-2">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Workspaces</span>
               </div>
               <nav className="space-y-1">
-                {user.teams.map((membership) => (
+                {user?.teams?.map((membership) => (
                   <Link
                     key={membership.team.id}
                     to={`/dashboard/workspace/${membership.team.id}`}
