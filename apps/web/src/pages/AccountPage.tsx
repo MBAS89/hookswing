@@ -525,11 +525,18 @@ function BillingTab() {
     api.get('/billing').then((res) => setBilling(res.data));
   }, []);
 
+  const [checkoutError, setCheckoutError] = useState('');
+
   const handleCheckout = async (plan: 'pro' | 'team') => {
     setLoading(true);
+    setCheckoutError('');
     try {
       const res = await api.post('/billing/checkout', { plan, interval: yearly ? 'year' : 'month' });
       if (res.data.url) window.location.href = res.data.url;
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Checkout failed. Please try again.';
+      setCheckoutError(msg);
+      console.error('Checkout error:', err);
     } finally {
       setLoading(false);
     }
@@ -650,6 +657,12 @@ function BillingTab() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {checkoutError && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400 text-sm">
+          {checkoutError}
         </div>
       )}
 
