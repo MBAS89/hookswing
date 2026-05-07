@@ -14,23 +14,43 @@ interface Line {
 
 const API_URL = window.location.origin;
 
+// ── Module-level singleton state ──
+// This persists across route changes so the CLI survives navigation.
+let _lines: Line[] = [];
+let _history: string[] = [];
+let _socket: Socket | null = null;
+let _listening = false;
+let _forwarding = false;
+let _forwardUrl = '';
+let _forwardStats = { total: 0, success: 0, failed: 0 };
+let _hasWelcomed = false;
+
+function getSocket() { return _socket; }
+function setSocket(s: Socket | null) { _socket = s; }
+
 export default function CliPage() {
   const { user } = useAuth();
-  const [lines, setLines] = useState<Line[]>([]);
+  const [lines, setLines] = useState<Line[]>(_lines);
   const [input, setInput] = useState('');
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<string[]>(_history);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [listening, setListening] = useState(false);
-  const [forwarding, setForwarding] = useState(false);
-  const [forwardStats, setForwardStats] = useState({ total: 0, success: 0, failed: 0 });
-  const socketRef = useRef<Socket | null>(null);
-  const forwardUrlRef = useRef<string>('');
+  const [listening, setListening] = useState(_listening);
+  const [forwarding, setForwarding] = useState(_forwarding);
+  const [forwardStats, setForwardStats] = useState({ ..._forwardStats });
   const inputRef = useRef<HTMLInputElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const linesEndRef = useRef<HTMLDivElement>(null);
 
+  // Sync local React state back to module-level on every change
+  useEffect(() => { _lines = lines; }, [lines]);
+  useEffect(() => { _history = history; }, [history]);
+  useEffect(() => { _listening = listening; }, [listening]);
+  useEffect(() => { _forwarding = forwarding; }, [forwarding]);
+  useEffect(() => { _forwardStats = forwardStats; }, [forwardStats]);
+
   const addLine = useCallback((type: LineType, text: string) => {
-    setLines((prev) => [...prev, { type, text, timestamp: new Date().toLocaleTimeString() }]);
+    const line: Line = { type, text, timestamp: new Date().toLocaleTimeString() };
+    _lines = [..._lines, line];
+    setLines(_lines);
   }, []);
 
   // Auto-scroll to bottom
@@ -43,23 +63,24 @@ export default function CliPage() {
     inputRef.current?.focus();
   }, []);
 
-  // Initial welcome message
+  // Welcome message (only once per session)
   useEffect(() => {
-    if (lines.length === 0) {
+    if (!_hasWelcomed) {
+      _hasWelcomed = true;
       addLine('info', 'WebhookVault Browser CLI v1.0.0');
       addLine('info', 'Type "help" for available commands.');
       addLine('info', '');
     }
-  }, [addLine, lines.length]);
+  }, [addLine]);
 
   const stopListening = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
+    if (_socket) {
+      _socket.disconnect();
+      setSocket(null);
     }
     setListening(false);
     setForwarding(false);
-    forwardUrlRef.current = '';
+    _forwardUrl = '';
   }, []);
 
   const startForwarding = useCallback((slug: string, targetUrl: string) => {
@@ -71,7 +92,6 @@ export default function CliPage() {
       return;
     }
 
-    // Find project by slug to get projectId
     api.get('/projects')
       .then((res) => {
         const project = res.data.projects.find((p: any) => p.slug === slug);
@@ -80,7 +100,11 @@ export default function CliPage() {
           return;
         }
 
-        addLine('info', `Forwarding ${project.name} (${slug}) → ${targetUrl}`);
+        if (targetUrl) {
+          addLine('info', `Forwarding ${project.name} (${slug}) → ${targetUrl}`);
+        } else {
+          addLine('info', `Listening to ${project.name} (${slug})`);
+        }
         addLine('info', 'Type "stop" to disconnect.');
 
         const socket = io(API_URL, {
@@ -88,10 +112,10 @@ export default function CliPage() {
           transports: ['websocket', 'polling'],
         });
 
-        socketRef.current = socket;
-        forwardUrlRef.current = targetUrl;
+        setSocket(socket);
+        _forwardUrl = targetUrl;
         setListening(true);
-        setForwarding(true);
+        setForwarding(!!targetUrl);
         setForwardStats({ total: 0, success: 0, failed: 0 });
 
         socket.on('connect', () => {
@@ -105,10 +129,15 @@ export default function CliPage() {
           const text = `[${new Date(webhook.createdAt).toLocaleTimeString()}]  ${webhook.method.padEnd(6)}  ${webhook.source || webhook.ip}  ${sizeStr}`;
           addLine('webhook', text);
 
-          setForwardStats((prev) => ({ ...prev, total: prev.total + 1 }));
+          setForwardStats((prev) => {
+            const next = { ...prev, total: prev.total + 1 };
+            _forwardStats = next;
+            return next;
+          });
+
+          if (!targetUrl) return; // listen mode = no forwarding
 
           try {
-            // Prepare headers — remove hop-by-hop headers
             const headers: Record<string, string> = {};
             const rawHeaders = (webhook.headers || {}) as Record<string, string>;
             for (const [k, v] of Object.entries(rawHeaders)) {
@@ -117,7 +146,6 @@ export default function CliPage() {
               headers[k] = String(v);
             }
 
-            // Use rawBody when available, fall back to JSON body
             let body: string | undefined = webhook.rawBody;
             if (!body && webhook.body) {
               body = typeof webhook.body === 'string' ? webhook.body : JSON.stringify(webhook.body);
@@ -133,17 +161,33 @@ export default function CliPage() {
             const responseTime = Math.round(performance.now() - start);
 
             if (res.ok) {
-              setForwardStats((prev) => ({ ...prev, success: prev.success + 1 }));
+              setForwardStats((prev) => {
+                const next = { ...prev, success: prev.success + 1 };
+                _forwardStats = next;
+                return next;
+              });
               addLine('success', `  → ${res.status} OK in ${responseTime}ms`);
             } else {
-              setForwardStats((prev) => ({ ...prev, failed: prev.failed + 1 }));
+              setForwardStats((prev) => {
+                const next = { ...prev, failed: prev.failed + 1 };
+                _forwardStats = next;
+                return next;
+              });
               addLine('error', `  → ${res.status} ${res.statusText} in ${responseTime}ms`);
+              if (res.status === 404) {
+                addLine('info', `  Your local server got the request but returned 404.`);
+                addLine('info', `  Make sure you have a route matching ${new URL(targetUrl).pathname}`);
+              }
             }
           } catch (err: any) {
-            setForwardStats((prev) => ({ ...prev, failed: prev.failed + 1 }));
+            setForwardStats((prev) => {
+              const next = { ...prev, failed: prev.failed + 1 };
+              _forwardStats = next;
+              return next;
+            });
             if (err.name === 'TypeError' && err.message?.includes('Failed to fetch')) {
-              addLine('error', '  → CORS blocked or unreachable. Make sure your local server allows cross-origin requests.');
-              addLine('info', '  Tip: Add "app.use(cors())" if using Express, or set "server: { cors: true }" in Vite.');
+              addLine('error', '  → CORS blocked or unreachable.');
+              addLine('info', '  Tip: Add "app.use(cors())" in Express, or "server: { cors: true }" in Vite.');
             } else {
               addLine('error', `  → ${err.message || 'Request failed'}`);
             }
@@ -169,8 +213,11 @@ export default function CliPage() {
     const trimmed = raw.trim();
     if (!trimmed) return;
 
-    // Add to history
-    setHistory((prev) => [trimmed, ...prev].slice(0, 100));
+    setHistory((prev) => {
+      const next = [trimmed, ...prev].slice(0, 100);
+      _history = next;
+      return next;
+    });
     setHistoryIndex(-1);
 
     addLine('input', `> ${trimmed}`);
@@ -268,8 +315,8 @@ export default function CliPage() {
           addLine('info', '  Example: forward my-project http://localhost:3000/webhook');
           break;
         }
-        if (listening) {
-          addLine('error', 'Already forwarding. Type "stop" first.');
+        if (_listening) {
+          addLine('error', 'Already active. Type "stop" first.');
           break;
         }
         startForwarding(fwdSlug, fwdUrl);
@@ -282,8 +329,8 @@ export default function CliPage() {
           addLine('error', 'Usage: listen <project-slug>');
           break;
         }
-        if (listening) {
-          addLine('error', 'Already listening. Type "stop" first.');
+        if (_listening) {
+          addLine('error', 'Already active. Type "stop" first.');
           break;
         }
         startForwarding(listenSlug, '');
@@ -291,11 +338,11 @@ export default function CliPage() {
       }
 
       case 'stop':
-        if (!listening) {
+        if (!_listening) {
           addLine('error', 'Not currently active.');
         } else {
-          if (forwarding && forwardStats.total > 0) {
-            addLine('info', `Stats: ${forwardStats.total} forwarded │ ${forwardStats.success} success │ ${forwardStats.failed} failed`);
+          if (_forwarding && _forwardStats.total > 0) {
+            addLine('info', `Stats: ${_forwardStats.total} forwarded │ ${_forwardStats.success} success │ ${_forwardStats.failed} failed`);
           }
           stopListening();
           addLine('info', 'Stopped.');
@@ -346,13 +393,14 @@ export default function CliPage() {
 
       case 'clear':
       case 'cls':
+        _lines = [];
         setLines([]);
         break;
 
       default:
         addLine('error', `Unknown command: "${cmd}". Type "help" for available commands.`);
     }
-  }, [addLine, user, listening, forwarding, forwardStats, startForwarding, stopListening]);
+  }, [addLine, user, startForwarding, stopListening]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -361,8 +409,8 @@ export default function CliPage() {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setHistoryIndex((prev) => {
-        const next = Math.min(prev + 1, history.length - 1);
-        if (history[next]) setInput(history[next]);
+        const next = Math.min(prev + 1, _history.length - 1);
+        if (_history[next]) setInput(_history[next]);
         return next;
       });
     } else if (e.key === 'ArrowDown') {
@@ -370,7 +418,7 @@ export default function CliPage() {
       setHistoryIndex((prev) => {
         const next = Math.max(prev - 1, -1);
         if (next === -1) setInput('');
-        else if (history[next]) setInput(history[next]);
+        else if (_history[next]) setInput(_history[next]);
         return next;
       });
     }
@@ -394,15 +442,15 @@ export default function CliPage() {
         <div className="flex items-center gap-2">
           <Terminal className="w-4 h-4 text-emerald-400" />
           <span className="text-sm font-medium text-white">WebhookVault CLI</span>
-          {listening && (
+          {_listening && (
             <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-              {forwarding ? 'Forwarding' : 'Listening'}
+              {_forwarding ? 'Forwarding' : 'Listening'}
             </span>
           )}
         </div>
         <button
-          onClick={() => setLines([])}
+          onClick={() => { _lines = []; setLines([]); }}
           className="text-slate-500 hover:text-white transition-colors"
           title="Clear"
         >
@@ -439,7 +487,7 @@ export default function CliPage() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           className="flex-1 bg-transparent text-slate-200 font-mono text-sm outline-none placeholder-slate-600"
-          placeholder={listening ? 'Type "stop" to stop...' : 'Type a command...'}
+          placeholder={_listening ? 'Type "stop" to stop...' : 'Type a command...'}
           autoComplete="off"
           spellCheck={false}
         />
