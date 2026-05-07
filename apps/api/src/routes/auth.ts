@@ -39,7 +39,7 @@ function generateTokens(userId: string) {
     expiresIn: '15m',
   });
   const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET!, {
-    expiresIn: '7d',
+    expiresIn: '30d',
   });
   return { accessToken, refreshToken };
 }
@@ -150,7 +150,7 @@ router.post('/login', authRateLimit, async (req, res) => {
     data: {
       userId: user.id,
       token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   });
 
@@ -233,7 +233,7 @@ router.post('/login/2fa', authRateLimit, async (req, res) => {
     data: {
       userId: user.id,
       token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   });
 
@@ -674,7 +674,7 @@ router.post('/verify-email', authRateLimit, async (req, res) => {
     data: {
       userId: user.id,
       token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     },
   });
 
