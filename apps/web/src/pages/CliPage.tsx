@@ -15,7 +15,7 @@ interface Line {
 const API_URL = window.location.origin;
 
 // ── Module-level singleton state ──
-// This persists across route changes so the CLI survives navigation.
+// Persists across route changes so the CLI survives navigation.
 let _lines: Line[] = [];
 let _history: string[] = [];
 let _socket: Socket | null = null;
@@ -26,7 +26,14 @@ let _forwardStats = { total: 0, success: 0, failed: 0 };
 let _hasWelcomed = false;
 let _showed404Hint = false;
 
-function getSocket() { return _socket; }
+// Ref that the socket callbacks read — always points to the latest closures.
+const liveRef = {
+  addLine: (type: LineType, text: string) => {},
+  setListening: (v: boolean) => {},
+  setForwarding: (v: boolean) => {},
+  setForwardStats: (fn: (prev: typeof _forwardStats) => typeof _forwardStats) => {},
+};
+
 function setSocket(s: Socket | null) { _socket = s; }
 
 export default function CliPage() {
@@ -41,18 +48,21 @@ export default function CliPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const linesEndRef = useRef<HTMLDivElement>(null);
 
-  // Sync local React state back to module-level on every change
-  useEffect(() => { _lines = lines; }, [lines]);
-  useEffect(() => { _history = history; }, [history]);
-  useEffect(() => { _listening = listening; }, [listening]);
-  useEffect(() => { _forwarding = forwarding; }, [forwarding]);
-  useEffect(() => { _forwardStats = forwardStats; }, [forwardStats]);
-
-  const addLine = useCallback((type: LineType, text: string) => {
+  // ── Keep liveRef always pointing to latest closures ──
+  liveRef.addLine = (type: LineType, text: string) => {
     const line: Line = { type, text, timestamp: new Date().toLocaleTimeString() };
     _lines = [..._lines, line];
     setLines(_lines);
-  }, []);
+  };
+  liveRef.setListening = (v: boolean) => { _listening = v; setListening(v); };
+  liveRef.setForwarding = (v: boolean) => { _forwarding = v; setForwarding(v); };
+  liveRef.setForwardStats = (fn: (prev: typeof _forwardStats) => typeof _forwardStats) => {
+    setForwardStats((prev) => {
+      const next = fn(prev);
+      _forwardStats = next;
+      return next;
+    });
+  };
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -68,11 +78,11 @@ export default function CliPage() {
   useEffect(() => {
     if (!_hasWelcomed) {
       _hasWelcomed = true;
-      addLine('info', 'WebhookVault Browser CLI v1.0.0');
-      addLine('info', 'Type "help" for available commands.');
-      addLine('info', '');
+      liveRef.addLine('info', 'WebhookVault Browser CLI v1.0.0');
+      liveRef.addLine('info', 'Type "help" for available commands.');
+      liveRef.addLine('info', '');
     }
-  }, [addLine]);
+  }, []);
 
   const stopListening = useCallback(() => {
     if (_socket) {
@@ -80,8 +90,8 @@ export default function CliPage() {
       _socket.disconnect();
       setSocket(null);
     }
-    setListening(false);
-    setForwarding(false);
+    liveRef.setListening(false);
+    liveRef.setForwarding(false);
     _forwardUrl = '';
     _showed404Hint = false;
   }, []);
@@ -91,7 +101,7 @@ export default function CliPage() {
 
     const token = localStorage.getItem('accessToken');
     if (!token) {
-      addLine('error', 'Not authenticated. Please log in.');
+      liveRef.addLine('error', 'Not authenticated. Please log in.');
       return;
     }
 
@@ -99,16 +109,16 @@ export default function CliPage() {
       .then((res) => {
         const project = res.data.projects.find((p: any) => p.slug === slug);
         if (!project) {
-          addLine('error', `Project "${slug}" not found.`);
+          liveRef.addLine('error', `Project "${slug}" not found.`);
           return;
         }
 
         if (targetUrl) {
-          addLine('info', `Forwarding ${project.name} (${slug}) → ${targetUrl}`);
+          liveRef.addLine('info', `Forwarding ${project.name} (${slug}) → ${targetUrl}`);
         } else {
-          addLine('info', `Listening to ${project.name} (${slug})`);
+          liveRef.addLine('info', `Listening to ${project.name} (${slug})`);
         }
-        addLine('info', 'Type "stop" to disconnect.');
+        liveRef.addLine('info', 'Type "stop" to disconnect.');
 
         const socket = io(API_URL, {
           auth: { token },
@@ -117,12 +127,12 @@ export default function CliPage() {
 
         setSocket(socket);
         _forwardUrl = targetUrl;
-        setListening(true);
-        setForwarding(!!targetUrl);
-        setForwardStats({ total: 0, success: 0, failed: 0 });
+        liveRef.setListening(true);
+        liveRef.setForwarding(!!targetUrl);
+        liveRef.setForwardStats(() => ({ total: 0, success: 0, failed: 0 }));
 
         socket.on('connect', () => {
-          addLine('success', 'Connected. Waiting for webhooks...');
+          liveRef.addLine('success', 'Connected. Waiting for webhooks...');
           socket.emit('subscribe', project.id);
         });
 
@@ -130,15 +140,11 @@ export default function CliPage() {
           const size = webhook.body ? JSON.stringify(webhook.body).length : 0;
           const sizeStr = size > 1024 ? `${(size / 1024).toFixed(1)}KB` : `${size}B`;
           const text = `[${new Date(webhook.createdAt).toLocaleTimeString()}]  ${webhook.method.padEnd(6)}  ${webhook.source || webhook.ip}  ${sizeStr}`;
-          addLine('webhook', text);
+          liveRef.addLine('webhook', text);
 
-          setForwardStats((prev) => {
-            const next = { ...prev, total: prev.total + 1 };
-            _forwardStats = next;
-            return next;
-          });
+          liveRef.setForwardStats((prev) => ({ ...prev, total: prev.total + 1 }));
 
-          if (!targetUrl) return; // listen mode = no forwarding
+          if (!targetUrl) return;
 
           try {
             const headers: Record<string, string> = {};
@@ -164,55 +170,43 @@ export default function CliPage() {
             const responseTime = Math.round(performance.now() - start);
 
             if (res.ok) {
-              setForwardStats((prev) => {
-                const next = { ...prev, success: prev.success + 1 };
-                _forwardStats = next;
-                return next;
-              });
-              addLine('success', `  → ${res.status} OK in ${responseTime}ms`);
+              liveRef.setForwardStats((prev) => ({ ...prev, success: prev.success + 1 }));
+              liveRef.addLine('success', `  → ${res.status} OK in ${responseTime}ms`);
             } else {
-              setForwardStats((prev) => {
-                const next = { ...prev, failed: prev.failed + 1 };
-                _forwardStats = next;
-                return next;
-              });
-              addLine('error', `  → ${res.status} ${res.statusText} in ${responseTime}ms`);
+              liveRef.setForwardStats((prev) => ({ ...prev, failed: prev.failed + 1 }));
+              liveRef.addLine('error', `  → ${res.status} ${res.statusText} in ${responseTime}ms`);
               if (res.status === 404 && !_showed404Hint) {
                 _showed404Hint = true;
-                addLine('info', `  Your local server got the request but returned 404.`);
-                addLine('info', `  Make sure you have a route matching ${new URL(targetUrl).pathname}`);
+                liveRef.addLine('info', `  Your local server got the request but returned 404.`);
+                liveRef.addLine('info', `  Make sure you have a route matching ${new URL(targetUrl).pathname}`);
               }
             }
           } catch (err: any) {
-            setForwardStats((prev) => {
-              const next = { ...prev, failed: prev.failed + 1 };
-              _forwardStats = next;
-              return next;
-            });
+            liveRef.setForwardStats((prev) => ({ ...prev, failed: prev.failed + 1 }));
             if (err.name === 'TypeError' && err.message?.includes('Failed to fetch')) {
-              addLine('error', '  → CORS blocked or unreachable.');
-              addLine('info', '  Tip: Add "app.use(cors())" in Express, or "server: { cors: true }" in Vite.');
+              liveRef.addLine('error', '  → CORS blocked or unreachable.');
+              liveRef.addLine('info', '  Tip: Add "app.use(cors())" in Express, or "server: { cors: true }" in Vite.');
             } else {
-              addLine('error', `  → ${err.message || 'Request failed'}`);
+              liveRef.addLine('error', `  → ${err.message || 'Request failed'}`);
             }
           }
         });
 
         socket.on('disconnect', () => {
-          addLine('info', 'Disconnected.');
-          setListening(false);
+          liveRef.addLine('info', 'Disconnected.');
+          liveRef.setListening(false);
         });
 
         socket.on('connect_error', (err) => {
-          if (!_listening) return; // ignore after stop
-          addLine('error', `Connection error: ${err.message}`);
-          setListening(false);
+          if (!_listening) return;
+          liveRef.addLine('error', `Connection error: ${err.message}`);
+          liveRef.setListening(false);
         });
       })
       .catch(() => {
-        addLine('error', 'Failed to fetch projects.');
+        liveRef.addLine('error', 'Failed to fetch projects.');
       });
-  }, [addLine, stopListening]);
+  }, [stopListening]);
 
   const executeCommand = useCallback(async (raw: string) => {
     const trimmed = raw.trim();
@@ -225,7 +219,7 @@ export default function CliPage() {
     });
     setHistoryIndex(-1);
 
-    addLine('input', `> ${trimmed}`);
+    liveRef.addLine('input', `> ${trimmed}`);
 
     const parts = trimmed.split(/\s+/);
     const cmd = parts[0].toLowerCase();
@@ -234,27 +228,27 @@ export default function CliPage() {
     switch (cmd) {
       case 'help':
       case '?':
-        addLine('output', 'Available commands:');
-        addLine('output', '  help                Show this help message');
-        addLine('output', '  whoami              Show current user');
-        addLine('output', '  projects, list      List your projects');
-        addLine('output', '  webhooks <slug>     List recent webhooks for a project');
-        addLine('output', '  forward <slug> <url> Forward webhooks to a local server');
-        addLine('output', '  listen <slug>       Watch webhooks without forwarding');
-        addLine('output', '  stop                Stop listening');
-        addLine('output', '  replay <id> <url>   Replay a webhook to a URL');
-        addLine('output', '  curl <id>           Copy curl command to replay a webhook');
-        addLine('output', '  clear               Clear terminal');
+        liveRef.addLine('output', 'Available commands:');
+        liveRef.addLine('output', '  help                Show this help message');
+        liveRef.addLine('output', '  whoami              Show current user');
+        liveRef.addLine('output', '  projects, list      List your projects');
+        liveRef.addLine('output', '  webhooks <slug>     List recent webhooks for a project');
+        liveRef.addLine('output', '  forward <slug> <url> Forward webhooks to a local server');
+        liveRef.addLine('output', '  listen <slug>       Watch webhooks without forwarding');
+        liveRef.addLine('output', '  stop                Stop listening');
+        liveRef.addLine('output', '  replay <id> <url>   Replay a webhook to a URL');
+        liveRef.addLine('output', '  curl <id>           Copy curl command to replay a webhook');
+        liveRef.addLine('output', '  clear               Clear terminal');
         break;
 
       case 'whoami':
         if (user) {
-          addLine('output', `Email:    ${user.email}`);
-          addLine('output', `Name:     ${user.name || '—'}`);
-          addLine('output', `Plan:     ${user.plan}`);
-          addLine('output', `Teams:    ${user.teams?.length || 0}`);
+          liveRef.addLine('output', `Email:    ${user.email}`);
+          liveRef.addLine('output', `Name:     ${user.name || '—'}`);
+          liveRef.addLine('output', `Plan:     ${user.plan}`);
+          liveRef.addLine('output', `Teams:    ${user.teams?.length || 0}`);
         } else {
-          addLine('error', 'Not authenticated.');
+          liveRef.addLine('error', 'Not authenticated.');
         }
         break;
 
@@ -264,50 +258,50 @@ export default function CliPage() {
           const res = await api.get('/projects');
           const projects = res.data.projects;
           if (projects.length === 0) {
-            addLine('output', 'No projects yet.');
+            liveRef.addLine('output', 'No projects yet.');
           } else {
-            addLine('output', `${'Slug'.padEnd(14)} ${'Name'.padEnd(22)} Webhooks`);
-            addLine('output', '─'.repeat(50));
+            liveRef.addLine('output', `${'Slug'.padEnd(14)} ${'Name'.padEnd(22)} Webhooks`);
+            liveRef.addLine('output', '─'.repeat(50));
             for (const p of projects) {
               const count = p._count?.webhooks || 0;
               const teamBadge = p.team ? '[T]' : '[P]';
-              addLine('output', `${teamBadge} ${p.slug.padEnd(12)} ${p.name.slice(0, 20).padEnd(22)} ${count}`);
+              liveRef.addLine('output', `${teamBadge} ${p.slug.padEnd(12)} ${p.name.slice(0, 20).padEnd(22)} ${count}`);
             }
           }
         } catch {
-          addLine('error', 'Failed to fetch projects.');
+          liveRef.addLine('error', 'Failed to fetch projects.');
         }
         break;
 
       case 'webhooks': {
         const slug = args[0];
         if (!slug) {
-          addLine('error', 'Usage: webhooks <project-slug>');
+          liveRef.addLine('error', 'Usage: webhooks <project-slug>');
           break;
         }
         try {
           const res = await api.get('/projects');
           const project = res.data.projects.find((p: any) => p.slug === slug);
           if (!project) {
-            addLine('error', `Project "${slug}" not found.`);
+            liveRef.addLine('error', `Project "${slug}" not found.`);
             break;
           }
           const whRes = await api.get(`/projects/${project.id}/webhooks?limit=10`);
           const webhooks = whRes.data.webhooks;
           if (webhooks.length === 0) {
-            addLine('output', 'No webhooks yet.');
+            liveRef.addLine('output', 'No webhooks yet.');
           } else {
-            addLine('output', `${'Method'.padEnd(8)} ${'Source'.padEnd(18)} ${'Size'.padEnd(8)} Time`);
-            addLine('output', '─'.repeat(60));
+            liveRef.addLine('output', `${'Method'.padEnd(8)} ${'Source'.padEnd(18)} ${'Size'.padEnd(8)} Time`);
+            liveRef.addLine('output', '─'.repeat(60));
             for (const w of webhooks) {
               const size = w.body ? JSON.stringify(w.body).length : 0;
               const sizeStr = size > 1024 ? `${(size / 1024).toFixed(1)}KB` : `${size}B`;
               const time = new Date(w.createdAt).toLocaleTimeString();
-              addLine('output', `${w.method.padEnd(8)} ${(w.source || w.ip).slice(0, 18).padEnd(18)} ${sizeStr.padEnd(8)} ${time}`);
+              liveRef.addLine('output', `${w.method.padEnd(8)} ${(w.source || w.ip).slice(0, 18).padEnd(18)} ${sizeStr.padEnd(8)} ${time}`);
             }
           }
         } catch {
-          addLine('error', 'Failed to fetch webhooks.');
+          liveRef.addLine('error', 'Failed to fetch webhooks.');
         }
         break;
       }
@@ -316,12 +310,12 @@ export default function CliPage() {
         const fwdSlug = args[0];
         const fwdUrl = args[1];
         if (!fwdSlug || !fwdUrl) {
-          addLine('error', 'Usage: forward <project-slug> <local-url>');
-          addLine('info', '  Example: forward my-project http://localhost:3000/webhook');
+          liveRef.addLine('error', 'Usage: forward <project-slug> <local-url>');
+          liveRef.addLine('info', '  Example: forward my-project http://localhost:3000/webhook');
           break;
         }
         if (_listening) {
-          addLine('error', 'Already active. Type "stop" first.');
+          liveRef.addLine('error', 'Already active. Type "stop" first.');
           break;
         }
         startForwarding(fwdSlug, fwdUrl);
@@ -331,11 +325,11 @@ export default function CliPage() {
       case 'listen': {
         const listenSlug = args[0];
         if (!listenSlug) {
-          addLine('error', 'Usage: listen <project-slug>');
+          liveRef.addLine('error', 'Usage: listen <project-slug>');
           break;
         }
         if (_listening) {
-          addLine('error', 'Already active. Type "stop" first.');
+          liveRef.addLine('error', 'Already active. Type "stop" first.');
           break;
         }
         startForwarding(listenSlug, '');
@@ -344,13 +338,13 @@ export default function CliPage() {
 
       case 'stop':
         if (!_listening) {
-          addLine('error', 'Not currently active.');
+          liveRef.addLine('error', 'Not currently active.');
         } else {
           if (_forwarding && _forwardStats.total > 0) {
-            addLine('info', `Stats: ${_forwardStats.total} forwarded │ ${_forwardStats.success} success │ ${_forwardStats.failed} failed`);
+            liveRef.addLine('info', `Stats: ${_forwardStats.total} forwarded │ ${_forwardStats.success} success │ ${_forwardStats.failed} failed`);
           }
           stopListening();
-          addLine('info', 'Stopped.');
+          liveRef.addLine('info', 'Stopped.');
         }
         break;
 
@@ -358,17 +352,17 @@ export default function CliPage() {
         const replayId = args[0];
         const replayUrl = args[1];
         if (!replayId || !replayUrl) {
-          addLine('error', 'Usage: replay <webhook-id> <target-url>');
+          liveRef.addLine('error', 'Usage: replay <webhook-id> <target-url>');
           break;
         }
         try {
-          addLine('info', `Replaying ${replayId} → ${replayUrl}...`);
+          liveRef.addLine('info', `Replaying ${replayId} → ${replayUrl}...`);
           const res = await api.post(`/webhooks/${replayId}/replay`, { targetUrl: replayUrl });
           const { status, responseTime } = res.data;
           const color = status >= 200 && status < 300 ? 'success' : 'error';
-          addLine(color as LineType, `  Response: ${status} in ${responseTime}ms`);
+          liveRef.addLine(color as LineType, `  Response: ${status} in ${responseTime}ms`);
         } catch (err: any) {
-          addLine('error', err.response?.data?.error || err.message || 'Replay failed');
+          liveRef.addLine('error', err.response?.data?.error || err.message || 'Replay failed');
         }
         break;
       }
@@ -376,7 +370,7 @@ export default function CliPage() {
       case 'curl': {
         const curlId = args[0];
         if (!curlId) {
-          addLine('error', 'Usage: curl <webhook-id>');
+          liveRef.addLine('error', 'Usage: curl <webhook-id>');
           break;
         }
         try {
@@ -387,11 +381,11 @@ export default function CliPage() {
             .join(' ');
           const body = wh.body ? `-d '${JSON.stringify(wh.body).replace(/'/g, "'\"'\"'")}'` : '';
           const cmd = `curl -X ${wh.method} ${headers} ${body} <your-url>`;
-          addLine('output', cmd);
+          liveRef.addLine('output', cmd);
           navigator.clipboard.writeText(cmd);
-          addLine('success', 'Copied to clipboard!');
+          liveRef.addLine('success', 'Copied to clipboard!');
         } catch {
-          addLine('error', `Webhook "${curlId}" not found.`);
+          liveRef.addLine('error', `Webhook "${curlId}" not found.`);
         }
         break;
       }
@@ -403,9 +397,9 @@ export default function CliPage() {
         break;
 
       default:
-        addLine('error', `Unknown command: "${cmd}". Type "help" for available commands.`);
+        liveRef.addLine('error', `Unknown command: "${cmd}". Type "help" for available commands.`);
     }
-  }, [addLine, user, startForwarding, stopListening]);
+  }, [user, startForwarding, stopListening]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
