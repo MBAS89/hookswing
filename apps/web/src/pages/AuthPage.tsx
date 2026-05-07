@@ -408,13 +408,17 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 </div>
               </div>
 
-              <a
-                href={`${(import.meta as any).env?.VITE_API_URL || 'https://hookswing.com'}/api/auth/github`}
+              <button
+                type="button"
+                onClick={() => {
+                  const apiUrl = (import.meta as any).env?.VITE_API_URL || 'https://hookswing.com';
+                  window.location.href = `${apiUrl}/api/auth/github`;
+                }}
                 className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2 border border-slate-700"
               >
                 <Github className="w-5 h-5" />
                 Continue with GitHub
-              </a>
+              </button>
 
               <div className="mt-6 pt-6 border-t border-slate-800 text-center text-sm text-slate-400">
                 {mode === 'login' ? (
