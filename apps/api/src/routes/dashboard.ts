@@ -45,14 +45,21 @@ router.get('/stats', async (req: AuthRequest, res) => {
   // Time ranges
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // Counts
-  const [totalToday, totalWeek, totalMonth] = await Promise.all([
+  // Counts: today/week from stored webhooks (analytics), month from immutable usage
+  const [totalToday, totalWeek] = await Promise.all([
     prisma.webhook.count({ where: { projectId: { in: projectIds }, createdAt: { gte: todayStart } } }),
     prisma.webhook.count({ where: { projectId: { in: projectIds }, createdAt: { gte: weekStart } } }),
-    prisma.webhook.count({ where: { projectId: { in: projectIds }, createdAt: { gte: monthStart } } }),
   ]);
+
+  const allUsageRows = await prisma.webhookUsage.findMany({
+    where: {
+      projectId: { in: projectIds },
+      year: now.getFullYear(),
+      month: now.getMonth(),
+    },
+  });
+  const totalMonth = allUsageRows.reduce((sum: number, r: { count: number }) => sum + r.count, 0);
 
   // Method breakdown
   const methodRows = await prisma.webhook.groupBy({
@@ -112,17 +119,18 @@ router.get('/stats', async (req: AuthRequest, res) => {
     },
   });
 
-  // Top projects by webhook count (this month)
-  const projectCounts = await Promise.all(
-    projectIds.map(async (pid) => {
-      const count = await prisma.webhook.count({
-        where: { projectId: pid, createdAt: { gte: monthStart } },
-      });
+  // Top projects by webhook count (this month) — from immutable usage
+  const usageByProject = new Map<string, number>();
+  for (const row of allUsageRows) {
+    usageByProject.set(row.projectId, (usageByProject.get(row.projectId) || 0) + row.count);
+  }
+  const topProjects = projectIds
+    .map((pid) => {
       const proj = projects.find((p) => p.id === pid);
-      return { id: pid, name: proj?.name || 'Unknown', count, teamName: proj?.team?.name };
+      return { id: pid, name: proj?.name || 'Unknown', count: usageByProject.get(pid) || 0, teamName: proj?.team?.name };
     })
-  );
-  const topProjects = projectCounts.sort((a, b) => b.count - a.count).slice(0, 5);
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
 
   // Plan limit: use immutable WebhookUsage counters (not stored webhook count)
   const isFree = req.user!.plan === 'FREE';
