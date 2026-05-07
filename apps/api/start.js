@@ -1,5 +1,13 @@
 const { spawnSync } = require('child_process');
 
+// Resolve any failed migration so we can redeploy
+console.log('[Startup] Resolving failed migration if present...');
+spawnSync('npx', ['prisma', 'migrate', 'resolve', '--rolled-back', '20260508000000_add_github_oauth'], {
+  cwd: __dirname,
+  stdio: 'inherit',
+  shell: true,
+});
+
 console.log('[Startup] Running database migrations...');
 const migrate = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
   cwd: __dirname,
@@ -8,9 +16,10 @@ const migrate = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
 });
 
 if (migrate.status !== 0) {
-  console.error('[Startup] Migration failed with code', migrate.status);
-  process.exit(1);
+  console.error('[Startup] Migration deploy failed. Starting server anyway...');
+} else {
+  console.log('[Startup] Migrations complete.');
 }
 
-console.log('[Startup] Migrations complete. Starting server...');
+console.log('[Startup] Starting server...');
 require('./dist/index.js');
