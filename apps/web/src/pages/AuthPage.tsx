@@ -411,8 +411,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               <button
                 type="button"
                 onClick={() => {
-                  const apiUrl = (import.meta as any).env?.VITE_API_URL || 'https://hookswing.com';
-                  window.location.href = `${apiUrl}/api/auth/github`;
+                  const apiUrl = (import.meta as any).env?.VITE_API_URL || window.location.origin;
+                  const githubUrl = `${apiUrl}/api/auth/github`;
+                  console.log('[GitHub OAuth] Navigating to:', githubUrl);
+                  window.location.href = githubUrl;
                 }}
                 className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2 border border-slate-700"
               >
