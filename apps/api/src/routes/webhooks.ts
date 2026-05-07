@@ -3,6 +3,7 @@ import axios from 'axios';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { logActivity } from '../lib/activity';
+import { getEffectivePlan } from '../lib/permissions';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 import { getIO } from '../lib/socketio';
@@ -100,22 +101,6 @@ router.get('/:id', async (req: AuthRequest, res) => {
 });
 
 router.post('/:id/replay', async (req: AuthRequest, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (user?.plan === 'FREE') {
-    return res.status(403).json({ error: 'Replay requires Pro or Team plan' });
-  }
-
-  const schema = z.object({
-    targetUrl: z.string().url(),
-    headers: z.record(z.string()).optional(),
-    body: z.any().optional(),
-  });
-
-  const result = schema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json({ error: 'Invalid input' });
-  }
-
   const webhook = await prisma.webhook.findFirst({
     where: {
       id: req.params.id,
@@ -130,6 +115,22 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
 
   if (!webhook) {
     return res.status(404).json({ error: 'Webhook not found' });
+  }
+
+  const effectivePlan = await getEffectivePlan(req.user!.id, webhook.projectId);
+  if (effectivePlan === 'FREE') {
+    return res.status(403).json({ error: 'Replay requires Pro or Team plan' });
+  }
+
+  const schema = z.object({
+    targetUrl: z.string().url(),
+    headers: z.record(z.string()).optional(),
+    body: z.any().optional(),
+  });
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
   }
 
   const { targetUrl, headers, body } = result.data;
@@ -200,23 +201,6 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
 
 // Browser-based replay: the browser makes the HTTP request, then reports the result
 router.post('/:id/replay-record', async (req: AuthRequest, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (user?.plan === 'FREE') {
-    return res.status(403).json({ error: 'Replay requires Pro or Team plan' });
-  }
-
-  const schema = z.object({
-    targetUrl: z.string().url(),
-    statusCode: z.number().int(),
-    responseTime: z.number().int(),
-    responseBody: z.string().max(50000).optional(),
-  });
-
-  const result = schema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json({ error: 'Invalid input' });
-  }
-
   const webhook = await prisma.webhook.findFirst({
     where: {
       id: req.params.id,
@@ -231,6 +215,23 @@ router.post('/:id/replay-record', async (req: AuthRequest, res) => {
 
   if (!webhook) {
     return res.status(404).json({ error: 'Webhook not found' });
+  }
+
+  const effectivePlan = await getEffectivePlan(req.user!.id, webhook.projectId);
+  if (effectivePlan === 'FREE') {
+    return res.status(403).json({ error: 'Replay requires Pro or Team plan' });
+  }
+
+  const schema = z.object({
+    targetUrl: z.string().url(),
+    statusCode: z.number().int(),
+    responseTime: z.number().int(),
+    responseBody: z.string().max(50000).optional(),
+  });
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
   }
 
   const { targetUrl, statusCode, responseTime, responseBody } = result.data;
@@ -345,11 +346,6 @@ router.post('/projects/:projectId/webhooks/bulk-delete', async (req: AuthRequest
 
 // Export webhooks as JSON (Pro/Team only)
 router.get('/projects/:projectId/export/json', async (req: AuthRequest, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (user?.plan === 'FREE') {
-    return res.status(403).json({ error: 'Export requires Pro or Team plan' });
-  }
-
   const project = await prisma.project.findFirst({
     where: {
       id: req.params.projectId,
@@ -362,6 +358,11 @@ router.get('/projects/:projectId/export/json', async (req: AuthRequest, res) => 
 
   if (!project) {
     return res.status(404).json({ error: 'Project not found' });
+  }
+
+  const effectivePlan = await getEffectivePlan(req.user!.id, project.id);
+  if (effectivePlan === 'FREE') {
+    return res.status(403).json({ error: 'Export requires Pro or Team plan' });
   }
 
   const webhooks = await prisma.webhook.findMany({
@@ -387,11 +388,6 @@ router.get('/projects/:projectId/export/json', async (req: AuthRequest, res) => 
 
 // Export webhooks as CSV (Pro/Team only)
 router.get('/projects/:projectId/export/csv', async (req: AuthRequest, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (user?.plan === 'FREE') {
-    return res.status(403).json({ error: 'Export requires Pro or Team plan' });
-  }
-
   const project = await prisma.project.findFirst({
     where: {
       id: req.params.projectId,
@@ -404,6 +400,11 @@ router.get('/projects/:projectId/export/csv', async (req: AuthRequest, res) => {
 
   if (!project) {
     return res.status(404).json({ error: 'Project not found' });
+  }
+
+  const effectivePlan = await getEffectivePlan(req.user!.id, project.id);
+  if (effectivePlan === 'FREE') {
+    return res.status(403).json({ error: 'Export requires Pro or Team plan' });
   }
 
   const webhooks = await prisma.webhook.findMany({
@@ -448,11 +449,6 @@ router.get('/projects/:projectId/export/csv', async (req: AuthRequest, res) => {
 // --- Webhook comments (Team plan only) ---
 
 router.get('/:id/comments', async (req: AuthRequest, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (user?.plan !== 'TEAM') {
-    return res.status(403).json({ error: 'Comments require Team plan' });
-  }
-
   const webhook = await prisma.webhook.findFirst({
     where: {
       id: req.params.id,
@@ -469,6 +465,11 @@ router.get('/:id/comments', async (req: AuthRequest, res) => {
     return res.status(404).json({ error: 'Webhook not found' });
   }
 
+  const effectivePlan = await getEffectivePlan(req.user!.id, webhook.projectId);
+  if (effectivePlan !== 'TEAM') {
+    return res.status(403).json({ error: 'Comments require Team plan' });
+  }
+
   const comments = await prisma.webhookComment.findMany({
     where: { webhookId: req.params.id },
     include: { user: { select: { id: true, name: true, email: true } } },
@@ -479,11 +480,6 @@ router.get('/:id/comments', async (req: AuthRequest, res) => {
 });
 
 router.post('/:id/comments', async (req: AuthRequest, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (user?.plan !== 'TEAM') {
-    return res.status(403).json({ error: 'Comments require Team plan' });
-  }
-
   const schema = z.object({
     content: z.string().min(1).max(2000),
   });
@@ -510,6 +506,11 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
     return res.status(404).json({ error: 'Webhook not found' });
   }
 
+  const effectivePlan = await getEffectivePlan(req.user!.id, webhook.projectId);
+  if (effectivePlan !== 'TEAM') {
+    return res.status(403).json({ error: 'Comments require Team plan' });
+  }
+
   const comment = await prisma.webhookComment.create({
     data: {
       webhookId: req.params.id,
@@ -533,11 +534,6 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
 });
 
 router.delete('/:id/comments/:commentId', async (req: AuthRequest, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (user?.plan !== 'TEAM') {
-    return res.status(403).json({ error: 'Comments require Team plan' });
-  }
-
   const comment = await prisma.webhookComment.findFirst({
     where: {
       id: req.params.commentId,
@@ -553,6 +549,11 @@ router.delete('/:id/comments/:commentId', async (req: AuthRequest, res) => {
 
   if (!comment) {
     return res.status(404).json({ error: 'Comment not found' });
+  }
+
+  const effectivePlan = await getEffectivePlan(req.user!.id, comment.webhook.projectId);
+  if (effectivePlan !== 'TEAM') {
+    return res.status(403).json({ error: 'Comments require Team plan' });
   }
 
   await prisma.webhookComment.delete({ where: { id: req.params.commentId } });

@@ -22,6 +22,7 @@ interface Project {
   webhookUrl: string;
   webhookCount: number;
   historyLimitDays: number | null;
+  teamId?: string | null;
 }
 
 export default function ProjectPage() {
@@ -39,8 +40,11 @@ export default function ProjectPage() {
   const [compareSelection, setCompareSelection] = useState<string[]>([]);
   const [compareWebhooks, setCompareWebhooks] = useState<[any, any] | null>(null);
 
-  const canCompare = user?.plan === 'PRO' || user?.plan === 'TEAM';
-  const canReplay = user?.plan === 'PRO' || user?.plan === 'TEAM';
+  const isTeamProject = !!project?.teamId;
+  const hasProFeatures = user?.plan === 'PRO' || user?.plan === 'TEAM' || isTeamProject;
+  const hasTeamFeatures = user?.plan === 'TEAM' || isTeamProject;
+  const canCompare = hasProFeatures;
+  const canReplay = hasProFeatures;
 
   // Custom slug editing
   const [editingSlug, setEditingSlug] = useState(false);
@@ -58,7 +62,7 @@ export default function ProjectPage() {
   const [alertChatId, setAlertChatId] = useState('');
   const [alertLoading, setAlertLoading] = useState(false);
 
-  const canUseCustomSlug = user?.plan === 'PRO' || user?.plan === 'TEAM';
+  const canUseCustomSlug = hasProFeatures;
 
   const fetchAlerts = useCallback(async () => {
     if (!id) return;
@@ -586,6 +590,7 @@ export default function ProjectPage() {
               }
             }}
             canReplay={canReplay}
+            isTeamProject={isTeamProject}
           />
         )}
       </div>

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { logActivity } from '../lib/activity';
+import { getEffectivePlan } from '../lib/permissions';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 
@@ -10,7 +11,8 @@ const router = Router({ mergeParams: true });
 router.use(authMiddleware);
 router.use(apiRateLimit);
 
-function canUseAlerts(plan: string): boolean {
+async function canUseAlerts(userId: string, projectId: string): Promise<boolean> {
+  const plan = await getEffectivePlan(userId, projectId);
   return plan === 'PRO' || plan === 'TEAM';
 }
 
@@ -35,12 +37,12 @@ router.get('/', async (req: AuthRequest, res) => {
     orderBy: { createdAt: 'desc' },
   });
 
-  res.json({ alerts, canUseAlerts: canUseAlerts(req.user!.plan) });
+  res.json({ alerts, canUseAlerts: await canUseAlerts(req.user!.id, req.params.projectId) });
 });
 
 // Create alert
 router.post('/', async (req: AuthRequest, res) => {
-  if (!canUseAlerts(req.user!.plan)) {
+  if (!await canUseAlerts(req.user!.id, req.params.projectId)) {
     return res.status(403).json({ error: 'Alerts require Pro or Team plan' });
   }
 

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { logActivity } from '../lib/activity';
+import { getEffectivePlan } from '../lib/permissions';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 
@@ -178,10 +179,24 @@ router.patch('/:id', async (req: AuthRequest, res) => {
     return res.status(400).json({ error: 'Invalid input' });
   }
 
+  const targetProject = await prisma.project.findFirst({
+    where: {
+      id: req.params.id,
+      OR: [
+        { userId: req.user!.id },
+        { team: { members: { some: { userId: req.user!.id, role: 'ADMIN' } } } },
+      ],
+    },
+  });
+
+  if (!targetProject) {
+    return res.status(404).json({ error: 'Project not found or unauthorized' });
+  }
+
   // Custom slug requires Pro or Team plan
   if (result.data.customSlug !== undefined) {
-    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-    if (user?.plan === 'FREE') {
+    const effectivePlan = await getEffectivePlan(req.user!.id, targetProject.id);
+    if (effectivePlan === 'FREE') {
       return res.status(403).json({ error: 'Custom subdomains require Pro or Team plan' });
     }
   }

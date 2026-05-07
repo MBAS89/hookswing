@@ -153,13 +153,8 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   res.json({ success: true });
 });
 
-// --- Workspace data (Team plan only) ---
+// --- Workspace data ---
 router.get('/:id/workspace', async (req: AuthRequest, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (user?.plan !== 'TEAM') {
-    return res.status(403).json({ error: 'Workspace requires Team plan' });
-  }
-
   const team = await prisma.team.findFirst({
     where: {
       id: req.params.id,
@@ -209,11 +204,6 @@ router.get('/:id/workspace', async (req: AuthRequest, res) => {
 
 // --- Activity log ---
 router.get('/:id/activity', async (req: AuthRequest, res) => {
-  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
-  if (user?.plan !== 'TEAM') {
-    return res.status(403).json({ error: 'Activity log requires Team plan' });
-  }
-
   const team = await prisma.team.findFirst({
     where: {
       id: req.params.id,

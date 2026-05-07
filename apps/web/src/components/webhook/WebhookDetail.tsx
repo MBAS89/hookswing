@@ -20,12 +20,14 @@ export default function WebhookDetail({
   onDelete,
   onReplay,
   canReplay,
+  isTeamProject,
 }: {
   webhook: Webhook;
   onClose: () => void;
   onDelete: (id: string) => void;
   onReplay: (id: string, url: string) => void;
   canReplay?: boolean;
+  isTeamProject?: boolean;
 }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'comments'>('overview');
@@ -35,8 +37,8 @@ export default function WebhookDetail({
   const [replayResult, setReplayResult] = useState<{status: number; responseTime: number} | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Comments (Team plan only)
-  const isTeamPlan = user?.plan === 'TEAM';
+  // Comments (Team plan or team project)
+  const isTeamPlan = user?.plan === 'TEAM' || !!isTeamProject;
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
