@@ -196,6 +196,21 @@ function SolutionSection() {
       title: 'Replay & Debug',
       body: 'Click any past webhook. Edit the target URL. Modify the payload. Hit replay. Watch it hit your local server with the exact same data. Fix bugs without waiting for the next real event.',
     },
+    {
+      icon: <GitCompare className="w-10 h-10 text-amber-400" />,
+      title: 'Compare & Diff',
+      body: 'Select any two webhooks and see exactly what changed side-by-side. Perfect for debugging when Stripe updates their payload shape or tracking down regressions.',
+    },
+    {
+      icon: <Globe className="w-10 h-10 text-indigo-400" />,
+      title: 'Custom Subdomains',
+      body: 'Pro and Team plans get clean, memorable URLs like https://hookswing.com/hook/my-company. No more random strings. Looks professional in your webhook settings.',
+    },
+    {
+      icon: <MessageSquare className="w-10 h-10 text-pink-400" />,
+      title: 'Smart Alerts',
+      body: 'Get notified in Slack, Discord, or Telegram the instant a webhook hits — or when your server responds with a 500. Set it and forget it.',
+    },
   ];
 
   return (
@@ -224,7 +239,8 @@ function DeepDiveSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">Built for Developers, Not Committees</h2>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
+        {/* CLI Section — npm + web CLI */}
+        <div className="grid lg:grid-cols-2 gap-12 items-center mb-20" id="cli">
           <div className="order-2 lg:order-1">
             <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden font-mono text-sm">
               <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 border-b border-slate-700">
@@ -241,9 +257,12 @@ function DeepDiveSection() {
             </div>
           </div>
           <div className="order-1 lg:order-2">
-            <h3 className="text-2xl font-bold text-white mb-4">Forward to localhost without ngrok</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">Two CLIs. Your choice.</h3>
+            <p className="text-slate-400 leading-relaxed mb-4">
+              <strong className="text-white">npm CLI:</strong> Install <code className="text-emerald-400">hookswing-cli</code> globally. Run <code className="text-emerald-400">hookswing forward</code> to pipe webhooks straight to localhost. No ngrok. No tunnel config. Just works.
+            </p>
             <p className="text-slate-400 leading-relaxed mb-6">
-              Install our open-source CLI. Run one command. Every webhook that hits your public URL is instantly forwarded to your local server. See status codes, response times, and errors — all in your terminal.
+              <strong className="text-white">Web CLI:</strong> Prefer staying in the browser? Open the built-in terminal right in your dashboard at <code className="text-emerald-400">/dashboard/cli</code> — same commands, zero install.
             </p>
             <Link to="/docs" className="text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1">
               View CLI Docs →
@@ -286,7 +305,7 @@ function DeepDiveSection() {
           <div className="order-1 lg:order-2">
             <h3 className="text-2xl font-bold text-white mb-4">Get pinged when it matters</h3>
             <p className="text-slate-400 leading-relaxed mb-6">
-              Connect Slack or Discord. Get notified the moment a webhook arrives — or when your local server returns a 500. No more refreshing the dashboard like a maniac.
+              Connect Slack, Discord, or Telegram. Get notified the moment a webhook arrives — or when your server returns a 500. Compare two webhooks side-by-side to spot exactly what changed. No more refreshing the dashboard like a maniac.
             </p>
           </div>
         </div>
@@ -300,7 +319,7 @@ function HowItWorks() {
     {
       num: '01',
       title: 'Create a project',
-      body: 'Sign up. Click "New Project". We give you a unique URL: https://api.hookswing.com/hook/abc123',
+      body: 'Sign up. Click "New Project". We give you a unique URL: https://hookswing.com/hook/abc123',
     },
     {
       num: '02',
@@ -483,7 +502,8 @@ function FAQ() {
     { q: 'Do you store my webhook payloads forever?', a: 'No. Free = 7 days. Pro = 90 days. After that, we delete them. If you need longer retention, contact us for Enterprise.' },
     { q: 'Can I self-host HookSwing?', a: 'Not yet. We are a managed SaaS. Self-hosted version is on the roadmap for Enterprise customers.' },
     { q: 'Does it work with Stripe, GitHub, PayPal, Twilio?', a: 'Yes. Any service that sends HTTP webhooks works. We are payload-agnostic. We don\'t verify signatures — that\'s your code\'s job.' },
-    { q: 'Is the CLI open source?', a: 'Yes. The CLI is MIT-licensed and on GitHub. The backend is proprietary. The CLI is free forever.' },
+    { q: 'Is the CLI open source?', a: 'Yes. The npm CLI (hookswing-cli) is MIT-licensed and on GitHub. The backend is proprietary. Both the npm CLI and the built-in Web CLI at /dashboard/cli are free forever.' },
+    { q: 'What is the Web CLI?', a: 'A browser-based terminal built into your dashboard. No install required. Run hookswing commands directly from /dashboard/cli — perfect for quick checks or locked-down machines.' },
     { q: 'What happens if I exceed my plan\'s webhook limit?', a: 'We still catch the webhook and return 200 to the sender (so they don\'t retry and spam you). But we drop the payload storage and notify you to upgrade. No surprise charges.' },
   ];
 
@@ -578,9 +598,13 @@ function Footer() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-between pt-8 border-t border-slate-800">
-          <div className="flex items-center gap-2 mb-4 sm:mb-0">
+          <div className="flex flex-col sm:flex-row items-center gap-2 mb-4 sm:mb-0">
             <Logo className="w-6 h-6" />
             <span className="text-sm text-slate-500">© 2026 HookSwing. All rights reserved.</span>
+            <span className="hidden sm:inline text-slate-700">|</span>
+            <span className="text-sm text-slate-500">
+              A <a href="https://nuyvo.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Nuyvo LLC</a> platform
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <a href="#" className="text-slate-500 hover:text-white transition-colors"><Twitter className="w-5 h-5" /></a>
