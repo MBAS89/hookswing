@@ -13,6 +13,7 @@ interface User {
   role: string;
   plan: string;
   twoFactorEnabled: boolean;
+  emailVerified: boolean;
   teams?: TeamMembership[];
 }
 
@@ -21,7 +22,9 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<any>;
   verify2FA: (tempToken: string, code: string) => Promise<void>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<any>;
+  resendVerification: (email: string) => Promise<any>;
+  register: (email: string, password: string, name?: string) => Promise<any>;
   logout: () => void;
   updateUser: (user: User) => void;
 }
@@ -49,6 +52,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
+    if (res.data.requiresEmailVerification) {
+      return res.data; // { requiresEmailVerification: true, email }
+    }
     if (res.data.requires2FA) {
       return res.data; // { requires2FA: true, tempToken }
     }
@@ -65,11 +71,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.data.user);
   }, []);
 
-  const register = useCallback(async (email: string, password: string, name?: string) => {
-    const res = await api.post('/auth/register', { email, password, name });
+  const verifyEmail = useCallback(async (email: string, code: string) => {
+    const res = await api.post('/auth/verify-email', { email, code });
     localStorage.setItem('accessToken', res.data.accessToken);
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
+    return res.data;
+  }, []);
+
+  const resendVerification = useCallback(async (email: string) => {
+    const res = await api.post('/auth/send-verification', { email });
+    return res.data;
+  }, []);
+
+  const register = useCallback(async (email: string, password: string, name?: string) => {
+    const res = await api.post('/auth/register', { email, password, name });
+    return res.data; // { requiresEmailVerification: true, email }
   }, []);
 
   const logout = useCallback(() => {
@@ -85,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, verify2FA, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, verify2FA, verifyEmail, resendVerification, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

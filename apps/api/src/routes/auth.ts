@@ -90,17 +90,8 @@ router.post('/register', authRateLimit, async (req, res) => {
   });
   await sendVerificationEmail(user.email, otp, user.id);
 
-  const { accessToken, refreshToken } = generateTokens(user.id);
-
-  await prisma.session.create({
-    data: {
-      userId: user.id,
-      token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  });
-
-  res.json({ user, accessToken, refreshToken });
+  // Don't log them in yet — they must verify email first
+  res.json({ requiresEmailVerification: true, email: user.email });
 });
 
 // --- Login ---
@@ -120,6 +111,11 @@ router.post('/login', authRateLimit, async (req, res) => {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  // Require email verification before allowing access
+  if (!user.emailVerified) {
+    return res.json({ requiresEmailVerification: true, email: user.email });
   }
 
   // If 2FA is enabled, return a temp token
@@ -150,6 +146,7 @@ router.post('/login', authRateLimit, async (req, res) => {
       role: user.role,
       plan: user.plan,
       twoFactorEnabled: user.twoFactorEnabled,
+      emailVerified: user.emailVerified,
     },
     accessToken,
     refreshToken,
@@ -232,6 +229,7 @@ router.post('/login/2fa', authRateLimit, async (req, res) => {
       role: user.role,
       plan: user.plan,
       twoFactorEnabled: user.twoFactorEnabled,
+      emailVerified: user.emailVerified,
     },
     accessToken,
     refreshToken,
@@ -290,7 +288,7 @@ router.get('/me', async (req: AuthRequest, res) => {
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
-        id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true,
+        id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, emailVerified: true,
         teams: {
           select: { team: { select: { id: true, name: true } }, role: true },
         },
@@ -623,18 +621,32 @@ router.post('/verify-email', authRateLimit, async (req, res) => {
     return res.status(400).json({ error: 'Invalid code' });
   }
 
-  await prisma.user.update({
+  const updatedUser = await prisma.user.update({
     where: { id: user.id },
     data: {
       emailVerified: true,
       emailVerificationToken: null,
       emailVerificationExpires: null,
     },
+    select: {
+      id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true,
+      teams: { include: { team: { select: { id: true, name: true } } } },
+    },
   });
 
   await sendWelcomeEmail(user.email, user.name || '', user.id);
 
-  res.json({ success: true, message: 'Email verified successfully' });
+  // Log them in after verification
+  const { accessToken, refreshToken } = generateTokens(user.id);
+  await prisma.session.create({
+    data: {
+      userId: user.id,
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  res.json({ user: updatedUser, accessToken, refreshToken, message: 'Email verified successfully' });
 });
 
 // --- Forgot password ---
