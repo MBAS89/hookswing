@@ -232,3 +232,12 @@ model WebhookComment {
   @@index([webhookId, createdAt])
   @@map("webhook_comments")
 }
+
+model StripeEvent {
+  id        String   @id
+  type      String
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("stripe_events")
+}

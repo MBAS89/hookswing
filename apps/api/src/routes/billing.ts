@@ -134,20 +134,108 @@ router.post('/webhook', async (req, res) => {
     return res.status(400).json({ error: `Webhook error: ${err.message}` });
   }
 
-  if (event.type === 'invoice.payment_succeeded') {
-    const subscription = event.data.object as any;
-    const customerId = subscription.customer as string;
-    const priceId = subscription.lines?.data?.[0]?.price?.id;
+  // Idempotency — skip already processed events
+  const existing = await prisma.stripeEvent.findUnique({
+    where: { id: event.id },
+  });
+  if (existing) {
+    return res.json({ received: true, idempotency: 'skipped' });
+  }
+  await prisma.stripeEvent.create({
+    data: { id: event.id, type: event.type, processed: true },
+  });
 
-    const plan = priceId === process.env.STRIPE_PRICE_TEAM ? 'TEAM' : 'PRO';
+  const getPlanFromPrice = (priceId: string | undefined) => {
+    if (priceId === process.env.STRIPE_PRICE_TEAM) return 'TEAM';
+    if (priceId === process.env.STRIPE_PRICE_PRO) return 'PRO';
+    return 'FREE';
+  };
 
-    await prisma.user.updateMany({
-      where: { stripeCustomerId: customerId },
-      data: {
-        plan,
-        stripeSubscriptionId: subscription.subscription as string,
-      },
-    });
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as any;
+        if (session.mode === 'subscription' && session.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(session.subscription);
+          const priceId = subscription.items.data[0]?.price.id;
+          const plan = getPlanFromPrice(priceId);
+
+          await prisma.user.updateMany({
+            where: { stripeCustomerId: session.customer },
+            data: {
+              plan,
+              stripeSubscriptionId: session.subscription,
+            },
+          });
+        }
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as any;
+        const customerId = invoice.customer as string;
+        const subscriptionId = invoice.subscription as string;
+
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const priceId = subscription.items.data[0]?.price.id;
+          const plan = getPlanFromPrice(priceId);
+
+          await prisma.user.updateMany({
+            where: { stripeCustomerId: customerId },
+            data: { plan, stripeSubscriptionId: subscriptionId },
+          });
+        }
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as any;
+        const customerId = invoice.customer as string;
+
+        await prisma.user.updateMany({
+          where: { stripeCustomerId: customerId },
+          data: { plan: 'FREE' },
+        });
+        break;
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as any;
+        const customerId = subscription.customer as string;
+        const status = subscription.status;
+        const priceId = subscription.items.data[0]?.price.id;
+
+        // If subscription is past_due or unpaid, downgrade
+        if (status === 'past_due' || status === 'unpaid') {
+          await prisma.user.updateMany({
+            where: { stripeCustomerId: customerId },
+            data: { plan: 'FREE' },
+          });
+        } else if (status === 'active' || status === 'trialing') {
+          const plan = getPlanFromPrice(priceId);
+          await prisma.user.updateMany({
+            where: { stripeCustomerId: customerId },
+            data: { plan, stripeSubscriptionId: subscription.id },
+          });
+        }
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as any;
+        const customerId = subscription.customer as string;
+
+        await prisma.user.updateMany({
+          where: { stripeCustomerId: customerId },
+          data: { plan: 'FREE', stripeSubscriptionId: null },
+        });
+        break;
+      }
+    }
+  } catch (err: any) {
+    console.error(`[Stripe Webhook] Error handling ${event.type}:`, err.message);
+    // Still return 200 so Stripe doesn't retry indefinitely
   }
 
   res.json({ received: true });
