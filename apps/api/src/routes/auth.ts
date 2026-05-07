@@ -715,7 +715,8 @@ router.post('/forgot-password', emailRateLimit, async (req, res) => {
     },
   });
 
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+  const frontendUrl = process.env.FRONTEND_URL || 'https://hookswing.com';
+  const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
   const emailResult = await Promise.race([
     sendPasswordResetEmail(user.email, resetUrl, user.id),
     new Promise<{ success: false; error: string }>((resolve) =>

@@ -97,8 +97,8 @@ router.post('/checkout', async (req: AuthRequest, res) => {
         quantity: 1,
       },
     ],
-    success_url: `${process.env.FRONTEND_URL}/dashboard/billing?success=true`,
-    cancel_url: `${process.env.FRONTEND_URL}/dashboard/billing?canceled=true`,
+    success_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/billing?success=true`,
+    cancel_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/billing?canceled=true`,
   });
 
   res.json({ url: session.url });
@@ -113,7 +113,7 @@ router.post('/portal', async (req: AuthRequest, res) => {
 
   const session = await stripe.billingPortal.sessions.create({
     customer: user.stripeCustomerId,
-    return_url: `${process.env.FRONTEND_URL}/dashboard/billing`,
+    return_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/billing`,
   });
 
   res.json({ url: session.url });
