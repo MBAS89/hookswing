@@ -228,7 +228,7 @@ export default function DocsPage() {
 
             <Section id="cli" title="CLI Reference">
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.1 Installation</h3>
-              <CodeBlock code={`npm install -g hookswing-cli
+              <CodeBlock code={`npm install -g hookswing
 
 hookswing --version
 # Expected: 1.x.x`} />
@@ -264,7 +264,7 @@ hookswing logout
               <CodeBlock code={`hookswing replay wh_123abc456 http://localhost:3000/webhook`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.6 Update CLI</h3>
-              <CodeBlock code={`npm update -g hookswing-cli`} />
+              <CodeBlock code={`npm update -g hookswing`} />
             </Section>
 
             <Section id="web-cli" title="Web CLI">

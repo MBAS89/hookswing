@@ -249,8 +249,8 @@ function DeepDiveSection() {
                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
               </div>
               <div className="p-4 space-y-1 text-slate-300">
-                <div><span className="text-emerald-400">$</span> npm install -g hookswing-cli</div>
-                <div className="text-slate-500">+ hookswing-cli@1.2.0</div>
+                <div><span className="text-emerald-400">$</span> npm install -g hookswing</div>
+                <div className="text-slate-500">+ hookswing@1.0.5</div>
                 <div className="pt-2"><span className="text-emerald-400">$</span> hookswing forward abc123 http://localhost:3000/webhook</div>
                 <div className="text-slate-500 pt-1">Connected. Forwarding webhooks...</div>
               </div>
@@ -259,7 +259,7 @@ function DeepDiveSection() {
           <div className="order-1 lg:order-2">
             <h3 className="text-2xl font-bold text-white mb-4">Two CLIs. Your choice.</h3>
             <p className="text-slate-400 leading-relaxed mb-4">
-              <strong className="text-white">npm CLI:</strong> Install <code className="text-emerald-400">hookswing-cli</code> globally. Run <code className="text-emerald-400">hookswing forward</code> to pipe webhooks straight to localhost. No ngrok. No tunnel config. Just works.
+              <strong className="text-white">npm CLI:</strong> Install <code className="text-emerald-400">hookswing</code> globally. Run <code className="text-emerald-400">hookswing forward</code> to pipe webhooks straight to localhost. No ngrok. No tunnel config. Just works.
             </p>
             <p className="text-slate-400 leading-relaxed mb-6">
               <strong className="text-white">Web CLI:</strong> Prefer staying in the browser? Open the built-in terminal right in your dashboard at <code className="text-emerald-400">/dashboard/cli</code> — same commands, zero install.
@@ -502,7 +502,7 @@ function FAQ() {
     { q: 'Do you store my webhook payloads forever?', a: 'No. Free = 7 days. Pro = 90 days. After that, we delete them. If you need longer retention, contact us for Enterprise.' },
     { q: 'Can I self-host HookSwing?', a: 'Not yet. We are a managed SaaS. Self-hosted version is on the roadmap for Enterprise customers.' },
     { q: 'Does it work with Stripe, GitHub, PayPal, Twilio?', a: 'Yes. Any service that sends HTTP webhooks works. We are payload-agnostic. We don\'t verify signatures — that\'s your code\'s job.' },
-    { q: 'Is the CLI open source?', a: 'Yes. The npm CLI (hookswing-cli) is MIT-licensed and on GitHub. The backend is proprietary. Both the npm CLI and the built-in Web CLI at /dashboard/cli are free forever.' },
+    { q: 'Is the CLI open source?', a: 'Yes. The npm CLI (hookswing) is MIT-licensed and on GitHub. The backend is proprietary. Both the npm CLI and the built-in Web CLI at /dashboard/cli are free forever.' },
     { q: 'What is the Web CLI?', a: 'A browser-based terminal built into your dashboard. No install required. Run hookswing commands directly from /dashboard/cli — perfect for quick checks or locked-down machines.' },
     { q: 'What happens if I exceed my plan\'s webhook limit?', a: 'We still catch the webhook and return 200 to the sender (so they don\'t retry and spam you). But we drop the payload storage and notify you to upgrade. No surprise charges.' },
   ];

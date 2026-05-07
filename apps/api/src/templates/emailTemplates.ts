@@ -94,7 +94,7 @@ export function welcomeTemplate(name: string) {
       <p>Your email is verified and your account is ready. Here's what you can do next:</p>
       <ul style="padding-left: 20px; color: ${mutedColor};">
         <li>Create your first project and get a unique webhook URL</li>
-        <li>Install the CLI: <code style="background:${bgColor};padding:2px 6px;border-radius:4px;">npm install -g hookswing-cli</code></li>
+        <li>Install the CLI: <code style="background:${bgColor};padding:2px 6px;border-radius:4px;">npm install -g hookswing</code></li>
         <li>Forward webhooks to your local machine</li>
         <li>Replay, inspect, and compare payloads</li>
       </ul>
@@ -103,6 +103,6 @@ export function welcomeTemplate(name: string) {
       <a href="https://hookswing.com/dashboard" class="button">Go to Dashboard</a>
     </div>
   `;
-  const text = `Welcome to HookSwing, ${name || 'there'}!\n\nYour email is verified and your account is ready.\n\n- Create your first project and get a unique webhook URL\n- Install the CLI: npm install -g hookswing-cli\n- Forward webhooks to your local machine\n- Replay, inspect, and compare payloads\n\nGo to Dashboard: https://hookswing.com/dashboard\n\nNeed help? Contact support@hookswing.com`;
+  const text = `Welcome to HookSwing, ${name || 'there'}!\n\nYour email is verified and your account is ready.\n\n- Create your first project and get a unique webhook URL\n- Install the CLI: npm install -g hookswing\n- Forward webhooks to your local machine\n- Replay, inspect, and compare payloads\n\nGo to Dashboard: https://hookswing.com/dashboard\n\nNeed help? Contact support@hookswing.com`;
   return baseTemplate(title, content, text);
 }
