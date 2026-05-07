@@ -7,6 +7,13 @@ import QRCode from 'qrcode';
 import { prisma } from '../lib/prisma';
 import { authRateLimit } from '../middleware/rateLimit';
 import type { AuthRequest } from '../middleware/auth';
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendWelcomeEmail,
+  canSendVerification,
+  canSendPasswordReset,
+} from '../services/emailService';
 
 const router = Router();
 
@@ -47,6 +54,10 @@ function generateBackupCodes(): { codes: string[]; hashed: string[] } {
   return { codes, hashed };
 }
 
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 // --- Registration ---
 router.post('/register', authRateLimit, async (req, res) => {
   const result = registerSchema.safeParse(req.body);
@@ -66,6 +77,18 @@ router.post('/register', authRateLimit, async (req, res) => {
     data: { email, passwordHash, name },
     select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
   });
+
+  // Send verification email
+  const otp = generateOTP();
+  const otpHash = await bcrypt.hash(otp, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerificationToken: otpHash,
+      emailVerificationExpires: new Date(Date.now() + 15 * 60 * 1000),
+    },
+  });
+  await sendVerificationEmail(user.email, otp, user.id);
 
   const { accessToken, refreshToken } = generateTokens(user.id);
 
@@ -532,6 +555,179 @@ router.post('/2fa/disable', async (req: AuthRequest, res) => {
   });
 
   res.json({ disabled: true });
+});
+
+// --- Send verification email ---
+router.post('/send-verification', authRateLimit, async (req: AuthRequest, res) => {
+  const schema = z.object({ email: z.string().email() });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const { email } = result.data;
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  // Prevent enumeration: same response regardless of whether user exists
+  if (!user) {
+    return res.json({ message: 'If an account exists, a verification code has been sent' });
+  }
+
+  if (user.emailVerified) {
+    return res.json({ message: 'If an account exists, a verification code has been sent' });
+  }
+
+  if (!await canSendVerification(user.id)) {
+    return res.status(429).json({ error: 'Too many requests. Try again later.' });
+  }
+
+  const otp = generateOTP();
+  const otpHash = await bcrypt.hash(otp, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerificationToken: otpHash,
+      emailVerificationExpires: new Date(Date.now() + 15 * 60 * 1000),
+    },
+  });
+
+  await sendVerificationEmail(user.email, otp, user.id);
+
+  res.json({ message: 'If an account exists, a verification code has been sent' });
+});
+
+// --- Verify email ---
+router.post('/verify-email', authRateLimit, async (req, res) => {
+  const schema = z.object({
+    email: z.string().email(),
+    code: z.string().length(6),
+  });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const { email, code } = result.data;
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user || !user.emailVerificationToken || !user.emailVerificationExpires) {
+    return res.status(400).json({ error: 'Invalid or expired code' });
+  }
+
+  if (user.emailVerificationExpires < new Date()) {
+    return res.status(400).json({ error: 'Code has expired' });
+  }
+
+  const valid = await bcrypt.compare(code, user.emailVerificationToken);
+  if (!valid) {
+    return res.status(400).json({ error: 'Invalid code' });
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpires: null,
+    },
+  });
+
+  await sendWelcomeEmail(user.email, user.name || '', user.id);
+
+  res.json({ success: true, message: 'Email verified successfully' });
+});
+
+// --- Forgot password ---
+router.post('/forgot-password', authRateLimit, async (req, res) => {
+  const schema = z.object({ email: z.string().email() });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const { email } = result.data;
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  // Prevent enumeration: same response regardless
+  if (!user) {
+    return res.json({ message: 'If an account exists, a reset link has been sent' });
+  }
+
+  if (!await canSendPasswordReset(user.id)) {
+    return res.json({ message: 'If an account exists, a reset link has been sent' });
+  }
+
+  const resetToken = jwt.sign(
+    { userId: user.id, type: 'password_reset' },
+    process.env.JWT_SECRET!,
+    { expiresIn: '1h' }
+  );
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordResetToken: resetToken,
+      passwordResetExpires: new Date(Date.now() + 60 * 60 * 1000),
+    },
+  });
+
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+  await sendPasswordResetEmail(user.email, resetUrl, user.id);
+
+  res.json({ message: 'If an account exists, a reset link has been sent' });
+});
+
+// --- Reset password ---
+router.post('/reset-password', authRateLimit, async (req, res) => {
+  const schema = z.object({
+    token: z.string().min(1),
+    newPassword: z.string().min(6),
+  });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const { token, newPassword } = result.data;
+
+  let decoded: { userId: string; type: string };
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+  } catch {
+    return res.status(400).json({ error: 'Invalid or expired token' });
+  }
+
+  if (decoded.type !== 'password_reset') {
+    return res.status(400).json({ error: 'Invalid token' });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+  if (!user || !user.passwordResetToken || !user.passwordResetExpires) {
+    return res.status(400).json({ error: 'Invalid or expired token' });
+  }
+
+  if (user.passwordResetExpires < new Date()) {
+    return res.status(400).json({ error: 'Token has expired' });
+  }
+
+  if (user.passwordResetToken !== token) {
+    return res.status(400).json({ error: 'Invalid or expired token' });
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+    },
+  });
+
+  // Invalidate all sessions
+  await prisma.session.deleteMany({ where: { userId: user.id } });
+
+  res.json({ success: true, message: 'Password updated successfully' });
 });
 
 export default router;
