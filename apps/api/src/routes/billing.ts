@@ -6,6 +6,31 @@ import { apiRateLimit } from '../middleware/rateLimit';
 
 const router = Router();
 
+// Price ID helpers
+const getPriceId = (plan: 'pro' | 'team', interval: 'month' | 'year') => {
+  if (plan === 'team') {
+    return interval === 'year'
+      ? process.env.STRIPE_PRICE_TEAM_YEARLY
+      : process.env.STRIPE_PRICE_TEAM;
+  }
+  return interval === 'year'
+    ? process.env.STRIPE_PRICE_PRO_YEARLY
+    : process.env.STRIPE_PRICE_PRO;
+};
+
+const getPlanFromPrice = (priceId: string | undefined) => {
+  if (!priceId) return 'FREE';
+  if (priceId === process.env.STRIPE_PRICE_TEAM || priceId === process.env.STRIPE_PRICE_TEAM_YEARLY) return 'TEAM';
+  if (priceId === process.env.STRIPE_PRICE_PRO || priceId === process.env.STRIPE_PRICE_PRO_YEARLY) return 'PRO';
+  return 'FREE';
+};
+
+const getIntervalFromPrice = (priceId: string | undefined): 'month' | 'year' => {
+  if (!priceId) return 'month';
+  if (priceId === process.env.STRIPE_PRICE_PRO_YEARLY || priceId === process.env.STRIPE_PRICE_TEAM_YEARLY) return 'year';
+  return 'month';
+};
+
 // ========== WEBHOOK — NO AUTH (must be before auth middleware) ==========
 router.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'] as string;
@@ -38,12 +63,6 @@ router.post('/webhook', async (req, res) => {
     data: { id: event.id, type: event.type, processed: true },
   });
 
-  const getPlanFromPrice = (priceId: string | undefined) => {
-    if (priceId === process.env.STRIPE_PRICE_TEAM || priceId === process.env.STRIPE_PRICE_TEAM_YEARLY) return 'TEAM';
-    if (priceId === process.env.STRIPE_PRICE_PRO || priceId === process.env.STRIPE_PRICE_PRO_YEARLY) return 'PRO';
-    return 'FREE';
-  };
-
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -53,14 +72,11 @@ router.post('/webhook', async (req, res) => {
           const subscription = await stripe.subscriptions.retrieve(session.subscription);
           const priceId = subscription.items.data[0]?.price.id;
           const plan = getPlanFromPrice(priceId);
-          console.log(`[Stripe Webhook] Updating user to plan=${plan} sub=${session.subscription}`);
+          console.log(`[Stripe Webhook] New subscription: user plan=${plan} sub=${session.subscription}`);
 
           await prisma.user.updateMany({
             where: { stripeCustomerId: session.customer },
-            data: {
-              plan,
-              stripeSubscriptionId: session.subscription,
-            },
+            data: { plan, stripeSubscriptionId: session.subscription },
           });
         }
         break;
@@ -76,7 +92,7 @@ router.post('/webhook', async (req, res) => {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           const priceId = subscription.items.data[0]?.price.id;
           const plan = getPlanFromPrice(priceId);
-          console.log(`[Stripe Webhook] Updating user to plan=${plan}`);
+          console.log(`[Stripe Webhook] Invoice paid: plan=${plan}`);
 
           await prisma.user.updateMany({
             where: { stripeCustomerId: customerId },
@@ -89,12 +105,20 @@ router.post('/webhook', async (req, res) => {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as any;
         const customerId = invoice.customer as string;
-        console.log(`[Stripe Webhook] invoice.payment_failed customer=${customerId} — downgrading to FREE`);
+        const subscriptionId = invoice.subscription as string;
+        console.log(`[Stripe Webhook] invoice.payment_failed customer=${customerId}`);
 
-        await prisma.user.updateMany({
-          where: { stripeCustomerId: customerId },
-          data: { plan: 'FREE' },
-        });
+        // Only downgrade if this is a final payment failure (subscription becomes past_due)
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
+            console.log(`[Stripe Webhook] Subscription ${subscriptionId} past_due — downgrading to FREE`);
+            await prisma.user.updateMany({
+              where: { stripeCustomerId: customerId },
+              data: { plan: 'FREE' },
+            });
+          }
+        }
         break;
       }
 
@@ -103,12 +127,12 @@ router.post('/webhook', async (req, res) => {
         const customerId = subscription.customer as string;
         const status = subscription.status;
         const priceId = subscription.items.data[0]?.price.id;
-        console.log(`[Stripe Webhook] customer.subscription.updated customer=${customerId} status=${status}`);
+        console.log(`[Stripe Webhook] customer.subscription.updated customer=${customerId} status=${status} price=${priceId}`);
 
-        if (status === 'past_due' || status === 'unpaid') {
+        if (status === 'past_due' || status === 'unpaid' || status === 'canceled') {
           await prisma.user.updateMany({
             where: { stripeCustomerId: customerId },
-            data: { plan: 'FREE' },
+            data: { plan: 'FREE', stripeSubscriptionId: null },
           });
         } else if (status === 'active' || status === 'trialing') {
           const plan = getPlanFromPrice(priceId);
@@ -156,26 +180,41 @@ router.get('/', async (req: AuthRequest, res) => {
 
   let subscriptions: any[] = [];
   let invoices: any[] = [];
+  let currentPriceId: string | null = null;
+  let currentInterval: 'month' | 'year' = 'month';
 
   if (user?.stripeCustomerId) {
     try {
-      // Fetch ALL subscriptions for this customer, not just the stored one
       const subs = await stripe.subscriptions.list({
         customer: user.stripeCustomerId,
         status: 'all',
         limit: 10,
       });
-      subscriptions = subs.data.map((sub) => ({
-        id: sub.id,
-        status: sub.status,
-        currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
-        currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
-        cancelAtPeriodEnd: sub.cancel_at_period_end,
-        plan: sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM || sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM_YEARLY ? 'TEAM' : 'PRO',
-        amount: sub.items.data[0]?.price?.unit_amount,
-        currency: sub.items.data[0]?.price?.currency,
-        interval: sub.items.data[0]?.price?.recurring?.interval,
-      }));
+
+      subscriptions = subs.data.map((sub) => {
+        const price = sub.items.data[0]?.price;
+        const subPlan = getPlanFromPrice(price?.id);
+        const subInterval = getIntervalFromPrice(price?.id);
+        return {
+          id: sub.id,
+          status: sub.status,
+          currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
+          currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
+          cancelAtPeriodEnd: sub.cancel_at_period_end,
+          plan: subPlan,
+          interval: subInterval,
+          amount: price?.unit_amount,
+          currency: price?.currency,
+          priceId: price?.id,
+        };
+      });
+
+      // Find the primary active subscription
+      const activeSub = subscriptions.find((s) => s.status === 'active' || s.status === 'trialing');
+      if (activeSub) {
+        currentPriceId = activeSub.priceId;
+        currentInterval = activeSub.interval;
+      }
 
       const invList = await stripe.invoices.list({
         customer: user.stripeCustomerId,
@@ -191,34 +230,28 @@ router.get('/', async (req: AuthRequest, res) => {
         created: new Date(inv.created * 1000).toISOString(),
         pdfUrl: inv.invoice_pdf,
       }));
-    } catch {
-      // Stripe data may be stale; ignore errors
+    } catch (err: any) {
+      console.error('[Billing] Error fetching Stripe data:', err.message);
     }
   }
-
-  // Find the primary active subscription
-  const activeSub = subscriptions.find((s) => s.status === 'active' || s.status === 'trialing');
 
   res.json({
     plan: user?.plan || 'FREE',
     stripeCustomerId: user?.stripeCustomerId,
     stripeSubscriptionId: user?.stripeSubscriptionId,
-    subscription: activeSub || null,
+    currentPriceId,
+    currentInterval,
     subscriptions,
     invoices,
   });
 });
 
+// Create a NEW subscription (for free users only)
 router.post('/checkout', async (req: AuthRequest, res) => {
   try {
     const { plan, interval = 'month' } = req.body as { plan: 'pro' | 'team'; interval?: 'month' | 'year' };
 
-    const isYearly = interval === 'year';
-    const priceId =
-      plan === 'team'
-        ? (isYearly ? process.env.STRIPE_PRICE_TEAM_YEARLY : process.env.STRIPE_PRICE_TEAM)
-        : (isYearly ? process.env.STRIPE_PRICE_PRO_YEARLY : process.env.STRIPE_PRICE_PRO);
-
+    const priceId = getPriceId(plan, interval);
     if (!priceId) {
       console.error(`[Stripe Checkout] Missing price ID for plan=${plan} interval=${interval}`);
       return res.status(500).json({ error: `Stripe ${interval}ly price not configured for ${plan}` });
@@ -232,6 +265,21 @@ router.post('/checkout', async (req: AuthRequest, res) => {
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Block if user already has an active subscription
+    if (user.stripeCustomerId) {
+      const existingSubs = await stripe.subscriptions.list({
+        customer: user.stripeCustomerId,
+        status: 'active',
+        limit: 10,
+      });
+      if (existingSubs.data.length > 0) {
+        return res.status(400).json({
+          error: 'You already have an active subscription. Use the billing portal or plan switch to change plans.',
+          code: 'already_subscribed',
+        });
+      }
     }
 
     let customerId = user.stripeCustomerId;
@@ -248,33 +296,12 @@ router.post('/checkout', async (req: AuthRequest, res) => {
       });
     }
 
-    // Check for existing active subscriptions — prevent duplicates
-    const existingSubs = await stripe.subscriptions.list({
-      customer: customerId,
-      status: 'active',
-      limit: 10,
-    });
-
-    if (existingSubs.data.length > 0) {
-      console.log(`[Stripe Checkout] User already has ${existingSubs.data.length} active subscription(s). Redirecting to portal.`);
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/account`,
-      });
-      return res.json({ url: portalSession.url, existingSubscriptions: true });
-    }
-
     console.log(`[Stripe Checkout] Creating session: customer=${customerId} price=${priceId}`);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/account?success=true`,
       cancel_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/account?canceled=true`,
     });
@@ -287,6 +314,75 @@ router.post('/checkout', async (req: AuthRequest, res) => {
   }
 });
 
+// Update existing subscription with proration (upgrade/downgrade/interval change)
+router.post('/update-plan', async (req: AuthRequest, res) => {
+  try {
+    const { plan, interval = 'month' } = req.body as { plan: 'pro' | 'team'; interval?: 'month' | 'year' };
+
+    const newPriceId = getPriceId(plan, interval);
+    if (!newPriceId) {
+      return res.status(500).json({ error: `Stripe ${interval}ly price not configured for ${plan}` });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    if (!user?.stripeCustomerId) {
+      return res.status(400).json({ error: 'No Stripe customer found. Subscribe first.' });
+    }
+
+    // Find active subscription
+    const subs = await stripe.subscriptions.list({
+      customer: user.stripeCustomerId,
+      status: 'active',
+      limit: 1,
+    });
+
+    if (subs.data.length === 0) {
+      return res.status(400).json({ error: 'No active subscription found. Use checkout to subscribe.' });
+    }
+
+    const subscription = subs.data[0];
+    const currentItem = subscription.items.data[0];
+    const currentPriceId = currentItem?.price?.id;
+
+    // If already on this exact price, nothing to do
+    if (currentPriceId === newPriceId) {
+      return res.json({ success: true, message: 'Already on this plan.' });
+    }
+
+    console.log(`[Stripe UpdatePlan] Changing subscription ${subscription.id} from ${currentPriceId} to ${newPriceId}`);
+
+    // Update subscription with proration — Stripe calculates the difference automatically
+    const updated = await stripe.subscriptions.update(subscription.id, {
+      items: [{
+        id: currentItem.id,
+        price: newPriceId,
+      }],
+      proration_behavior: 'create_prorations',
+      cancel_at_period_end: false, // Reactivate if user had scheduled cancellation
+    });
+
+    const updatedPriceId = updated.items.data[0]?.price?.id;
+    const updatedPlan = getPlanFromPrice(updatedPriceId);
+
+    // Sync immediately so user sees the change without waiting for webhook
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: { plan: updatedPlan, stripeSubscriptionId: updated.id },
+    });
+
+    res.json({
+      success: true,
+      plan: updatedPlan,
+      interval: getIntervalFromPrice(updatedPriceId),
+      subscriptionId: updated.id,
+    });
+  } catch (err: any) {
+    console.error('[Stripe UpdatePlan] Error:', err.message);
+    res.status(500).json({ error: err.message || 'Plan update failed. Please try again.' });
+  }
+});
+
+// Billing portal for cancellations, payment methods, invoice history
 router.post('/portal', async (req: AuthRequest, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
@@ -297,7 +393,7 @@ router.post('/portal', async (req: AuthRequest, res) => {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: user.stripeCustomerId,
-      return_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/billing`,
+      return_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/account`,
     });
 
     res.json({ url: session.url });

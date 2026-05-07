@@ -527,11 +527,18 @@ function BillingTab() {
   const isSuccess = searchParams.get('success') === 'true';
   const isCanceled = searchParams.get('canceled') === 'true';
 
+  const isFree = (user?.plan || 'FREE') === 'FREE';
+  const currentPlanName = (user?.plan || 'FREE') as 'FREE' | 'PRO' | 'TEAM';
+  const currentInterval = billing?.currentInterval || 'month';
+
   const fetchBilling = async () => {
     try {
       const res = await api.get('/billing');
       setBilling(res.data);
-      // Also refresh user to get updated plan
+      // Sync yearly toggle to actual subscription interval
+      if (res.data.currentInterval) {
+        setYearly(res.data.currentInterval === 'year');
+      }
       const me = await api.get('/auth/me');
       if (me.data.user) updateUser(me.data.user);
     } catch (err) {
@@ -547,7 +554,6 @@ function BillingTab() {
     if (isSuccess) {
       setNotification({ type: 'success', message: 'Payment successful! Your plan is being updated...' });
       fetchBilling();
-      // Clear query params after a moment
       setTimeout(() => {
         navigate('/dashboard/account', { replace: true });
         setNotification(null);
@@ -561,21 +567,62 @@ function BillingTab() {
     }
   }, [isSuccess, isCanceled]);
 
-  const handleCheckout = async (plan: 'pro' | 'team') => {
+  // For FREE users: create new subscription via Stripe Checkout
+  const handleSubscribe = async (plan: 'pro' | 'team') => {
     setLoading(true);
     setCheckoutError('');
     try {
       const res = await api.post('/billing/checkout', { plan, interval: yearly ? 'year' : 'month' });
-      if (res.data.existingSubscriptions) {
-        setNotification({ type: 'info', message: 'You already have an active subscription. Redirecting to billing portal...' });
-      }
       if (res.data.url) window.location.href = res.data.url;
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Checkout failed. Please try again.';
       setCheckoutError(msg);
-      console.error('Checkout error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // For existing subscribers: update subscription with Stripe proration
+  const handleSwitchPlan = async (plan: 'pro' | 'team') => {
+    setLoading(true);
+    setCheckoutError('');
+    try {
+      const res = await api.post('/billing/update-plan', { plan, interval: yearly ? 'year' : 'month' });
+      if (res.data.success) {
+        setNotification({ type: 'success', message: `Plan updated to ${res.data.plan} (${res.data.interval}ly). Stripe will charge or credit the prorated difference.` });
+        await fetchBilling();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Plan switch failed. Please try again.';
+      setCheckoutError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Toggle billing interval for existing subscribers
+  const handleToggleYearly = async () => {
+    const newYearly = !yearly;
+    setYearly(newYearly);
+    if (!isFree && currentPlanName !== 'FREE') {
+      // Auto-switch interval for current plan
+      setLoading(true);
+      try {
+        const res = await api.post('/billing/update-plan', {
+          plan: currentPlanName.toLowerCase(),
+          interval: newYearly ? 'year' : 'month',
+        });
+        if (res.data.success) {
+          setNotification({ type: 'success', message: `Switched to ${newYearly ? 'yearly' : 'monthly'} billing. Stripe handled the proration.` });
+          await fetchBilling();
+        }
+      } catch (err: any) {
+        const msg = err.response?.data?.error || 'Interval switch failed.';
+        setCheckoutError(msg);
+        setYearly(!newYearly); // Revert toggle on error
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -589,31 +636,38 @@ function BillingTab() {
     }
   };
 
+  // Determine if a given plan+interval is the exact current one
+  const isExactCurrent = (planName: 'FREE' | 'PRO' | 'TEAM', interval: 'month' | 'year') => {
+    if (planName === 'FREE') return currentPlanName === 'FREE';
+    if (currentPlanName !== planName) return false;
+    return currentInterval === interval;
+  };
+
   const plans = [
     {
       name: 'Free',
+      planKey: 'FREE' as const,
       price: '$0',
       period: 'forever',
-      current: user?.plan === 'FREE',
       features: ['3 projects', '500 webhooks/month', '7-day history', 'Basic inspection', 'CLI forwarding'],
     },
     {
       name: 'Pro',
+      planKey: 'PRO' as const,
       price: yearly ? '$190' : '$19',
       period: yearly ? '/year' : '/month',
-      current: user?.plan === 'PRO',
       features: ['Unlimited projects', '10,000 webhooks/month', '90-day history', 'Replay', 'Slack/Discord alerts', 'Export JSON/CSV'],
     },
     {
       name: 'Team',
+      planKey: 'TEAM' as const,
       price: yearly ? '$490' : '$49',
       period: yearly ? '/year' : '/month',
-      current: user?.plan === 'TEAM',
       features: ['Everything in Pro', 'Unlimited team members', 'Shared workspaces', 'Team activity log', 'Priority support'],
     },
   ];
 
-  const sub = billing?.subscription;
+  const sub = billing?.subscriptions?.find((s: any) => s.status === 'active' || s.status === 'trialing');
 
   return (
     <div className="space-y-6">
@@ -624,7 +678,10 @@ function BillingTab() {
           </div>
           <div>
             <p className="text-sm text-slate-400">Current Plan</p>
-            <p className="text-xl font-bold text-white">{user?.plan || 'FREE'}</p>
+            <p className="text-xl font-bold text-white">
+              {user?.plan || 'FREE'}
+              {!isFree && <span className="text-sm font-normal text-slate-400 ml-2">({currentInterval === 'year' ? 'Yearly' : 'Monthly'})</span>}
+            </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <button
@@ -636,7 +693,7 @@ function BillingTab() {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
-            {user?.plan !== 'FREE' && (
+            {!isFree && (
               <button
                 onClick={handlePortal}
                 disabled={loading}
@@ -710,11 +767,6 @@ function BillingTab() {
               </div>
             ))}
           </div>
-          {billing.subscriptions.length > 1 && (
-            <p className="text-xs text-amber-400 mt-3">
-              ⚠️ You have multiple subscriptions. Click "Manage Billing" to cancel unwanted ones.
-            </p>
-          )}
         </div>
       )}
 
@@ -769,8 +821,9 @@ function BillingTab() {
       <div className="flex items-center justify-center gap-3">
         <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>Monthly</span>
         <button
-          onClick={() => setYearly(!yearly)}
-          className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors"
+          onClick={handleToggleYearly}
+          disabled={loading}
+          className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors disabled:opacity-50"
         >
           <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${yearly ? 'translate-x-6' : ''}`} />
         </button>
@@ -778,44 +831,57 @@ function BillingTab() {
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
-        {plans.map((plan) => (
-          <div
-            key={plan.name}
-            className={`relative rounded-xl p-5 border ${
-              plan.current
-                ? 'bg-emerald-500/5 border-emerald-500/30'
-                : 'bg-slate-900 border-slate-800'
-            }`}
-          >
-            {plan.current && (
-              <div className="absolute -top-2 left-4 bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                Current
+        {plans.map((plan) => {
+          const exactCurrent = isExactCurrent(plan.planKey, yearly ? 'year' : 'month');
+          const isCurrentPlanTier = currentPlanName === plan.planKey;
+          const isDifferentTier = plan.planKey !== 'FREE' && currentPlanName !== 'FREE' && plan.planKey !== currentPlanName;
+          const isSameTierDifferentInterval = !isFree && isCurrentPlanTier && !exactCurrent;
+          const showButton = !exactCurrent && plan.planKey !== 'FREE';
+
+          return (
+            <div
+              key={plan.name}
+              className={`relative rounded-xl p-5 border ${
+                exactCurrent
+                  ? 'bg-emerald-500/5 border-emerald-500/30'
+                  : 'bg-slate-900 border-slate-800'
+              }`}
+            >
+              {exactCurrent && (
+                <div className="absolute -top-2 left-4 bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  Current
+                </div>
+              )}
+              <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+              <div className="flex items-baseline gap-1 mt-2 mb-4">
+                <span className="text-3xl font-bold text-white">{plan.price}</span>
+                <span className="text-sm text-slate-500">{plan.period}</span>
               </div>
-            )}
-            <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-            <div className="flex items-baseline gap-1 mt-2 mb-4">
-              <span className="text-3xl font-bold text-white">{plan.price}</span>
-              <span className="text-sm text-slate-500">{plan.period}</span>
+              <ul className="space-y-2 mb-6">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              {showButton && (
+                <button
+                  onClick={() => isFree ? handleSubscribe(plan.planKey.toLowerCase() as 'pro' | 'team') : handleSwitchPlan(plan.planKey.toLowerCase() as 'pro' | 'team')}
+                  disabled={loading}
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-2 rounded-lg font-medium text-sm transition-all hover:scale-[1.02] disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> :
+                    isFree ? `Subscribe to ${plan.name}` :
+                    isSameTierDifferentInterval ? `Switch to ${yearly ? 'Yearly' : 'Monthly'}` :
+                    isDifferentTier ? `Switch to ${plan.name}` :
+                    `Switch to ${plan.name}`
+                  }
+                </button>
+              )}
             </div>
-            <ul className="space-y-2 mb-6">
-              {plan.features.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
-                  <Check className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            {!plan.current && (
-              <button
-                onClick={() => handleCheckout(plan.name.toLowerCase() as 'pro' | 'team')}
-                disabled={loading}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-2 rounded-lg font-medium text-sm transition-all hover:scale-[1.02] disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : `Upgrade to ${plan.name}`}
-              </button>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
