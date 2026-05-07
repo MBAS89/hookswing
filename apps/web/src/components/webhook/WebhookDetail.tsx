@@ -128,11 +128,51 @@ export default function WebhookDetail({
                   setReplayLoading(true);
                   setReplayResult(null);
                   try {
-                    const res = await api.post(`/webhooks/${webhook.id}/replay`, { targetUrl: replayUrl });
-                    setReplayResult(res.data);
+                    // 1. Fetch original webhook data
+                    const whRes = await api.get(`/webhooks/${webhook.id}`);
+                    const original = whRes.data;
+
+                    // 2. Prepare headers (strip hop-by-hop)
+                    const headers: Record<string, string> = {};
+                    for (const [k, v] of Object.entries(original.headers || {})) {
+                      const key = k.toLowerCase();
+                      if (['content-length', 'transfer-encoding', 'connection', 'host', 'expect', 'keep-alive'].includes(key)) continue;
+                      headers[k] = String(v);
+                    }
+
+                    // 3. Prepare body
+                    let body: string | undefined = original.rawBody;
+                    if (!body && original.body) {
+                      body = typeof original.body === 'string' ? original.body : JSON.stringify(original.body);
+                      headers['content-type'] = headers['content-type'] || 'application/json';
+                    }
+
+                    // 4. Make request from BROWSER (can reach localhost)
+                    const start = performance.now();
+                    const fetchRes = await fetch(replayUrl, {
+                      method: original.method,
+                      headers,
+                      body,
+                    });
+                    const responseTime = Math.round(performance.now() - start);
+                    let responseBody = '';
+                    try { responseBody = await fetchRes.text(); } catch { /* ignore */ }
+
+                    // 5. Report result to backend for recording
+                    const recordRes = await api.post(`/webhooks/${webhook.id}/replay-record`, {
+                      targetUrl: replayUrl,
+                      statusCode: fetchRes.status,
+                      responseTime,
+                      responseBody: responseBody.slice(0, 50000),
+                    });
+
+                    setReplayResult(recordRes.data);
                   } catch (err: any) {
                     setReplayResult({ status: 0, responseTime: 0 });
-                    alert(err.response?.data?.error || err.message || 'Replay failed');
+                    const msg = err.name === 'TypeError' && err.message?.includes('Failed to fetch')
+                      ? 'Could not reach target URL. Check CORS settings on your local server (e.g. app.use(cors()) in Express).'
+                      : (err.response?.data?.error || err.message || 'Replay failed');
+                    alert(msg);
                   } finally {
                     setReplayLoading(false);
                   }

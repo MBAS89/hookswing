@@ -198,6 +198,81 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
   }
 });
 
+// Browser-based replay: the browser makes the HTTP request, then reports the result
+router.post('/:id/replay-record', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+  if (user?.plan === 'FREE') {
+    return res.status(403).json({ error: 'Replay requires Pro or Team plan' });
+  }
+
+  const schema = z.object({
+    targetUrl: z.string().url(),
+    statusCode: z.number().int(),
+    responseTime: z.number().int(),
+    responseBody: z.string().max(50000).optional(),
+  });
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const webhook = await prisma.webhook.findFirst({
+    where: {
+      id: req.params.id,
+      project: {
+        OR: [
+          { userId: req.user!.id },
+          { team: { members: { some: { userId: req.user!.id } } } },
+        ],
+      },
+    },
+  });
+
+  if (!webhook) {
+    return res.status(404).json({ error: 'Webhook not found' });
+  }
+
+  const { targetUrl, statusCode, responseTime, responseBody } = result.data;
+
+  const createData: any = {
+    projectId: webhook.projectId,
+    method: webhook.method,
+    headers: webhook.headers,
+    body: webhook.body,
+    query: webhook.query,
+    ip: '127.0.0.1',
+    userAgent: 'WebhookVault-Replay',
+    statusCode,
+    responseBody: responseBody || null,
+    responseTime,
+    isReplay: true,
+    originalId: webhook.id,
+  };
+
+  const replayWebhook = await prisma.webhook.create({ data: createData });
+
+  getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
+
+  const proj = await prisma.project.findUnique({ where: { id: webhook.projectId }, select: { teamId: true } });
+  if (proj?.teamId) {
+    await logActivity({
+      teamId: proj.teamId,
+      userId: req.user!.id,
+      action: 'webhook_replayed',
+      targetType: 'webhook',
+      targetId: webhook.id,
+      metadata: { targetUrl, status: statusCode },
+    });
+  }
+
+  res.json({
+    replayId: replayWebhook.id,
+    status: statusCode,
+    responseTime,
+  });
+});
+
 router.delete('/:id', async (req: AuthRequest, res) => {
   const webhook = await prisma.webhook.deleteMany({
     where: {
