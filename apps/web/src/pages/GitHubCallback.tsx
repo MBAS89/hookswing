@@ -31,7 +31,7 @@ export default function GitHubCallback() {
     localStorage.setItem('refreshToken', refreshToken);
 
     // Fetch user and redirect
-    fetch(`${import.meta.env.VITE_API_URL || 'https://hookswing.com'}/api/auth/me`, {
+    fetch(`${(import.meta as any).env?.VITE_API_URL || 'https://hookswing.com'}/api/auth/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((res) => res.json())

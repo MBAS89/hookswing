@@ -409,7 +409,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               </div>
 
               <a
-                href={`${import.meta.env.VITE_API_URL || 'https://hookswing.com'}/api/auth/github`}
+                href={`${(import.meta as any).env?.VITE_API_URL || 'https://hookswing.com'}/api/auth/github`}
                 className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2 border border-slate-700"
               >
                 <Github className="w-5 h-5" />
