@@ -6,12 +6,14 @@ export interface Webhook {
   method: string;
   headers: any;
   body: any;
+  rawBody?: string | null;
   query: any;
   ip: string;
   userAgent: string | null;
   source: string | null;
   statusCode: number | null;
   responseTime: number | null;
+  responseBody: string | null;
   isReplay: boolean;
   originalId: string | null;
   createdAt: string;

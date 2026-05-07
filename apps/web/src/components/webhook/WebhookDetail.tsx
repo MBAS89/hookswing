@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2, Check, AlertCircle } from 'lucide-react';
+import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2, Check, AlertCircle, Maximize2 } from 'lucide-react';
 import { methodColor, formatDate, formatBytes } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 import JsonViewer from './JsonViewer';
+import WebhookModal from './WebhookModal';
 import type { Webhook } from '../../hooks/useWebhooks';
 
 interface Comment {
@@ -32,6 +33,7 @@ export default function WebhookDetail({
   const [showReplay, setShowReplay] = useState(false);
   const [replayLoading, setReplayLoading] = useState(false);
   const [replayResult, setReplayResult] = useState<{status: number; responseTime: number} | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   // Comments (Team plan only)
   const isTeamPlan = user?.plan === 'TEAM';
@@ -87,6 +89,13 @@ export default function WebhookDetail({
           )}
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowModal(true)}
+            className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded transition-colors"
+            title="Expand view"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
           {canReplay && (
             <button
               onClick={() => setShowReplay(!showReplay)}
@@ -372,6 +381,10 @@ export default function WebhookDetail({
           </div>
         )}
       </div>
+
+      {showModal && (
+        <WebhookModal webhook={webhook} onClose={() => setShowModal(false)} />
+      )}
     </div>
   );
 }
