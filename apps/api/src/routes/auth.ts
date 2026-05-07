@@ -754,7 +754,7 @@ router.get('/email-status', async (req: AuthRequest, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const smtp = await testSmtpConnection();
+  const emailConn = await testSmtpConnection();
   const logs = await prisma.emailLog.findMany({
     take: 20,
     orderBy: { createdAt: 'desc' },
@@ -762,14 +762,13 @@ router.get('/email-status', async (req: AuthRequest, res) => {
   });
 
   res.json({
-    smtp: {
-      ok: smtp.ok,
-      error: smtp.error,
+    email: {
+      ok: emailConn.ok,
+      error: emailConn.error,
       config: {
-        host: 'smtp.gmail.com',
-        port: 465,
-        user: process.env.GMAIL_USER ? 'configured' : 'missing',
-        from: process.env.FROM_EMAIL || 'support@hookswing.com',
+        provider: 'Resend',
+        apiKey: process.env.RESEND_API_KEY ? 'configured' : 'missing',
+        from: process.env.FROM_EMAIL || 'onboarding@resend.dev',
       },
     },
     recentLogs: logs,

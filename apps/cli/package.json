@@ -18,7 +18,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["webhook", "cli", "debugging", "ngrok-alternative", "webhook-forwarding", "webhook-replay"],
+  "keywords": [
+    "webhook",
+    "cli",
+    "debugging",
+    "ngrok-alternative",
+    "webhook-forwarding",
+    "webhook-replay"
+  ],
   "author": "HookSwing",
   "license": "MIT",
   "dependencies": {

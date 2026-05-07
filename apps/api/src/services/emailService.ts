@@ -1,48 +1,15 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { prisma } from '../lib/prisma';
 import * as templates from '../templates/emailTemplates';
 
-const GMAIL_USER = process.env.GMAIL_USER || '';
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'support@hookswing.com';
+const resend = new Resend(process.env.RESEND_API_KEY || '');
+
+const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 const FROM_NAME = process.env.FROM_NAME || 'HookSwing';
 
-// Railway blocks port 465 (SSL) on many plans. Port 587 (STARTTLS) is the
-// standard submission port and has better chances of working on cloud hosts.
-// We still keep a 465 fallback for self-hosted / non-Railway deploys.
-const transporter587 = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
-  // Force IPv4 — Railway containers have no IPv6 route.
-  family: 4,
-  pool: false,
-  connectionTimeout: 8000,
-  greetingTimeout: 8000,
-  socketTimeout: 8000,
-} as any);
-
-const transporter465 = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
-  family: 4,
-  pool: false,
-  connectionTimeout: 8000,
-  greetingTimeout: 8000,
-  socketTimeout: 8000,
-} as any);
-
-// Graceful shutdown — close any hanging SMTP sockets on deploy restart
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, closing SMTP transporters...');
-  transporter587.close();
-  transporter465.close();
-  process.exit(0);
-});
+function getFrom(): string {
+  return `"${FROM_NAME}" <${FROM_EMAIL}>`;
+}
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -74,15 +41,8 @@ async function logEmail(
   }
 }
 
-async function trySend(
-  transporter: nodemailer.Transporter,
-  mailOptions: nodemailer.SendMailOptions
-): Promise<void> {
-  await transporter.sendMail(mailOptions);
-}
-
 async function sendWithRetry(
-  mailOptions: nodemailer.SendMailOptions,
+  mail: { from: string; replyTo: string; to: string; subject: string; html: string; text: string },
   meta: { userId?: string; to: string; subject: string; type: string },
   retries = 2
 ): Promise<{ success: boolean; error?: string }> {
@@ -92,22 +52,21 @@ async function sendWithRetry(
     try {
       await logEmail({ ...meta, status: 'pending' });
 
-      // Try port 587 first (STARTTLS), fall back to 465 (SSL)
-      try {
-        await trySend(transporter587, mailOptions);
-      } catch (err587: any) {
-        const isConnectionError =
-          err587.message?.includes('timeout') ||
-          err587.message?.includes('ECONNREFUSED') ||
-          err587.message?.includes('ENETUNREACH') ||
-          err587.message?.includes('ETIMEDOUT');
+      const { data, error } = await resend.emails.send({
+        from: mail.from,
+        replyTo: mail.replyTo,
+        to: mail.to,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      });
 
-        if (isConnectionError) {
-          console.log(`Port 587 failed (${err587.message}), trying port 465...`);
-          await trySend(transporter465, mailOptions);
-        } else {
-          throw err587;
-        }
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!data?.id) {
+        throw new Error('Resend returned no email ID');
       }
 
       await logEmail({ ...meta, status: 'sent' });
@@ -115,11 +74,6 @@ async function sendWithRetry(
     } catch (err: any) {
       lastError = err;
       console.error(`Email send attempt ${attempt} failed:`, err.message);
-
-      // Don't retry on permanent errors
-      if (err.responseCode === 550 || err.responseCode === 551 || err.responseCode === 552) {
-        break;
-      }
 
       if (attempt < retries) {
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 6000);
@@ -138,17 +92,15 @@ async function sendWithRetry(
 }
 
 export async function testSmtpConnection(): Promise<{ ok: boolean; error?: string }> {
-  // Test 587 first, then 465
+  if (!process.env.RESEND_API_KEY) {
+    return { ok: false, error: 'RESEND_API_KEY not set' };
+  }
   try {
-    await transporter587.verify();
+    // Resend doesn't have a simple "ping" API, so we list domains to verify the key works
+    await resend.domains.list();
     return { ok: true };
-  } catch (err587: any) {
-    try {
-      await transporter465.verify();
-      return { ok: true };
-    } catch (err465: any) {
-      return { ok: false, error: `587: ${err587.message}; 465: ${err465.message}` };
-    }
+  } catch (err: any) {
+    return { ok: false, error: err.message };
   }
 }
 
@@ -164,7 +116,7 @@ export async function canSendVerification(userId: string): Promise<boolean> {
       createdAt: { gte: oneHourAgo },
     },
   });
-  return count < 5; // bumped from 3 → 5 for easier testing
+  return count < 5;
 }
 
 export async function canSendPasswordReset(userId: string): Promise<boolean> {
@@ -177,7 +129,7 @@ export async function canSendPasswordReset(userId: string): Promise<boolean> {
       createdAt: { gte: oneDayAgo },
     },
   });
-  return count < 3; // bumped from 2 → 3
+  return count < 3;
 }
 
 // ── Send functions ──
@@ -190,7 +142,7 @@ export async function sendVerificationEmail(
   const { html, text } = templates.verificationTemplate(otp, 15);
   return sendWithRetry(
     {
-      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+      from: getFrom(),
       replyTo: FROM_EMAIL,
       to,
       subject: 'Verify your email - HookSwing',
@@ -209,7 +161,7 @@ export async function sendPasswordResetEmail(
   const { html, text } = templates.passwordResetTemplate(resetUrl, 60);
   return sendWithRetry(
     {
-      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+      from: getFrom(),
       replyTo: FROM_EMAIL,
       to,
       subject: 'Reset your password',
@@ -228,7 +180,7 @@ export async function sendWelcomeEmail(
   const { html, text } = templates.welcomeTemplate(name);
   return sendWithRetry(
     {
-      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+      from: getFrom(),
       replyTo: FROM_EMAIL,
       to,
       subject: 'Welcome to HookSwing',
