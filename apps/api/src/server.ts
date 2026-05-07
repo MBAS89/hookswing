@@ -317,22 +317,51 @@ wss.on('connection', (ws, req) => {
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
   const token = url.searchParams.get('token');
 
+  console.log(`[WS] Connection attempt from ${req.socket.remoteAddress} — token present: ${!!token}`);
+
   if (!token) {
+    console.log('[WS] Rejected — missing token');
     ws.close(1008, 'Missing token');
     return;
   }
 
   try {
     jwt.verify(token, process.env.JWT_SECRET!);
-  } catch {
+    console.log('[WS] Token verified — connection accepted');
+  } catch (err: any) {
+    console.log('[WS] Rejected — invalid token:', err.message);
     ws.close(1008, 'Invalid token');
     return;
   }
+
+  // Keepalive — ping every 30s, drop if no pong within 10s
+  let pongTimeout: NodeJS.Timeout | null = null;
+
+  function resetPongTimeout() {
+    if (pongTimeout) clearTimeout(pongTimeout);
+    pongTimeout = setTimeout(() => {
+      console.log('[WS] Pong timeout — terminating connection');
+      ws.terminate();
+    }, 40000);
+  }
+
+  const pingInterval = setInterval(() => {
+    if (ws.readyState === 1) {
+      ws.ping();
+    }
+  }, 30000);
+
+  resetPongTimeout();
+
+  ws.on('pong', () => {
+    resetPongTimeout();
+  });
 
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message.toString());
       if (data.action === 'subscribe' && data.slug) {
+        console.log(`[WS] Client subscribed to slug: ${data.slug}`);
         const connections = wsConnections.get(data.slug) || new Set();
         connections.add(ws);
         wsConnections.set(data.slug, connections);
@@ -342,7 +371,13 @@ wss.on('connection', (ws, req) => {
     }
   });
 
-  ws.on('close', () => {
+  ws.on('error', (err) => {
+    console.error('[WS] Client error:', err.message);
+  });
+
+  ws.on('close', (code, reason) => {
+    clearInterval(pingInterval);
+    console.log(`[WS] Client disconnected — code: ${code}, reason: ${reason?.toString() || 'none'}`);
     wsConnections.forEach((connections, slug) => {
       connections.delete(ws);
       if (connections.size === 0) {
