@@ -1,63 +1,80 @@
 # HookSwing
 
-> The permanent webhook inbox for developers. Catch any HTTP payload, inspect JSON in real time, replay against localhost, and share with your team.
+> The permanent webhook inbox for developers. Catch any HTTP payload, inspect JSON in real time, replay against localhost, compare diffs, and share with your team.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue.svg)](https://www.typescriptlang.org/)
+<p align="center">
+  <a href="https://hookswing.com"><img src="https://img.shields.io/badge/Live-hookswing.com-%2310B981?style=flat-square" alt="Live"></a>
+  <a href="https://www.npmjs.com/package/hookswing-cli"><img src="https://img.shields.io/npm/v/hookswing-cli.svg?style=flat-square&color=%2310B981" alt="CLI npm"></a>
+  <img src="https://img.shields.io/badge/Node.js-20%2B-green.svg?style=flat-square" alt="Node.js">
+  <img src="https://img.shields.io/badge/React-18-61DAFB.svg?style=flat-square" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-5.4-blue.svg?style=flat-square" alt="TypeScript">
+</p>
 
-## Why HookSwing?
+---
+
+## What is HookSwing?
 
 Free webhook bins delete your data. ngrok tunnels die when your laptop sleeps. HookSwing fixes both:
 
-- **Persistent storage** — webhooks live for 7-90 days, not minutes
+- **Persistent storage** — webhooks live for 7 days (Free) to unlimited (Team), not minutes
 - **No tunneling** — forward webhooks to localhost via WebSocket, not TCP tunnels
 - **Replay anything** — re-send past webhooks with editable payloads
-- **Team sharing** — one URL, whole team sees the same feed
+- **Compare diffs** — side-by-side comparison of any two webhooks
+- **Team sharing** — one URL, whole team sees the same feed in real time
+- **Smart alerts** — Slack, Discord, and Telegram notifications
+- **Custom subdomains** — clean URLs like `/hook/my-company` (Pro/Team)
+- **Email verification & 2FA** — enterprise-grade security
 
 ## Architecture
 
 ```
 hookswing/
 ├── apps/
-│   ├── web/          # Vite + React + TypeScript + Tailwind CSS (frontend)
-│   ├── api/          # Express + Prisma + PostgreSQL + Redis (backend)
-│   └── cli/          # Node.js CLI package (npm)
+│   ├── web/          # Vite + React 18 + TypeScript + Tailwind CSS (frontend)
+│   └── api/          # Express + Prisma + PostgreSQL + Redis/BullMQ (backend)
 ├── docker-compose.yml # Local dev: Postgres + Redis
 ├── package.json
 └── README.md
 ```
 
+> **The CLI lives in its own open-source repo:** [github.com/MBAS89/hookswing-cli](https://github.com/MBAS89/hookswing-cli)
+
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS |
-| **Backend** | Express, TypeScript, Prisma ORM |
+| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, Recharts, Socket.IO |
+| **Backend** | Express, TypeScript, Prisma ORM, Zod validation |
 | **Database** | PostgreSQL |
 | **Cache / Queue** | Redis, BullMQ |
-| **Real-time** | SSE (browser), WebSocket (CLI) |
-| **Auth** | JWT + bcrypt |
-| **Payments** | Stripe |
-| **CLI** | Commander.js, ws, chalk, axios |
+| **Real-time** | Socket.IO (dashboard), WebSocket (CLI) |
+| **Auth** | JWT + bcrypt, Email OTP, TOTP 2FA, backup codes |
+| **Email** | Resend HTTP API |
+| **Payments** | Stripe (Checkout + Customer Portal) |
+| **CLI** | Commander.js, ws, chalk, axios — [open source](https://github.com/MBAS89/hookswing-cli) |
 
 ## Features
 
 ### Web App
 - **Webhook Catcher** — Unique public URL per project, accepts any HTTP method
-- **Real-time Dashboard** — SSE-powered live feed with syntax-highlighted JSON viewer
+- **Real-time Dashboard** — Socket.IO-powered live feed with syntax-highlighted JSON viewer
 - **Replay** — Re-send any past webhook to localhost with editable payload (Pro/Team)
-- **Team Workspaces** — Shared projects with role-based access (Team plan)
-- **Integrations** — Slack & Discord notifications
-- **Billing** — Stripe-powered subscriptions (Free / Pro $19 / Team $49)
+- **Compare / Diff** — Select any 2 webhooks and see exactly what changed (Pro/Team)
+- **Custom Slugs** — Clean URLs like `hookswing.com/hook/my-company` (Pro/Team)
+- **Team Workspaces** — Shared projects with role-based access, activity logs (Team)
+- **Plan Inheritance** — Free users on team projects get TEAM privileges on those projects
+- **Integrations** — Slack, Discord, and Telegram alerts (Pro/Team)
+- **Export** — Download webhooks as JSON (Pro/Team)
+- **Collapsible Header** — Project card above the feed can be collapsed for more space
+- **Billing** — Stripe-powered subscriptions with Customer Portal
 
-### CLI
-- **Forward** — WebSocket-based forwarding to localhost (no ngrok needed)
+### CLI (Open Source)
+- **Forward** — WebSocket-based forwarding to localhost (no ngrok)
 - **List** — Projects and webhook counts
 - **Replay** — Replay webhooks from terminal (Pro/Team)
+- **Web CLI** — Browser-based terminal at `/dashboard/cli`, no install required
 
-## Quick Start
+## Quick Start (Local Dev)
 
 ### Prerequisites
 
@@ -67,8 +84,8 @@ hookswing/
 ### 1. Clone & Start Infrastructure
 
 ```bash
-git clone https://github.com/MBAS89/HookSwing.git
-cd HookSwing
+git clone https://github.com/MBAS89/hookswing.git
+cd hookswing
 
 # Start PostgreSQL and Redis
 docker-compose up -d
@@ -105,12 +122,18 @@ The web app will open at `http://localhost:5173`.
 
 ### 4. Setup CLI (optional)
 
-```bash
-cd apps/cli
-npm link
+The CLI is now a separate open-source package:
 
-# Or install from npm
+```bash
 npm install -g hookswing-cli
+```
+
+Or clone it for local development:
+
+```bash
+git clone https://github.com/MBAS89/hookswing-cli.git
+cd hookswing-cli
+npm link
 ```
 
 ## Usage
@@ -118,12 +141,13 @@ npm install -g hookswing-cli
 ### Web Dashboard
 
 1. Open `http://localhost:5173` and register an account
-2. Create a project — you'll get a unique webhook URL:
+2. Verify your email with the 6-digit OTP
+3. Create a project — you'll get a unique webhook URL:
    ```
-   https://api.hookswing.io/hook/abc123def456
+   https://hookswing.com/hook/abc123def456
    ```
-3. Paste that URL into Stripe, GitHub, PayPal, or any service that sends webhooks
-4. Watch webhooks arrive in real time on the dashboard
+4. Paste that URL into Stripe, GitHub, PayPal, or any service that sends webhooks
+5. Watch webhooks arrive in real time on the dashboard
 
 ### CLI Forwarding
 
@@ -133,6 +157,9 @@ hookswing login
 
 # Forward webhooks to localhost
 hookswing forward abc123def456 http://localhost:3000/webhook
+
+# Or use your custom slug
+hookswing forward my-company http://localhost:3000/webhook
 ```
 
 Output:
@@ -163,32 +190,40 @@ hookswing replay wh_123abc456 http://localhost:3000/webhook
 All API requests require a Bearer token:
 
 ```bash
-curl https://api.hookswing.io/api/projects \
+curl https://hookswing.com/api/projects \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ### Public Hook Endpoint
 
 ```
-ANY https://api.hookswing.io/hook/:slug
+ANY https://hookswing.com/hook/:slug
 ```
 
 - Accepts any HTTP method and headers
 - Max body size: 1MB
 - Returns `200 OK` immediately
+- No authentication required
 
 ### Key Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/auth/register` | Register new account |
-| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/login` | Login (returns JWT) |
+| POST | `/api/auth/send-verification` | Resend email OTP |
+| POST | `/api/auth/verify-email` | Verify email with OTP |
+| POST | `/api/auth/2fa/setup` | Initiate 2FA setup |
+| POST | `/api/auth/2fa/verify` | Enable 2FA |
+| POST | `/api/auth/2fa/disable` | Disable 2FA |
 | GET | `/api/projects` | List projects |
 | POST | `/api/projects` | Create project |
 | GET | `/api/projects/:id/webhooks` | List webhooks |
 | POST | `/api/webhooks/:id/replay` | Replay webhook |
-| GET | `/api/stream` | SSE real-time stream |
-| WS | `/ws` | WebSocket for CLI |
+| GET | `/api/billing` | Subscription status |
+| POST | `/api/billing/checkout` | Stripe Checkout |
+| POST | `/api/billing/portal` | Stripe Customer Portal |
+| WS | `/ws` | WebSocket for CLI forwarding |
 
 Full API documentation is available at `/docs` in the web application.
 
@@ -196,33 +231,44 @@ Full API documentation is available at `/docs` in the web application.
 
 ```prisma
 model User {
-  id       String @id @default(cuid())
-  email    String @unique
-  name     String?
-  role     UserRole @default(USER)
-  plan     Plan @default(FREE)
-  projects Project[]
-  teams    TeamMember[]
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  role              UserRole @default(USER)
+  plan              Plan     @default(FREE)
+  emailVerified     Boolean  @default(false)
+  twoFactorEnabled  Boolean  @default(false)
+  twoFactorSecret   String?
+  twoFactorBackupCodes String?
+  projects          Project[]
+  teams             TeamMember[]
+  sessions          Session[]
 }
 
 model Project {
-  id       String @id @default(cuid())
-  name     String
-  slug     String @unique
-  webhooks Webhook[]
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  customSlug  String?   @unique
+  description String?
+  webhooks    Webhook[]
+  alerts      Alert[]
+  teamId      String?
 }
 
 model Webhook {
-  id         String @id @default(cuid())
-  method     String
-  headers    Json
-  body       Json?
-  query      Json?
-  ip         String
-  userAgent  String?
-  source     String?
-  statusCode Int?
-  isReplay   Boolean @default(false)
+  id           String   @id @default(cuid())
+  method       String
+  headers      Json
+  body         Json?
+  rawBody      String?
+  query        Json?
+  ip           String
+  userAgent    String?
+  source       String?
+  statusCode   Int?
+  responseTime Int?
+  isReplay     Boolean  @default(false)
 }
 ```
 
@@ -237,41 +283,36 @@ See `apps/api/prisma/schema.prisma` for the full schema.
 3. Set environment variables (see `apps/api/.env.example`)
 4. Deploy
 
-### Frontend (Vercel)
+Required env vars:
+```env
+DATABASE_URL=postgresql://...
+JWT_SECRET=...
+JWT_REFRESH_SECRET=...
+RESEND_API_KEY=re_...
+FROM_EMAIL=support@hookswing.com
+STRIPE_SECRET_KEY=sk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_PRO=price_...
+STRIPE_PRICE_TEAM=price_...
+REDIS_URL=redis://...
+FRONTEND_URL=https://hookswing.com
+PORT=8080
+```
 
-1. Import this repo on Vercel
+### Frontend (Vercel / Railway)
+
+1. Import this repo
 2. Set root directory to `apps/web`
 3. Add `VITE_API_URL` environment variable
 4. Deploy
 
 ### CLI (npm)
 
+The CLI is published independently from [github.com/MBAS89/hookswing-cli](https://github.com/MBAS89/hookswing-cli):
+
 ```bash
-cd apps/cli
+cd hookswing-cli
 npm publish --access public
-```
-
-## Environment Variables
-
-### Backend (`apps/api/.env`)
-
-```env
-DATABASE_URL=postgresql://user:pass@localhost:5432/hookswing
-JWT_SECRET=your-super-secret-min-32-chars
-JWT_REFRESH_SECRET=another-super-secret
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PRICE_PRO=price_...
-STRIPE_PRICE_TEAM=price_...
-REDIS_URL=redis://localhost:6379
-FRONTEND_URL=http://localhost:5173
-PORT=3000
-```
-
-### Frontend (`apps/web/.env`)
-
-```env
-VITE_API_URL=http://localhost:3000/api
 ```
 
 ## Plans
@@ -279,34 +320,39 @@ VITE_API_URL=http://localhost:3000/api
 | Feature | Free | Pro ($19/mo) | Team ($49/mo) |
 |---------|------|--------------|---------------|
 | Projects | 3 | Unlimited | Unlimited |
-| Webhooks/Month | 500 | 10,000 | 10,000+ |
-| Retention | 7 days | 90 days | 90 days |
+| Webhooks/Month | 500 | 10,000 | 10,000 |
+| Retention | 7 days | 90 days | Unlimited |
 | Replay | ❌ | ✅ | ✅ |
-| Custom Domain | ❌ | ✅ | ✅ |
-| Integrations | Email | Slack + Discord | Slack + Discord |
+| Compare/Diff | ❌ | ✅ | ✅ |
+| Custom Slug | ❌ | ✅ | ✅ |
+| Alerts | ❌ | Slack + Discord | Slack + Discord + Telegram |
 | Team Members | 1 | 1 | Unlimited |
-| Export | ❌ | JSON/CSV | JSON/CSV |
+| Export | ❌ | JSON | JSON |
+| Activity Log | ❌ | ❌ | ✅ |
+| Plan Inheritance | — | — | Free members get TEAM privileges on team projects |
+
+## Security
+
+- **Email verification** required before login
+- **TOTP 2FA** with backup codes
+- **Password reset** via JWT token (1hr expiry)
+- **Session invalidation** on password change
+- **Rate limiting** on all endpoints
+- **Anti-enumeration** on email endpoints
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+This is a private repository. Contributions are by team members only.
 
 ## License
 
-- **Backend & Web App**: Proprietary
-- **CLI**: [MIT](https://opensource.org/licenses/MIT)
+- **Backend & Web App**: Proprietary — © 2026 HookSwing
+- **CLI**: [MIT](https://github.com/MBAS89/hookswing-cli/blob/main/LICENSE) — open source at [github.com/MBAS89/hookswing-cli](https://github.com/MBAS89/hookswing-cli)
 
-## Acknowledgments
+## A Nuyvo LLC Platform
 
-- Inspired by the pain of debugging webhooks at 2 AM
-- Built for developers who are tired of losing payloads
+HookSwing is a product of [Nuyvo LLC](https://nuyvo.com).
 
 ---
 
-**[Live Demo](https://hookswing.io)** · **[Documentation](https://hookswing.io/docs)** · **[Report Bug](https://github.com/MBAS89/HookSwing/issues)** · **[Request Feature](https://github.com/MBAS89/HookSwing/issues)**
+**[Live Site](https://hookswing.com)** · **[Docs](https://hookswing.com/docs)** · **[CLI Repo](https://github.com/MBAS89/hookswing-cli)** · **[Nuyvo LLC](https://nuyvo.com)**
