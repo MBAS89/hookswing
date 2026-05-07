@@ -112,8 +112,8 @@ router.post('/checkout', async (req: AuthRequest, res) => {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/billing?success=true`,
-      cancel_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/billing?canceled=true`,
+      success_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/account?success=true`,
+      cancel_url: `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/account?canceled=true`,
     });
 
     console.log(`[Stripe Checkout] Session created: ${session.id}`);

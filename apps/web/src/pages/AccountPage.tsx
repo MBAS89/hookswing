@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import {
@@ -515,17 +515,51 @@ function SecurityTab({ user, updateUser, logout }: { user: any; updateUser: (u: 
 
 /* ---------- Billing Tab ---------- */
 function BillingTab() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [billing, setBilling] = useState<any>(null);
   const [yearly, setYearly] = useState(searchParams.get('yearly') === 'true');
+  const [checkoutError, setCheckoutError] = useState('');
+  const [notification, setNotification] = useState<{type: 'success'|'info'|'error', message: string} | null>(null);
+
+  const isSuccess = searchParams.get('success') === 'true';
+  const isCanceled = searchParams.get('canceled') === 'true';
+
+  const fetchBilling = async () => {
+    try {
+      const res = await api.get('/billing');
+      setBilling(res.data);
+      // Also refresh user to get updated plan
+      const me = await api.get('/auth/me');
+      if (me.data.user) updateUser(me.data.user);
+    } catch (err) {
+      console.error('Failed to refresh billing data', err);
+    }
+  };
 
   useEffect(() => {
-    api.get('/billing').then((res) => setBilling(res.data));
+    fetchBilling();
   }, []);
 
-  const [checkoutError, setCheckoutError] = useState('');
+  useEffect(() => {
+    if (isSuccess) {
+      setNotification({ type: 'success', message: 'Payment successful! Your plan is being updated...' });
+      fetchBilling();
+      // Clear query params after a moment
+      setTimeout(() => {
+        navigate('/dashboard/account', { replace: true });
+        setNotification(null);
+      }, 5000);
+    } else if (isCanceled) {
+      setNotification({ type: 'info', message: 'Payment canceled. You can try again anytime.' });
+      setTimeout(() => {
+        navigate('/dashboard/account', { replace: true });
+        setNotification(null);
+      }, 4000);
+    }
+  }, [isSuccess, isCanceled]);
 
   const handleCheckout = async (plan: 'pro' | 'team') => {
     setLoading(true);
@@ -589,16 +623,27 @@ function BillingTab() {
             <p className="text-sm text-slate-400">Current Plan</p>
             <p className="text-xl font-bold text-white">{user?.plan || 'FREE'}</p>
           </div>
-          {user?.plan !== 'FREE' && (
+          <div className="ml-auto flex items-center gap-2">
             <button
-              onClick={handlePortal}
+              onClick={fetchBilling}
               disabled={loading}
-              className="ml-auto flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              title="Refresh subscription status"
             >
-              <CreditCard className="w-4 h-4" />
-              Manage Billing
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
             </button>
-          )}
+            {user?.plan !== 'FREE' && (
+              <button
+                onClick={handlePortal}
+                disabled={loading}
+                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                <CreditCard className="w-4 h-4" />
+                Manage Billing
+              </button>
+            )}
+          </div>
         </div>
 
         {sub && (
@@ -657,6 +702,18 @@ function BillingTab() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {notification && (
+        <div className={`rounded-lg p-4 text-sm ${
+          notification.type === 'success'
+            ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+            : notification.type === 'error'
+              ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+              : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
+        }`}>
+          {notification.message}
         </div>
       )}
 
