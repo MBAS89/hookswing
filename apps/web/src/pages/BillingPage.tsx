@@ -73,27 +73,8 @@ export default function BillingPage() {
     }
   };
 
-  const handleToggleYearly = async () => {
-    const newYearly = !yearly;
-    setYearly(newYearly);
-    if (!isFree && currentPlanName !== 'FREE') {
-      setLoading(true);
-      try {
-        const res = await api.post('/billing/update-plan', {
-          plan: currentPlanName.toLowerCase(),
-          interval: newYearly ? 'year' : 'month',
-        });
-        if (res.data.success) {
-          setNotification({ type: 'success', message: `Switched to ${newYearly ? 'yearly' : 'monthly'} billing.` });
-          await fetchBilling();
-        }
-      } catch (err: any) {
-        setError(err.response?.data?.error || 'Interval switch failed.');
-        setYearly(!newYearly);
-      } finally {
-        setLoading(false);
-      }
-    }
+  const handleToggleYearly = () => {
+    setYearly(!yearly);
   };
 
   const handlePortal = async () => {
@@ -247,8 +228,7 @@ export default function BillingPage() {
         <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>Monthly</span>
         <button
           onClick={handleToggleYearly}
-          disabled={loading}
-          className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors disabled:opacity-50"
+          className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors"
         >
           <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${yearly ? 'translate-x-6' : ''}`} />
         </button>

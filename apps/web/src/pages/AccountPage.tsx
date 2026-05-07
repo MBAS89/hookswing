@@ -600,30 +600,9 @@ function BillingTab() {
     }
   };
 
-  // Toggle billing interval for existing subscribers
-  const handleToggleYearly = async () => {
-    const newYearly = !yearly;
-    setYearly(newYearly);
-    if (!isFree && currentPlanName !== 'FREE') {
-      // Auto-switch interval for current plan
-      setLoading(true);
-      try {
-        const res = await api.post('/billing/update-plan', {
-          plan: currentPlanName.toLowerCase(),
-          interval: newYearly ? 'year' : 'month',
-        });
-        if (res.data.success) {
-          setNotification({ type: 'success', message: `Switched to ${newYearly ? 'yearly' : 'monthly'} billing. Stripe handled the proration.` });
-          await fetchBilling();
-        }
-      } catch (err: any) {
-        const msg = err.response?.data?.error || 'Interval switch failed.';
-        setCheckoutError(msg);
-        setYearly(!newYearly); // Revert toggle on error
-      } finally {
-        setLoading(false);
-      }
-    }
+  // Toggle just previews prices — actual switch happens on button click
+  const handleToggleYearly = () => {
+    setYearly(!yearly);
   };
 
   const handlePortal = async () => {
@@ -822,8 +801,7 @@ function BillingTab() {
         <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>Monthly</span>
         <button
           onClick={handleToggleYearly}
-          disabled={loading}
-          className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors disabled:opacity-50"
+          className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors"
         >
           <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${yearly ? 'translate-x-6' : ''}`} />
         </button>
