@@ -24,6 +24,7 @@ let _forwarding = false;
 let _forwardUrl = '';
 let _forwardStats = { total: 0, success: 0, failed: 0 };
 let _hasWelcomed = false;
+let _showed404Hint = false;
 
 function getSocket() { return _socket; }
 function setSocket(s: Socket | null) { _socket = s; }
@@ -75,12 +76,14 @@ export default function CliPage() {
 
   const stopListening = useCallback(() => {
     if (_socket) {
+      _socket.io.opts.reconnection = false;
       _socket.disconnect();
       setSocket(null);
     }
     setListening(false);
     setForwarding(false);
     _forwardUrl = '';
+    _showed404Hint = false;
   }, []);
 
   const startForwarding = useCallback((slug: string, targetUrl: string) => {
@@ -174,7 +177,8 @@ export default function CliPage() {
                 return next;
               });
               addLine('error', `  → ${res.status} ${res.statusText} in ${responseTime}ms`);
-              if (res.status === 404) {
+              if (res.status === 404 && !_showed404Hint) {
+                _showed404Hint = true;
                 addLine('info', `  Your local server got the request but returned 404.`);
                 addLine('info', `  Make sure you have a route matching ${new URL(targetUrl).pathname}`);
               }
@@ -200,6 +204,7 @@ export default function CliPage() {
         });
 
         socket.on('connect_error', (err) => {
+          if (!_listening) return; // ignore after stop
           addLine('error', `Connection error: ${err.message}`);
           setListening(false);
         });
