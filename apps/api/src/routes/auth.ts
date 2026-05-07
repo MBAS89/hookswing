@@ -84,13 +84,15 @@ router.get('/github', (req, res) => {
 });
 
 router.get('/github/callback', async (req, res) => {
-  const { code, error: githubError } = req.query as { code?: string; error?: string };
+  const { code, error: githubError, error_description: githubErrorDesc } = req.query as { code?: string; error?: string; error_description?: string };
 
   if (githubError) {
+    console.error('[GitHub OAuth] GitHub returned error:', githubError, githubErrorDesc);
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=github_denied`);
   }
 
   if (!code) {
+    console.error('[GitHub OAuth] No code in query params');
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=no_code`);
   }
 
@@ -98,20 +100,26 @@ router.get('/github/callback', async (req, res) => {
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
+    console.error('[GitHub OAuth] Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET');
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=oauth_not_configured`);
   }
 
   try {
     // Exchange code for access token
+    const redirectUri = `${process.env.FRONTEND_URL || 'https://hookswing.com'}/api/auth/github/callback`;
+    console.log('[GitHub OAuth] Exchanging code for token, redirectUri:', redirectUri);
     const tokenRes = await axios.post(
       'https://github.com/login/oauth/access_token',
       {
         client_id: clientId,
         client_secret: clientSecret,
         code,
+        redirect_uri: redirectUri,
       },
-      { headers: { Accept: 'application/json' } }
+      { headers: { Accept: 'application/json', 'Content-Type': 'application/json' } }
     );
+
+    console.log('[GitHub OAuth] Token response:', JSON.stringify(tokenRes.data));
 
     const accessToken = tokenRes.data.access_token;
     if (!accessToken) {
@@ -120,43 +128,52 @@ router.get('/github/callback', async (req, res) => {
     }
 
     // Fetch user profile
+    console.log('[GitHub OAuth] Fetching user profile...');
     const userRes = await axios.get('https://api.github.com/user', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const githubUser = userRes.data;
+    console.log('[GitHub OAuth] GitHub user:', JSON.stringify({ id: githubUser.id, login: githubUser.login, name: githubUser.name, email: githubUser.email }));
     const githubId = githubUser.id?.toString();
     const name = githubUser.name || githubUser.login;
 
     // Fetch primary email (GitHub may hide email in profile)
     let email = githubUser.email;
     if (!email) {
+      console.log('[GitHub OAuth] No public email, fetching email list...');
       const emailsRes = await axios.get('https://api.github.com/user/emails', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+      console.log('[GitHub OAuth] Emails response:', JSON.stringify(emailsRes.data));
       const primaryEmail = emailsRes.data.find((e: any) => e.primary && e.verified);
       const anyVerified = emailsRes.data.find((e: any) => e.verified);
       email = primaryEmail?.email || anyVerified?.email;
     }
 
     if (!githubId || !email) {
+      console.error('[GitHub OAuth] Missing githubId or email:', { githubId, email });
       return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=github_no_email`);
     }
 
     // Find or create user
+    console.log('[GitHub OAuth] Looking up user by githubId:', githubId);
     let user = await prisma.user.findUnique({ where: { githubId } });
 
     if (!user) {
       // Check if a user with this email already exists (link accounts)
+      console.log('[GitHub OAuth] No user by githubId, checking email:', email);
       const existingByEmail = await prisma.user.findUnique({ where: { email } });
       if (existingByEmail) {
         // Link GitHub to existing account
+        console.log('[GitHub OAuth] Linking GitHub to existing user:', existingByEmail.id);
         user = await prisma.user.update({
           where: { id: existingByEmail.id },
           data: { githubId },
         });
       } else {
         // Create new user
+        console.log('[GitHub OAuth] Creating new user for GitHub login');
         const passwordHash = await bcrypt.hash(generateRandomPassword(), 10);
         user = await prisma.user.create({
           data: {
@@ -167,6 +184,7 @@ router.get('/github/callback', async (req, res) => {
             emailVerified: true,
           },
         });
+        console.log('[GitHub OAuth] New user created:', user.id);
       }
     }
 
@@ -186,9 +204,11 @@ router.get('/github/callback', async (req, res) => {
     redirectUrl.searchParams.set('accessToken', jwtAccess);
     redirectUrl.searchParams.set('refreshToken', refreshToken);
 
+    console.log('[GitHub OAuth] Success! Redirecting to frontend');
     res.redirect(redirectUrl.toString());
   } catch (err: any) {
     console.error('[GitHub OAuth] Error:', err.response?.data || err.message);
+    console.error('[GitHub OAuth] Stack:', err.stack);
     res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=oauth_failed`);
   }
 });

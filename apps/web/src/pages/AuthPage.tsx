@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Shield, Mail, RotateCcw, ArrowLeft, KeyRound, Github } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
@@ -12,6 +12,23 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const urlError = searchParams.get('error');
+    if (urlError) {
+      const messages: Record<string, string> = {
+        github_denied: 'GitHub authorization was cancelled.',
+        no_code: 'GitHub did not return an authorization code.',
+        token_exchange_failed: 'Failed to exchange GitHub code for token. Check your GitHub app credentials.',
+        oauth_failed: 'GitHub login failed. Please try again.',
+        github_auth_failed: 'GitHub authentication failed after redirect.',
+        oauth_not_configured: 'GitHub OAuth is not configured on the server.',
+        github_no_email: 'Your GitHub account does not have a verified email. Please add one and try again.',
+      };
+      setError(messages[urlError] || `OAuth error: ${urlError}`);
+    }
+  }, [searchParams]);
 
   // 2FA state
   const [requires2FA, setRequires2FA] = useState(false);
