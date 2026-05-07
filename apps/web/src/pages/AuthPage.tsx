@@ -25,8 +25,14 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         github_auth_failed: 'GitHub authentication failed after redirect.',
         oauth_not_configured: 'GitHub OAuth is not configured on the server.',
         github_no_email: 'Your GitHub account does not have a verified email. Please add one and try again.',
+        github_api_error: 'Could not fetch your GitHub profile. Try again.',
+        github_email_error: 'Could not fetch your GitHub emails. Try again.',
+        db_error: 'Database error while creating your account. Try again.',
+        token_gen_error: 'Failed to create session. Try again.',
       };
-      setError(messages[urlError] || `OAuth error: ${urlError}`);
+      const detail = searchParams.get('detail');
+      const baseMsg = messages[urlError] || `OAuth error: ${urlError}`;
+      setError(detail ? `${baseMsg} (${detail})` : baseMsg);
     }
   }, [searchParams]);
 

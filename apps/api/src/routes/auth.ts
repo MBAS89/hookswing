@@ -104,43 +104,63 @@ router.get('/github/callback', async (req, res) => {
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=oauth_not_configured`);
   }
 
+  // --- Step 1: Exchange code for access token ---
+  let accessToken: string;
   try {
-    // Exchange code for access token
     const redirectUri = `${process.env.FRONTEND_URL || 'https://hookswing.com'}/api/auth/github/callback`;
     console.log('[GitHub OAuth] Exchanging code for token, redirectUri:', redirectUri);
+
+    // GitHub token endpoint prefers form-encoded data
+    const params = new URLSearchParams();
+    params.append('client_id', clientId);
+    params.append('client_secret', clientSecret);
+    params.append('code', code);
+    params.append('redirect_uri', redirectUri);
+
     const tokenRes = await axios.post(
       'https://github.com/login/oauth/access_token',
-      {
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        redirect_uri: redirectUri,
-      },
-      { headers: { Accept: 'application/json', 'Content-Type': 'application/json' } }
+      params.toString(),
+      { headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
 
     console.log('[GitHub OAuth] Token response:', JSON.stringify(tokenRes.data));
 
-    const accessToken = tokenRes.data.access_token;
+    if (tokenRes.data.error) {
+      console.error('[GitHub OAuth] GitHub token error:', tokenRes.data.error, tokenRes.data.error_description);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_exchange_failed&detail=${encodeURIComponent(tokenRes.data.error)}`);
+    }
+
+    accessToken = tokenRes.data.access_token;
     if (!accessToken) {
       console.error('[GitHub OAuth] No access token in response:', tokenRes.data);
       return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_exchange_failed`);
     }
+  } catch (err: any) {
+    console.error('[GitHub OAuth] Token exchange error:', err.response?.data || err.message);
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_exchange_failed`);
+  }
 
-    // Fetch user profile
+  // --- Step 2: Fetch user profile ---
+  let githubUser: any;
+  try {
     console.log('[GitHub OAuth] Fetching user profile...');
     const userRes = await axios.get('https://api.github.com/user', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-
-    const githubUser = userRes.data;
+    githubUser = userRes.data;
     console.log('[GitHub OAuth] GitHub user:', JSON.stringify({ id: githubUser.id, login: githubUser.login, name: githubUser.name, email: githubUser.email }));
-    const githubId = githubUser.id?.toString();
-    const name = githubUser.name || githubUser.login;
+  } catch (err: any) {
+    console.error('[GitHub OAuth] Profile fetch error:', err.response?.data || err.message);
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=github_api_error`);
+  }
 
-    // Fetch primary email (GitHub may hide email in profile)
-    let email = githubUser.email;
-    if (!email) {
+  const githubId = githubUser.id?.toString();
+  const name = githubUser.name || githubUser.login;
+
+  // --- Step 3: Fetch email ---
+  let email = githubUser.email;
+  if (!email) {
+    try {
       console.log('[GitHub OAuth] No public email, fetching email list...');
       const emailsRes = await axios.get('https://api.github.com/user/emails', {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -149,30 +169,33 @@ router.get('/github/callback', async (req, res) => {
       const primaryEmail = emailsRes.data.find((e: any) => e.primary && e.verified);
       const anyVerified = emailsRes.data.find((e: any) => e.verified);
       email = primaryEmail?.email || anyVerified?.email;
+    } catch (err: any) {
+      console.error('[GitHub OAuth] Email fetch error:', err.response?.data || err.message);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=github_email_error`);
     }
+  }
 
-    if (!githubId || !email) {
-      console.error('[GitHub OAuth] Missing githubId or email:', { githubId, email });
-      return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=github_no_email`);
-    }
+  if (!githubId || !email) {
+    console.error('[GitHub OAuth] Missing githubId or email:', { githubId, email });
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=github_no_email`);
+  }
 
-    // Find or create user
+  // --- Step 4: Find or create user ---
+  let user: any;
+  try {
     console.log('[GitHub OAuth] Looking up user by githubId:', githubId);
-    let user = await prisma.user.findUnique({ where: { githubId } });
+    user = await prisma.user.findUnique({ where: { githubId } });
 
     if (!user) {
-      // Check if a user with this email already exists (link accounts)
       console.log('[GitHub OAuth] No user by githubId, checking email:', email);
       const existingByEmail = await prisma.user.findUnique({ where: { email } });
       if (existingByEmail) {
-        // Link GitHub to existing account
         console.log('[GitHub OAuth] Linking GitHub to existing user:', existingByEmail.id);
         user = await prisma.user.update({
           where: { id: existingByEmail.id },
           data: { githubId },
         });
       } else {
-        // Create new user
         console.log('[GitHub OAuth] Creating new user for GitHub login');
         const passwordHash = await bcrypt.hash(generateRandomPassword(), 10);
         user = await prisma.user.create({
@@ -187,8 +210,13 @@ router.get('/github/callback', async (req, res) => {
         console.log('[GitHub OAuth] New user created:', user.id);
       }
     }
+  } catch (err: any) {
+    console.error('[GitHub OAuth] DB error:', err.message);
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=db_error`);
+  }
 
-    // Generate tokens
+  // --- Step 5: Generate tokens and redirect ---
+  try {
     const { accessToken: jwtAccess, refreshToken } = generateTokens(user.id);
 
     await prisma.session.create({
@@ -199,7 +227,6 @@ router.get('/github/callback', async (req, res) => {
       },
     });
 
-    // Redirect to frontend with tokens
     const redirectUrl = new URL(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/auth/github/callback`);
     redirectUrl.searchParams.set('accessToken', jwtAccess);
     redirectUrl.searchParams.set('refreshToken', refreshToken);
@@ -207,9 +234,8 @@ router.get('/github/callback', async (req, res) => {
     console.log('[GitHub OAuth] Success! Redirecting to frontend');
     res.redirect(redirectUrl.toString());
   } catch (err: any) {
-    console.error('[GitHub OAuth] Error:', err.response?.data || err.message);
-    console.error('[GitHub OAuth] Stack:', err.stack);
-    res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=oauth_failed`);
+    console.error('[GitHub OAuth] Token generation error:', err.message);
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_gen_error`);
   }
 });
 
