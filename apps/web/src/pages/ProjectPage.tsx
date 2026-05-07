@@ -9,7 +9,7 @@ import WebhookCompare from '../components/webhook/WebhookCompare';
 import {
   Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish,
   Edit3, X, Globe, Crown, Bell, MessageSquare, ToggleLeft, ToggleRight, Send,
-  GitCompare, FileDown,
+  GitCompare, FileDown, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -56,6 +56,7 @@ export default function ProjectPage() {
   const [alerts, setAlerts] = useState<Array<{ id: string; type: string; url: string; enabled: boolean; config?: any }>>([]);
   const [canUseAlerts, setCanUseAlerts] = useState(false);
   const [showAlertForm, setShowAlertForm] = useState(false);
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [alertType, setAlertType] = useState<'slack' | 'discord' | 'telegram'>('slack');
   const [alertUrl, setAlertUrl] = useState('');
   const [alertBotToken, setAlertBotToken] = useState('');
@@ -235,19 +236,30 @@ export default function ProjectPage() {
               <p className="text-sm text-slate-400 mt-0.5">{project.description}</p>
             )}
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Webhooks this month</p>
-            <p className="text-xl font-bold text-white">{project?.webhookCount || 0}</p>
-            {project?.historyLimitDays && (
-              <p className="text-xs text-amber-400 mt-0.5">{project.historyLimitDays}-day history</p>
-            )}
-            {project?.historyLimitDays === null && (
-              <p className="text-xs text-emerald-400 mt-0.5">Unlimited history</p>
-            )}
+          <div className="flex items-start gap-3">
+            <div className="text-right shrink-0">
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Webhooks this month</p>
+              <p className="text-xl font-bold text-white">{project?.webhookCount || 0}</p>
+              {project?.historyLimitDays && (
+                <p className="text-xs text-amber-400 mt-0.5">{project.historyLimitDays}-day history</p>
+              )}
+              {project?.historyLimitDays === null && (
+                <p className="text-xs text-emerald-400 mt-0.5">Unlimited history</p>
+              )}
+            </div>
+            <button
+              onClick={() => setHeaderCollapsed(!headerCollapsed)}
+              className="mt-1 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded-lg transition-colors"
+              title={headerCollapsed ? 'Expand' : 'Collapse'}
+            >
+              {headerCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </button>
           </div>
         </div>
 
-        {/* Webhook URL */}
+        {!headerCollapsed && (
+          <>
+            {/* Webhook URL */}
         {project?.webhookUrl && (
           <div className="mt-4">
             <label className="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">
@@ -446,6 +458,8 @@ export default function ProjectPage() {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
 
       {/* Webhook Feed */}
