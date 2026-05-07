@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield
+  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, Trash2,
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
@@ -11,7 +11,7 @@ import CreateProjectModal from '../project/CreateProjectModal';
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { projects, createProject } = useProjects();
+  const { projects, createProject, deleteProject } = useProjects();
   const { user, logout } = useAuth();
 
   useEffect(() => {
@@ -30,6 +30,26 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const handleCreate = async (name: string, description?: string, teamId?: string) => {
     const project = await createProject(name, description, teamId);
     navigate(`/dashboard/projects/${project.id}`);
+  };
+
+  const handleDelete = async (projectId: string, projectName: string) => {
+    if (!confirm(`Delete project "${projectName}"? This cannot be undone.`)) return;
+    try {
+      await deleteProject(projectId);
+      if (location.pathname === `/dashboard/projects/${projectId}`) {
+        navigate('/dashboard');
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to delete project');
+    }
+  };
+
+  const canDeleteProject = (project: typeof projects[0]) => {
+    if (!project.team) {
+      return user?.plan === 'PRO' || user?.plan === 'TEAM';
+    }
+    const membership = user?.teams?.find((t) => t.team.id === project.team?.id);
+    return membership?.role === 'ADMIN';
   };
 
   const personalProjects = projects.filter((p) => !p.team);
@@ -90,18 +110,28 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             </div>
             <nav className="space-y-1">
               {personalProjects.map((project) => (
-                <Link
-                  key={project.id}
-                  to={`/dashboard/projects/${project.id}`}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    location.pathname === `/dashboard/projects/${project.id}`
-                      ? 'bg-emerald-500/10 text-emerald-400'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                  }`}
-                >
-                  <FolderGit2 className="w-4 h-4 shrink-0" />
-                  <span className="truncate">{project.name}</span>
-                </Link>
+                <div key={project.id} className="group relative">
+                  <Link
+                    to={`/dashboard/projects/${project.id}`}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors pr-8 ${
+                      location.pathname === `/dashboard/projects/${project.id}`
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <FolderGit2 className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{project.name}</span>
+                  </Link>
+                  {canDeleteProject(project) && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDelete(project.id, project.name); }}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                      title="Delete project"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               ))}
               {personalProjects.length === 0 && teamProjects.length === 0 && (
                 <p className="px-3 text-xs text-slate-600">No projects yet</p>
@@ -142,18 +172,28 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               </div>
               <nav className="space-y-1">
                 {teamProjects.map((project) => (
-                  <Link
-                    key={project.id}
-                    to={`/dashboard/projects/${project.id}`}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      location.pathname === `/dashboard/projects/${project.id}`
-                        ? 'bg-emerald-500/10 text-emerald-400'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    <Users2 className="w-4 h-4 shrink-0 text-amber-400" />
-                    <span className="truncate">{project.name}</span>
-                  </Link>
+                  <div key={project.id} className="group relative">
+                    <Link
+                      to={`/dashboard/projects/${project.id}`}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors pr-8 ${
+                        location.pathname === `/dashboard/projects/${project.id}`
+                          ? 'bg-emerald-500/10 text-emerald-400'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      }`}
+                    >
+                      <Users2 className="w-4 h-4 shrink-0 text-amber-400" />
+                      <span className="truncate">{project.name}</span>
+                    </Link>
+                    {canDeleteProject(project) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(project.id, project.name); }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                        title="Delete project"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </nav>
             </div>
