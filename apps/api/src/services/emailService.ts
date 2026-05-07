@@ -15,13 +15,16 @@ const transporter = nodemailer.createTransport({
     user: GMAIL_USER,
     pass: GMAIL_APP_PASSWORD,
   },
-  pool: true,
-  maxConnections: 3,
-  maxMessages: 100,
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-});
+  // Force IPv4 — Railway containers have no IPv6 route.
+  // Nodemailer passes this to dns.lookup() / net.connect() at runtime.
+  family: 4,
+  // Disable pooling: fresh connection per email prevents hung sockets
+  // from keeping the process alive and causing SIGTERM on deploy
+  pool: false,
+  connectionTimeout: 8000,
+  greetingTimeout: 8000,
+  socketTimeout: 8000,
+} as any);
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
