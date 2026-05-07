@@ -78,7 +78,7 @@ router.post('/register', authRateLimit, async (req, res) => {
     select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
   });
 
-  // Send verification email
+  // Send verification email (non-blocking so registration response is fast)
   const otp = generateOTP();
   const otpHash = await bcrypt.hash(otp, 10);
   await prisma.user.update({
@@ -88,7 +88,9 @@ router.post('/register', authRateLimit, async (req, res) => {
       emailVerificationExpires: new Date(Date.now() + 15 * 60 * 1000),
     },
   });
-  await sendVerificationEmail(user.email, otp, user.id);
+  sendVerificationEmail(user.email, otp, user.id).catch((err) => {
+    console.error('Failed to send verification email:', err);
+  });
 
   // Don't log them in yet — they must verify email first
   res.json({ requiresEmailVerification: true, email: user.email });
@@ -589,7 +591,9 @@ router.post('/send-verification', authRateLimit, async (req: AuthRequest, res) =
     },
   });
 
-  await sendVerificationEmail(user.email, otp, user.id);
+  sendVerificationEmail(user.email, otp, user.id).catch((err) => {
+    console.error('Failed to send verification email:', err);
+  });
 
   res.json({ message: 'If an account exists, a verification code has been sent' });
 });
@@ -684,7 +688,9 @@ router.post('/forgot-password', authRateLimit, async (req, res) => {
   });
 
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-  await sendPasswordResetEmail(user.email, resetUrl, user.id);
+  sendPasswordResetEmail(user.email, resetUrl, user.id).catch((err) => {
+    console.error('Failed to send password reset email:', err);
+  });
 
   res.json({ message: 'If an account exists, a reset link has been sent' });
 });
