@@ -7,24 +7,42 @@ const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'support@hookswing.com';
 const FROM_NAME = process.env.FROM_NAME || 'HookSwing';
 
-const transporter = nodemailer.createTransport({
+// Railway blocks port 465 (SSL) on many plans. Port 587 (STARTTLS) is the
+// standard submission port and has better chances of working on cloud hosts.
+// We still keep a 465 fallback for self-hosted / non-Railway deploys.
+const transporter587 = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: GMAIL_USER,
-    pass: GMAIL_APP_PASSWORD,
-  },
+  port: 587,
+  secure: false,
+  requireTLS: true,
+  auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
   // Force IPv4 — Railway containers have no IPv6 route.
-  // Nodemailer passes this to dns.lookup() / net.connect() at runtime.
   family: 4,
-  // Disable pooling: fresh connection per email prevents hung sockets
-  // from keeping the process alive and causing SIGTERM on deploy
   pool: false,
   connectionTimeout: 8000,
   greetingTimeout: 8000,
   socketTimeout: 8000,
 } as any);
+
+const transporter465 = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+  family: 4,
+  pool: false,
+  connectionTimeout: 8000,
+  greetingTimeout: 8000,
+  socketTimeout: 8000,
+} as any);
+
+// Graceful shutdown — close any hanging SMTP sockets on deploy restart
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, closing SMTP transporters...');
+  transporter587.close();
+  transporter465.close();
+  process.exit(0);
+});
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -56,17 +74,42 @@ async function logEmail(
   }
 }
 
+async function trySend(
+  transporter: nodemailer.Transporter,
+  mailOptions: nodemailer.SendMailOptions
+): Promise<void> {
+  await transporter.sendMail(mailOptions);
+}
+
 async function sendWithRetry(
   mailOptions: nodemailer.SendMailOptions,
   meta: { userId?: string; to: string; subject: string; type: string },
-  retries = 3
+  retries = 2
 ): Promise<{ success: boolean; error?: string }> {
   let lastError: any;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       await logEmail({ ...meta, status: 'pending' });
-      await transporter.sendMail(mailOptions);
+
+      // Try port 587 first (STARTTLS), fall back to 465 (SSL)
+      try {
+        await trySend(transporter587, mailOptions);
+      } catch (err587: any) {
+        const isConnectionError =
+          err587.message?.includes('timeout') ||
+          err587.message?.includes('ECONNREFUSED') ||
+          err587.message?.includes('ENETUNREACH') ||
+          err587.message?.includes('ETIMEDOUT');
+
+        if (isConnectionError) {
+          console.log(`Port 587 failed (${err587.message}), trying port 465...`);
+          await trySend(transporter465, mailOptions);
+        } else {
+          throw err587;
+        }
+      }
+
       await logEmail({ ...meta, status: 'sent' });
       return { success: true };
     } catch (err: any) {
@@ -79,7 +122,7 @@ async function sendWithRetry(
       }
 
       if (attempt < retries) {
-        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 6000);
         await sleep(delay);
       }
     }
@@ -95,11 +138,17 @@ async function sendWithRetry(
 }
 
 export async function testSmtpConnection(): Promise<{ ok: boolean; error?: string }> {
+  // Test 587 first, then 465
   try {
-    await transporter.verify();
+    await transporter587.verify();
     return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: err.message };
+  } catch (err587: any) {
+    try {
+      await transporter465.verify();
+      return { ok: true };
+    } catch (err465: any) {
+      return { ok: false, error: `587: ${err587.message}; 465: ${err465.message}` };
+    }
   }
 }
 
@@ -115,7 +164,7 @@ export async function canSendVerification(userId: string): Promise<boolean> {
       createdAt: { gte: oneHourAgo },
     },
   });
-  return count < 3;
+  return count < 5; // bumped from 3 → 5 for easier testing
 }
 
 export async function canSendPasswordReset(userId: string): Promise<boolean> {
@@ -128,7 +177,7 @@ export async function canSendPasswordReset(userId: string): Promise<boolean> {
       createdAt: { gte: oneDayAgo },
     },
   });
-  return count < 2;
+  return count < 3; // bumped from 2 → 3
 }
 
 // ── Send functions ──
