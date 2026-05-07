@@ -14,6 +14,7 @@ import teamRoutes from './routes/teams';
 import billingRoutes from './routes/billing';
 import alertRoutes from './routes/alerts';
 import dashboardRoutes from './routes/dashboard';
+import adminRoutes from './routes/admin';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { setIO } from './lib/socketio';
@@ -247,6 +248,7 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/projects/:projectId/alerts', alertRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve frontend static files (production only)
 const webDistPath = path.resolve(__dirname, '../../web/dist');

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal
+  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
@@ -22,6 +22,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
     { icon: Users, label: 'Team', href: '/dashboard/team' },
     { icon: Terminal, label: 'CLI', href: '/dashboard/cli' },
+    ...(user?.role === 'ADMIN' ? [{ icon: Shield, label: 'Admin', href: '/dashboard/admin' }] : []),
   ];
 
   const [modalOpen, setModalOpen] = useState(false);
