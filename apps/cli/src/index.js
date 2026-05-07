@@ -9,13 +9,13 @@ const replay = require('./commands/replay');
 const program = new Command();
 
 program
-  .name('webhookvault')
-  .description('WebhookVault CLI — catch, forward, and replay webhooks')
+  .name('hookswing')
+  .description('HookSwing CLI — catch, forward, and replay webhooks')
   .version(pkg.version);
 
 program
   .command('login')
-  .description('Authenticate with WebhookVault')
+  .description('Authenticate with HookSwing')
   .action(login);
 
 program

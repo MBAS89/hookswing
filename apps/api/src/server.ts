@@ -161,7 +161,7 @@ async function fireAlerts(projectId: string, webhook: any, host: string) {
             blocks: [
               {
                 type: 'header',
-                text: { type: 'plain_text', text: '🪝 WebhookVault Alert', emoji: true },
+                text: { type: 'plain_text', text: '🪝 HookSwing Alert', emoji: true },
               },
               {
                 type: 'section',
@@ -179,7 +179,7 @@ async function fireAlerts(projectId: string, webhook: any, host: string) {
               {
                 type: 'context',
                 elements: [
-                  { type: 'mrkdwn', text: `<https://${host}/dashboard/projects/${projectId}|View in WebhookVault>` },
+                  { type: 'mrkdwn', text: `<https://${host}/dashboard/projects/${projectId}|View in HookSwing>` },
                 ],
               },
             ],
@@ -197,7 +197,7 @@ async function fireAlerts(projectId: string, webhook: any, host: string) {
                   { name: 'Time', value: new Date(webhook.createdAt).toLocaleString(), inline: true },
                   { name: 'Body', value: '```json\n' + JSON.stringify(webhook.body || {}, null, 2).slice(0, 1000) + '\n```' },
                 ],
-                footer: { text: 'WebhookVault' },
+                footer: { text: 'HookSwing' },
                 timestamp: new Date(webhook.createdAt).toISOString(),
               },
             ],
@@ -205,7 +205,7 @@ async function fireAlerts(projectId: string, webhook: any, host: string) {
         } else if (alert.type === 'telegram') {
           const config = alert.config as any;
           const text = [
-            '🪝 <b>WebhookVault Alert</b>',
+            '🪝 <b>HookSwing Alert</b>',
             '',
             `<b>Method:</b> ${webhook.method}`,
             `<b>Source:</b> ${webhook.source || 'Unknown'}`,
@@ -215,7 +215,7 @@ async function fireAlerts(projectId: string, webhook: any, host: string) {
             '<b>Body:</b>',
             '<pre>' + JSON.stringify(webhook.body || {}, null, 2).slice(0, 3500) + '</pre>',
             '',
-            `<a href="https://${host}/dashboard/projects/${projectId}">View in WebhookVault</a>`,
+            `<a href="https://${host}/dashboard/projects/${projectId}">View in HookSwing</a>`,
           ].join('\n');
 
           await axios.post(alert.url, {

@@ -1,4 +1,4 @@
-# WebhookVault
+# HookSwing
 
 > The permanent webhook inbox for developers. Catch any HTTP payload, inspect JSON in real time, replay against localhost, and share with your team.
 
@@ -7,9 +7,9 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue.svg)](https://www.typescriptlang.org/)
 
-## Why WebhookVault?
+## Why HookSwing?
 
-Free webhook bins delete your data. ngrok tunnels die when your laptop sleeps. WebhookVault fixes both:
+Free webhook bins delete your data. ngrok tunnels die when your laptop sleeps. HookSwing fixes both:
 
 - **Persistent storage** — webhooks live for 7-90 days, not minutes
 - **No tunneling** — forward webhooks to localhost via WebSocket, not TCP tunnels
@@ -19,7 +19,7 @@ Free webhook bins delete your data. ngrok tunnels die when your laptop sleeps. W
 ## Architecture
 
 ```
-webhookvault/
+hookswing/
 ├── apps/
 │   ├── web/          # Vite + React + TypeScript + Tailwind CSS (frontend)
 │   ├── api/          # Express + Prisma + PostgreSQL + Redis (backend)
@@ -67,8 +67,8 @@ webhookvault/
 ### 1. Clone & Start Infrastructure
 
 ```bash
-git clone https://github.com/MBAS89/WebhookVault.git
-cd WebhookVault
+git clone https://github.com/MBAS89/HookSwing.git
+cd HookSwing
 
 # Start PostgreSQL and Redis
 docker-compose up -d
@@ -110,7 +110,7 @@ cd apps/cli
 npm link
 
 # Or install from npm
-npm install -g webhookvault-cli
+npm install -g hookswing-cli
 ```
 
 ## Usage
@@ -120,7 +120,7 @@ npm install -g webhookvault-cli
 1. Open `http://localhost:5173` and register an account
 2. Create a project — you'll get a unique webhook URL:
    ```
-   https://api.webhookvault.io/hook/abc123def456
+   https://api.hookswing.io/hook/abc123def456
    ```
 3. Paste that URL into Stripe, GitHub, PayPal, or any service that sends webhooks
 4. Watch webhooks arrive in real time on the dashboard
@@ -129,15 +129,15 @@ npm install -g webhookvault-cli
 
 ```bash
 # Authenticate
-webhookvault login
+hookswing login
 
 # Forward webhooks to localhost
-webhookvault forward abc123def456 http://localhost:3000/webhook
+hookswing forward abc123def456 http://localhost:3000/webhook
 ```
 
 Output:
 ```
-🪝 WebhookVault Forwarder
+🪝 HookSwing Forwarder
    Project: My SaaS (abc123def456)
    Target:  http://localhost:3000/webhook
 
@@ -151,7 +151,7 @@ Output:
 
 ```bash
 # From CLI
-webhookvault replay wh_123abc456 http://localhost:3000/webhook
+hookswing replay wh_123abc456 http://localhost:3000/webhook
 
 # Or in the web dashboard — click any webhook, hit Replay, edit the target URL
 ```
@@ -163,14 +163,14 @@ webhookvault replay wh_123abc456 http://localhost:3000/webhook
 All API requests require a Bearer token:
 
 ```bash
-curl https://api.webhookvault.io/api/projects \
+curl https://api.hookswing.io/api/projects \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ### Public Hook Endpoint
 
 ```
-ANY https://api.webhookvault.io/hook/:slug
+ANY https://api.hookswing.io/hook/:slug
 ```
 
 - Accepts any HTTP method and headers
@@ -256,7 +256,7 @@ npm publish --access public
 ### Backend (`apps/api/.env`)
 
 ```env
-DATABASE_URL=postgresql://user:pass@localhost:5432/webhookvault
+DATABASE_URL=postgresql://user:pass@localhost:5432/hookswing
 JWT_SECRET=your-super-secret-min-32-chars
 JWT_REFRESH_SECRET=another-super-secret
 STRIPE_SECRET_KEY=sk_test_...
@@ -309,4 +309,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-**[Live Demo](https://webhookvault.io)** · **[Documentation](https://webhookvault.io/docs)** · **[Report Bug](https://github.com/MBAS89/WebhookVault/issues)** · **[Request Feature](https://github.com/MBAS89/WebhookVault/issues)**
+**[Live Demo](https://hookswing.io)** · **[Documentation](https://hookswing.io/docs)** · **[Report Bug](https://github.com/MBAS89/HookSwing/issues)** · **[Request Feature](https://github.com/MBAS89/HookSwing/issues)**

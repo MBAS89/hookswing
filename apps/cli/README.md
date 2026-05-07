@@ -1,8 +1,8 @@
-# webhookvault-cli
+# hookswing-cli
 
-> The open-source CLI for [WebhookVault](https://webhookvault.io). Forward webhooks to localhost without ngrok. Replay payloads on demand.
+> The open-source CLI for [HookSwing](https://hookswing.io). Forward webhooks to localhost without ngrok. Replay payloads on demand.
 
-[![npm version](https://img.shields.io/npm/v/webhookvault-cli.svg)](https://www.npmjs.com/package/webhookvault-cli)
+[![npm version](https://img.shields.io/npm/v/hookswing-cli.svg)](https://www.npmjs.com/package/hookswing-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg)](https://nodejs.org/)
 
@@ -16,7 +16,7 @@
 ## Install
 
 ```bash
-npm install -g webhookvault-cli
+npm install -g hookswing-cli
 ```
 
 Requires Node.js 16 or higher.
@@ -24,27 +24,27 @@ Requires Node.js 16 or higher.
 ## Quick Start
 
 ```bash
-# 1. Authenticate with your WebhookVault account
-webhookvault login
+# 1. Authenticate with your HookSwing account
+hookswing login
 
 # 2. Forward webhooks from your project to localhost
-webhookvault forward abc123 http://localhost:3000/webhook
+hookswing forward abc123 http://localhost:3000/webhook
 
 # 3. List your projects
-webhookvault list
+hookswing list
 
 # 4. Replay a webhook (Pro/Team plans)
-webhookvault replay wh_123abc http://localhost:3000/webhook
+hookswing replay wh_123abc http://localhost:3000/webhook
 ```
 
 ## Commands
 
 ### `login`
 
-Interactive login. Stores your API token in `~/.webhookvault/config.json`.
+Interactive login. Stores your API token in `~/.hookswing/config.json`.
 
 ```bash
-webhookvault login
+hookswing login
 # ? Email: dev@example.com
 # ? Password: ********
 # ✓ Authenticated as dev@example.com
@@ -55,20 +55,20 @@ webhookvault login
 Removes stored credentials.
 
 ```bash
-webhookvault logout
+hookswing logout
 # ✓ Logged out. Credentials removed.
 ```
 
 ### `forward <slug> <local-url>`
 
-Forwards webhooks from your WebhookVault project to a local server.
+Forwards webhooks from your HookSwing project to a local server.
 
 ```bash
-webhookvault forward abc123 http://localhost:3000/webhook
+hookswing forward abc123 http://localhost:3000/webhook
 ```
 
 **How it works:**
-1. Opens a WebSocket connection to WebhookVault
+1. Opens a WebSocket connection to HookSwing
 2. Subscribes to your project's slug
 3. When a webhook hits your public URL, the server pushes it via WebSocket
 4. The CLI forwards the HTTP request to your local server
@@ -77,7 +77,7 @@ webhookvault forward abc123 http://localhost:3000/webhook
 **Output:**
 
 ```
-🪝 WebhookVault Forwarder
+🪝 HookSwing Forwarder
    Project: My SaaS (abc123)
    Target:  http://localhost:3000/webhook
 
@@ -100,10 +100,10 @@ Requests: 3  │  Success: 2  │  Failed: 1
 
 ### `list`
 
-Lists your WebhookVault projects.
+Lists your HookSwing projects.
 
 ```bash
-webhookvault list
+hookswing list
 
 # Your Projects:
 #   abc123  My SaaS        12 webhooks today
@@ -115,7 +115,7 @@ webhookvault list
 Replays a past webhook against a local URL. Requires Pro or Team plan.
 
 ```bash
-webhookvault replay wh_123abc456 http://localhost:3000/webhook
+hookswing replay wh_123abc456 http://localhost:3000/webhook
 
 # ↻ Replaying webhook wh_123abc456
 #   Original: 2026-05-05 03:17:42
@@ -130,14 +130,14 @@ webhookvault replay wh_123abc456 http://localhost:3000/webhook
 The CLI stores a single config file at:
 
 ```
-~/.webhookvault/config.json
+~/.hookswing/config.json
 ```
 
 Example:
 
 ```json
 {
-  "apiUrl": "https://api.webhookvault.io",
+  "apiUrl": "https://api.hookswing.io",
   "accessToken": "eyJhbGciOiJIUzI1NiIs...",
   "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
 }
@@ -147,7 +147,7 @@ Example:
 
 | Variable | Description |
 |----------|-------------|
-| `WEBHOOKVAULT_API_URL` | Override the default API URL |
+| `HOOKSWING_API_URL` | Override the default API URL |
 | `NO_COLOR` | Disable colored output |
 
 ## Troubleshooting
@@ -155,8 +155,8 @@ Example:
 ### "Authentication failed"
 
 ```bash
-webhookvault logout
-webhookvault login
+hookswing logout
+hookswing login
 ```
 
 ### "Connection refused" when forwarding
@@ -168,15 +168,15 @@ Your local server isn't running on the specified URL:
  curl http://localhost:3000/webhook
 
 # If using Docker, use host.docker.internal instead of localhost
-webhookvault forward abc123 http://host.docker.internal:3000/webhook
+hookswing forward abc123 http://host.docker.internal:3000/webhook
 ```
 
 ### Webhooks aren't appearing
 
-1. Check that the slug is correct: `webhookvault list`
+1. Check that the slug is correct: `hookswing list`
 2. Test with curl directly:
    ```bash
-   curl -X POST https://api.webhookvault.io/hook/YOUR_SLUG -d '{"test": true}'
+   curl -X POST https://api.hookswing.io/hook/YOUR_SLUG -d '{"test": true}'
    ```
 3. Check your project usage in the web dashboard — you may have hit your plan limit.
 
@@ -184,7 +184,7 @@ webhookvault forward abc123 http://host.docker.internal:3000/webhook
 
 ```
 ┌──────────────┐     WebSocket      ┌─────────────────┐
-│  Your Local  │ ◄────────────────► │  WebhookVault   │
+│  Your Local  │ ◄────────────────► │  HookSwing   │
 │  Server      │    (persistent)    │  API Server     │
 └──────────────┘                    └─────────────────┘
        ▲                                      ▲
@@ -195,7 +195,7 @@ webhookvault forward abc123 http://host.docker.internal:3000/webhook
                    (Stripe, GitHub, etc.)
 ```
 
-Unlike ngrok, which opens a public TCP tunnel to your machine, WebhookVault CLI uses a **WebSocket connection** to the API server. Webhooks hit the public URL, the server stores them, and pushes them to your CLI over the WebSocket. The CLI then makes a local HTTP request to your dev server. This means:
+Unlike ngrok, which opens a public TCP tunnel to your machine, HookSwing CLI uses a **WebSocket connection** to the API server. Webhooks hit the public URL, the server stores them, and pushes them to your CLI over the WebSocket. The CLI then makes a local HTTP request to your dev server. This means:
 
 - No public ports exposed on your machine
 - Connection survives laptop sleep/wake
@@ -212,8 +212,8 @@ Unlike ngrok, which opens a public TCP tunnel to your machine, WebhookVault CLI 
 
 ## Contributing
 
-This CLI is open source. Issues and PRs welcome at [github.com/MBAS89/WebhookVault](https://github.com/MBAS89/WebhookVault).
+This CLI is open source. Issues and PRs welcome at [github.com/MBAS89/HookSwing](https://github.com/MBAS89/HookSwing).
 
 ## License
 
-MIT © [WebhookVault](https://webhookvault.io)
+MIT © [HookSwing](https://hookswing.io)

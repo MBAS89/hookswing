@@ -3,24 +3,24 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: webhookvault-postgres
+    container_name: hookswing-postgres
     environment:
-      POSTGRES_USER: webhookvault
-      POSTGRES_PASSWORD: webhookvault
-      POSTGRES_DB: webhookvault
+      POSTGRES_USER: hookswing
+      POSTGRES_PASSWORD: hookswing
+      POSTGRES_DB: hookswing
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U webhookvault"]
+      test: ["CMD-SHELL", "pg_isready -U hookswing"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: webhookvault-redis
+    container_name: hookswing-redis
     ports:
       - "6379:6379"
     volumes:

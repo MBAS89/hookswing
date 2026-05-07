@@ -7,11 +7,11 @@ const { formatWebhookLine } = require('../lib/formatter');
 async function forward(slug, localUrl, options) {
   const config = readConfig();
   if (!config?.accessToken) {
-    console.error(chalk.red('Not authenticated. Run: webhookvault login'));
+    console.error(chalk.red('Not authenticated. Run: hookswing login'));
     process.exit(1);
   }
 
-  const apiUrl = config.apiUrl || 'https://api.webhookvault.io';
+  const apiUrl = config.apiUrl || 'https://api.hookswing.io';
   const wsUrl = apiUrl.replace(/^http/, 'ws');
 
   // Get project info
@@ -26,7 +26,7 @@ async function forward(slug, localUrl, options) {
     // ignore
   }
 
-  console.log(chalk.cyan('🪝 WebhookVault Forwarder'));
+  console.log(chalk.cyan('🪝 HookSwing Forwarder'));
   console.log(chalk.gray(`   Project: ${projectName} (${slug})`));
   console.log(chalk.gray(`   Target:  ${localUrl}`));
   console.log();
@@ -102,7 +102,7 @@ async function forward(slug, localUrl, options) {
 
       if (total === 50) {
         console.log();
-        console.log(chalk.yellow('💡 Unlock 90-day history and replay at webhookvault.io'));
+        console.log(chalk.yellow('💡 Unlock 90-day history and replay at hookswing.io'));
       }
     } catch {
       // ignore invalid messages

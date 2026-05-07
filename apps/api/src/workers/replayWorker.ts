@@ -40,7 +40,7 @@ const replayWorker = new Worker(
       body: body || webhook.body,
       query: webhook.query,
       ip: '127.0.0.1',
-      userAgent: 'WebhookVault-Replay',
+      userAgent: 'HookSwing-Replay',
       statusCode: response.status,
       responseBody: typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
       responseTime,

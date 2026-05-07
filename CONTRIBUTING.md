@@ -1,11 +1,11 @@
-# Contributing to WebhookVault
+# Contributing to HookSwing
 
 First off, thanks for taking the time to contribute!
 
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/WebhookVault.git`
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/HookSwing.git`
 3. Create a branch: `git checkout -b feature/your-feature-name`
 
 ## Development Setup
@@ -51,4 +51,4 @@ Use GitHub Issues with:
 
 ## Questions?
 
-Open a GitHub Discussion or email support@webhookvault.io
+Open a GitHub Discussion or email support@hookswing.com

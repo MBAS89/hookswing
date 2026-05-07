@@ -23,7 +23,7 @@ function Navbar() {
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
             <Logo className="w-8 h-8" />
-            <span className="text-xl font-bold text-white">WebhookVault</span>
+            <span className="text-xl font-bold text-white">HookSwing</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -92,10 +92,10 @@ function Hero() {
               <div className="w-3 h-3 rounded-full bg-red-500" />
               <div className="w-3 h-3 rounded-full bg-amber-500" />
               <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span className="ml-2 text-xs text-slate-400 font-mono">webhookvault forward abc123 http://localhost:3000/webhook</span>
+              <span className="ml-2 text-xs text-slate-400 font-mono">hookswing forward abc123 http://localhost:3000/webhook</span>
             </div>
             <div className="p-6 font-mono text-sm text-left space-y-2">
-              <div className="text-slate-400">🪝 WebhookVault Forwarder</div>
+              <div className="text-slate-400">🪝 HookSwing Forwarder</div>
               <div className="text-slate-400">   Project: My SaaS (abc123)</div>
               <div className="text-slate-400">   Target:  http://localhost:3000/webhook</div>
               <div className="text-slate-500 mt-4">   [Press Ctrl+C to stop]</div>
@@ -233,9 +233,9 @@ function DeepDiveSection() {
                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
               </div>
               <div className="p-4 space-y-1 text-slate-300">
-                <div><span className="text-emerald-400">$</span> npm install -g webhookvault-cli</div>
-                <div className="text-slate-500">+ webhookvault-cli@1.2.0</div>
-                <div className="pt-2"><span className="text-emerald-400">$</span> webhookvault forward abc123 http://localhost:3000/webhook</div>
+                <div><span className="text-emerald-400">$</span> npm install -g hookswing-cli</div>
+                <div className="text-slate-500">+ hookswing-cli@1.2.0</div>
+                <div className="pt-2"><span className="text-emerald-400">$</span> hookswing forward abc123 http://localhost:3000/webhook</div>
                 <div className="text-slate-500 pt-1">Connected. Forwarding webhooks...</div>
               </div>
             </div>
@@ -266,7 +266,7 @@ function DeepDiveSection() {
                 <div className="text-slate-500 text-sm">Engineering Lead</div>
               </div>
             </div>
-            <p className="text-slate-300 text-sm mb-4">"Our team was sharing ngrok URLs in Slack like cavemen. Now we have one shared project in WebhookVault. Everyone sees the same webhooks. No more chaos."</p>
+            <p className="text-slate-300 text-sm mb-4">"Our team was sharing ngrok URLs in Slack like cavemen. Now we have one shared project in HookSwing. Everyone sees the same webhooks. No more chaos."</p>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <Users className="w-4 h-4" />
               <span>Team Plan — 8 members</span>
@@ -300,7 +300,7 @@ function HowItWorks() {
     {
       num: '01',
       title: 'Create a project',
-      body: 'Sign up. Click "New Project". We give you a unique URL: https://api.webhookvault.io/hook/abc123',
+      body: 'Sign up. Click "New Project". We give you a unique URL: https://api.hookswing.com/hook/abc123',
     },
     {
       num: '02',
@@ -440,7 +440,7 @@ function PricingSection() {
 function Testimonials() {
   const quotes = [
     {
-      text: 'I was using webhook.site for 2 years. I lost a critical Stripe payload during a production incident. Switched to WebhookVault that day. Never looked back.',
+      text: 'I was using webhook.site for 2 years. I lost a critical Stripe payload during a production incident. Switched to HookSwing that day. Never looked back.',
       author: 'Alex',
       role: 'Backend Engineer at SaaS Startup',
     },
@@ -450,7 +450,7 @@ function Testimonials() {
       role: 'Full-Stack Developer',
     },
     {
-      text: 'Our team was sharing ngrok URLs in Slack like cavemen. Now we have one shared project in WebhookVault. Everyone sees the same webhooks. No more chaos.',
+      text: 'Our team was sharing ngrok URLs in Slack like cavemen. Now we have one shared project in HookSwing. Everyone sees the same webhooks. No more chaos.',
       author: 'Mike',
       role: 'Engineering Lead',
     },
@@ -481,7 +481,7 @@ function FAQ() {
   const faqs = [
     { q: 'Is there a free plan?', a: 'Yes. 3 projects, 500 webhooks per month, 7-day retention. No credit card required. Upgrade when you need more.' },
     { q: 'Do you store my webhook payloads forever?', a: 'No. Free = 7 days. Pro = 90 days. After that, we delete them. If you need longer retention, contact us for Enterprise.' },
-    { q: 'Can I self-host WebhookVault?', a: 'Not yet. We are a managed SaaS. Self-hosted version is on the roadmap for Enterprise customers.' },
+    { q: 'Can I self-host HookSwing?', a: 'Not yet. We are a managed SaaS. Self-hosted version is on the roadmap for Enterprise customers.' },
     { q: 'Does it work with Stripe, GitHub, PayPal, Twilio?', a: 'Yes. Any service that sends HTTP webhooks works. We are payload-agnostic. We don\'t verify signatures — that\'s your code\'s job.' },
     { q: 'Is the CLI open source?', a: 'Yes. The CLI is MIT-licensed and on GitHub. The backend is proprietary. The CLI is free forever.' },
     { q: 'What happens if I exceed my plan\'s webhook limit?', a: 'We still catch the webhook and return 200 to the sender (so they don\'t retry and spam you). But we drop the payload storage and notify you to upgrade. No surprise charges.' },
@@ -580,7 +580,7 @@ function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between pt-8 border-t border-slate-800">
           <div className="flex items-center gap-2 mb-4 sm:mb-0">
             <Logo className="w-6 h-6" />
-            <span className="text-sm text-slate-500">© 2026 WebhookVault. All rights reserved.</span>
+            <span className="text-sm text-slate-500">© 2026 HookSwing. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-4">
             <a href="#" className="text-slate-500 hover:text-white transition-colors"><Twitter className="w-5 h-5" /></a>

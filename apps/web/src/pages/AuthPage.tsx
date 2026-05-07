@@ -65,7 +65,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
             <Logo className="w-10 h-10" />
-            <span className="text-2xl font-bold text-white">WebhookVault</span>
+            <span className="text-2xl font-bold text-white">HookSwing</span>
           </Link>
           <h1 className="text-2xl font-bold text-white">
             {requires2FA ? 'Two-Factor Authentication' : mode === 'login' ? 'Welcome back' : 'Create your account'}

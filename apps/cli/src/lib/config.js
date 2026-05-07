@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const configDir = path.join(os.homedir(), '.webhookvault');
+const configDir = path.join(os.homedir(), '.hookswing');
 const configPath = path.join(configDir, 'config.json');
 
 function readConfig() {

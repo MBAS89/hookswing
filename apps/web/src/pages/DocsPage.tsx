@@ -85,7 +85,7 @@ export default function DocsPage() {
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center gap-2">
               <Logo className="w-8 h-8" />
-              <span className="text-xl font-bold text-white">WebhookVault</span>
+              <span className="text-xl font-bold text-white">HookSwing</span>
             </Link>
             <div className="flex items-center gap-4">
               <Link to="/docs" className="text-emerald-400 font-medium text-sm">Docs</Link>
@@ -109,7 +109,7 @@ export default function DocsPage() {
             <Section id="quick-start" title="Quick Start">
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">1.1 Sign Up</h3>
               <ol className="list-decimal list-inside space-y-2 text-slate-300">
-                <li>Go to <Link to="/" className="text-emerald-400 hover:underline">webhookvault.io</Link></li>
+                <li>Go to <Link to="/" className="text-emerald-400 hover:underline">hookswing.com</Link></li>
                 <li>Click <strong className="text-white">"Start Catching Free"</strong></li>
                 <li>Enter your email and password</li>
                 <li>Verify your email (check spam folder)</li>
@@ -122,11 +122,11 @@ export default function DocsPage() {
                 <li>Name it: <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">My First Project</code></li>
                 <li>We auto-generate your unique webhook URL</li>
               </ol>
-              <CodeBlock code={`https://api.webhookvault.io/hook/abc123def456`} />
+              <CodeBlock code={`https://api.hookswing.com/hook/abc123def456`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">1.3 Send a Test Webhook</h3>
               <p className="text-slate-300 mb-3">Using curl:</p>
-              <CodeBlock code={`curl -X POST https://api.webhookvault.io/hook/abc123def456 \\
+              <CodeBlock code={`curl -X POST https://api.hookswing.com/hook/abc123def456 \\
   -H "Content-Type: application/json" \\
   -d '{"test": true, "message": "hello world"}'`} />
 
@@ -186,24 +186,24 @@ export default function DocsPage() {
 
             <Section id="cli" title="CLI Reference">
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.1 Installation</h3>
-              <CodeBlock code={`npm install -g webhookvault-cli
+              <CodeBlock code={`npm install -g hookswing-cli
 
-webhookvault --version
+hookswing --version
 # Expected: 1.x.x`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.2 Login</h3>
-              <CodeBlock code={`webhookvault login
+              <CodeBlock code={`hookswing login
 
 # You'll be prompted for email and password
-# Token stored in ~/.webhookvault/config.json
+# Token stored in ~/.hookswing/config.json
 
-webhookvault logout
+hookswing logout
 # Removes config file`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.3 Forward Webhooks to Localhost</h3>
-              <CodeBlock code={`webhookvault forward abc123def456 http://localhost:3000/webhook`} />
+              <CodeBlock code={`hookswing forward abc123def456 http://localhost:3000/webhook`} />
               <p className="text-slate-300 mt-3">Output:</p>
-              <CodeBlock code={`🪝 WebhookVault Forwarder
+              <CodeBlock code={`🪝 HookSwing Forwarder
    Project: My First Project (abc123def456)
    Target:  http://localhost:3000/webhook
 
@@ -213,14 +213,14 @@ webhookvault logout
 [03:18:15] POST  500  0.8KB  12ms  github:push  ⚠️ Server Error`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.4 List Projects</h3>
-              <CodeBlock code={`webhookvault list`} />
+              <CodeBlock code={`hookswing list`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.5 Replay from CLI</h3>
               <p className="text-slate-300 mb-2"><span className="text-amber-400 font-medium">Available on: Pro and Team plans.</span></p>
-              <CodeBlock code={`webhookvault replay wh_123abc456 http://localhost:3000/webhook`} />
+              <CodeBlock code={`hookswing replay wh_123abc456 http://localhost:3000/webhook`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.6 Update CLI</h3>
-              <CodeBlock code={`npm update -g webhookvault-cli`} />
+              <CodeBlock code={`npm update -g hookswing-cli`} />
             </Section>
 
             <Section id="integrations" title="Integrations">
@@ -294,11 +294,11 @@ webhookvault logout
             <Section id="api" title="API Reference">
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">7.1 Authentication</h3>
               <p className="text-slate-300 mb-3">All API requests (except /hook/:slug) require a Bearer token:</p>
-              <CodeBlock code={`curl https://api.webhookvault.io/api/projects \\
+              <CodeBlock code={`curl https://api.hookswing.com/api/projects \\
   -H "Authorization: Bearer YOUR_JWT_TOKEN"`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">7.2 Public Hook Endpoint</h3>
-              <CodeBlock code={`ANY https://api.webhookvault.io/hook/:slug
+              <CodeBlock code={`ANY https://api.hookswing.com/hook/:slug
 
 # Accepts any HTTP method
 # Accepts any headers
@@ -352,7 +352,7 @@ Content-Type: application/json
                 <li>Is the slug correct? Copy it fresh from the dashboard.</li>
                 <li>Test with curl first:</li>
               </ol>
-              <CodeBlock code={`curl -X POST https://api.webhookvault.io/hook/YOUR_SLUG -d '{"test": true}'`} />
+              <CodeBlock code={`curl -X POST https://api.hookswing.com/hook/YOUR_SLUG -d '{"test": true}'`} />
               <ol className="list-decimal list-inside space-y-2 text-slate-300 mt-3" start={3}>
                 <li>Check usage bar in project settings.</li>
                 <li>We always return 200, so sender retries shouldn't be an issue.</li>
@@ -360,7 +360,7 @@ Content-Type: application/json
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">"CLI says 'Authentication failed'"</h3>
               <ol className="list-decimal list-inside space-y-2 text-slate-300">
-                <li>Run <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">webhookvault logout</code> then <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">webhookvault login</code></li>
+                <li>Run <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">hookswing logout</code> then <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">hookswing login</code></li>
                 <li>Check that your account is verified</li>
                 <li>If you changed your password, re-login in CLI</li>
               </ol>
@@ -377,7 +377,7 @@ Content-Type: application/json
             <Section id="faq" title="FAQ">
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-semibold text-white mb-2">Is WebhookVault free?</h4>
+                  <h4 className="font-semibold text-white mb-2">Is HookSwing free?</h4>
                   <p className="text-slate-300">Yes, we have a generous free plan: 3 projects, 500 webhooks/month, 7-day retention. No credit card required.</p>
                 </div>
                 <div>
@@ -385,7 +385,7 @@ Content-Type: application/json
                   <p className="text-slate-300">No. We store them as-is for your viewing. We don't read, analyze, or sell your data.</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-white mb-2">Can I use WebhookVault in production?</h4>
+                  <h4 className="font-semibold text-white mb-2">Can I use HookSwing in production?</h4>
                   <p className="text-slate-300">Yes, but we recommend it primarily for development, staging, and debugging.</p>
                 </div>
                 <div>
@@ -404,7 +404,7 @@ Content-Type: application/json
             </Section>
 
             <div className="mt-16 pt-8 border-t border-slate-800 text-center">
-              <p className="text-slate-400">Need help? Email us at <a href="mailto:support@webhookvault.io" className="text-emerald-400 hover:underline">support@webhookvault.io</a></p>
+              <p className="text-slate-400">Need help? Email us at <a href="mailto:support@hookswing.com" className="text-emerald-400 hover:underline">support@hookswing.com</a></p>
               <p className="text-slate-500 text-sm mt-2">Last updated: May 2026</p>
             </div>
           </main>

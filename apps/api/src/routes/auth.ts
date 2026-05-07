@@ -399,7 +399,7 @@ router.post('/2fa/setup', async (req: AuthRequest, res) => {
   }
 
   const secret = speakeasy.generateSecret({
-    name: `WebhookVault (${user.email})`,
+    name: `HookSwing (${user.email})`,
     length: 32,
   });
 

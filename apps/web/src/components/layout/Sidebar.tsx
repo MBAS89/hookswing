@@ -70,7 +70,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         <div className="flex items-center justify-between h-16 px-4 border-b border-slate-800">
           <Link to="/" className="flex items-center gap-2">
             <Logo className="w-8 h-8" />
-            <span className="text-lg font-bold text-white">WebhookVault</span>
+            <span className="text-lg font-bold text-white">HookSwing</span>
           </Link>
           <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-white">
             <X className="w-5 h-5" />

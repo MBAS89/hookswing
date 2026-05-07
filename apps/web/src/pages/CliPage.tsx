@@ -78,7 +78,7 @@ export default function CliPage() {
   useEffect(() => {
     if (!_hasWelcomed) {
       _hasWelcomed = true;
-      liveRef.addLine('info', 'WebhookVault Browser CLI v1.0.0');
+      liveRef.addLine('info', 'HookSwing Browser CLI v1.0.0');
       liveRef.addLine('info', 'Type "help" for available commands.');
       liveRef.addLine('info', '');
     }
@@ -440,7 +440,7 @@ export default function CliPage() {
       <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800">
         <div className="flex items-center gap-2">
           <Terminal className="w-4 h-4 text-emerald-400" />
-          <span className="text-sm font-medium text-white">WebhookVault CLI</span>
+          <span className="text-sm font-medium text-white">HookSwing CLI</span>
           {_listening && (
             <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />

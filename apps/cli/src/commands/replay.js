@@ -5,11 +5,11 @@ const { readConfig } = require('../lib/config');
 async function replay(webhookId, localUrl) {
   const config = readConfig();
   if (!config?.accessToken) {
-    console.error(chalk.red('Not authenticated. Run: webhookvault login'));
+    console.error(chalk.red('Not authenticated. Run: hookswing login'));
     process.exit(1);
   }
 
-  const apiUrl = config.apiUrl || 'https://api.webhookvault.io';
+  const apiUrl = config.apiUrl || 'https://api.hookswing.io';
 
   console.log(chalk.cyan(`↻ Replaying webhook ${webhookId}`));
 
