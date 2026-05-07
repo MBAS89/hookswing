@@ -21,6 +21,7 @@ import {
   RefreshCw,
   LogOut,
   ChevronRight,
+  XCircle,
 } from 'lucide-react';
 
 const tabs = [
@@ -89,7 +90,7 @@ export default function AccountPage() {
 /* ---------- Profile Tab ---------- */
 function ProfileTab({ user, updateUser }: { user: any; updateUser: (u: any) => void }) {
   const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const email = user?.email || '';
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -97,7 +98,7 @@ function ProfileTab({ user, updateUser }: { user: any; updateUser: (u: any) => v
     setSaving(true);
     setMessage('');
     try {
-      const res = await api.patch('/auth/me', { name: name || undefined, email: email || undefined });
+      const res = await api.patch('/auth/me', { name: name || undefined });
       updateUser(res.data.user);
       setMessage('Profile updated successfully');
     } catch (err: any) {
@@ -125,13 +126,29 @@ function ProfileTab({ user, updateUser }: { user: any; updateUser: (u: any) => v
 
         <div>
           <label className="block text-sm font-medium text-slate-400 mb-1.5">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-            placeholder="you@example.com"
-          />
+          <div className="relative">
+            <input
+              type="email"
+              value={email}
+              disabled
+              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-400 text-sm cursor-not-allowed"
+              placeholder="you@example.com"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              {user?.emailVerified ? (
+                <span className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  <Check className="w-3 h-3" />
+                  Verified
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                  <XCircle className="w-3 h-3" />
+                  Unverified
+                </span>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 mt-1.5">Email cannot be changed.</p>
         </div>
 
         {message && (
