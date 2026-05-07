@@ -57,7 +57,7 @@ async function sendWithRetry(
   mailOptions: nodemailer.SendMailOptions,
   meta: { userId?: string; to: string; subject: string; type: string },
   retries = 3
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   let lastError: any;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -65,7 +65,7 @@ async function sendWithRetry(
       await logEmail({ ...meta, status: 'pending' });
       await transporter.sendMail(mailOptions);
       await logEmail({ ...meta, status: 'sent' });
-      return;
+      return { success: true };
     } catch (err: any) {
       lastError = err;
       console.error(`Email send attempt ${attempt} failed:`, err.message);
@@ -82,11 +82,22 @@ async function sendWithRetry(
     }
   }
 
+  const errorMsg = lastError?.message || 'Unknown error';
   await logEmail({
     ...meta,
     status: 'failed',
-    error: lastError?.message || 'Unknown error',
+    error: errorMsg,
   });
+  return { success: false, error: errorMsg };
+}
+
+export async function testSmtpConnection(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await transporter.verify();
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
 }
 
 // ── Rate limiting helpers ──
@@ -123,9 +134,9 @@ export async function sendVerificationEmail(
   to: string,
   otp: string,
   userId?: string
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const { html, text } = templates.verificationTemplate(otp, 15);
-  await sendWithRetry(
+  return sendWithRetry(
     {
       from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
       replyTo: FROM_EMAIL,
@@ -142,9 +153,9 @@ export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string,
   userId?: string
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const { html, text } = templates.passwordResetTemplate(resetUrl, 60);
-  await sendWithRetry(
+  return sendWithRetry(
     {
       from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
       replyTo: FROM_EMAIL,
@@ -161,9 +172,9 @@ export async function sendWelcomeEmail(
   to: string,
   name: string,
   userId?: string
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const { html, text } = templates.welcomeTemplate(name);
-  await sendWithRetry(
+  return sendWithRetry(
     {
       from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
       replyTo: FROM_EMAIL,

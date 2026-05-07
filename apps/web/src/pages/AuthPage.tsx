@@ -52,6 +52,9 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         if (res.requiresEmailVerification) {
           setRequiresVerification(true);
           setVerificationEmail(res.email);
+          if (res.emailError) {
+            setError(res.emailError);
+          }
           setLoading(false);
           return;
         }

@@ -16,6 +16,17 @@ export const authRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
+export const emailRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: 'Too many email requests from this IP' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return (req as any).user?.id || req.ip || 'anonymous';
+  },
+});
+
 export const apiRateLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 100,

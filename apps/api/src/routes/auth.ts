@@ -5,7 +5,7 @@ import { z } from 'zod';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import { prisma } from '../lib/prisma';
-import { authRateLimit } from '../middleware/rateLimit';
+import { authRateLimit, emailRateLimit } from '../middleware/rateLimit';
 import type { AuthRequest } from '../middleware/auth';
 import {
   sendVerificationEmail,
@@ -13,6 +13,7 @@ import {
   sendWelcomeEmail,
   canSendVerification,
   canSendPasswordReset,
+  testSmtpConnection,
 } from '../services/emailService';
 
 const router = Router();
@@ -78,7 +79,7 @@ router.post('/register', authRateLimit, async (req, res) => {
     select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
   });
 
-  // Send verification email (non-blocking so registration response is fast)
+  // Send verification email (await with 12s timeout so user knows if it fails)
   const otp = generateOTP();
   const otpHash = await bcrypt.hash(otp, 10);
   await prisma.user.update({
@@ -88,9 +89,22 @@ router.post('/register', authRateLimit, async (req, res) => {
       emailVerificationExpires: new Date(Date.now() + 15 * 60 * 1000),
     },
   });
-  sendVerificationEmail(user.email, otp, user.id).catch((err) => {
-    console.error('Failed to send verification email:', err);
-  });
+
+  const emailResult = await Promise.race([
+    sendVerificationEmail(user.email, otp, user.id),
+    new Promise<{ success: false; error: string }>((resolve) =>
+      setTimeout(() => resolve({ success: false, error: 'Email sending timed out' }), 12000)
+    ),
+  ]);
+
+  if (!emailResult.success) {
+    console.error('Failed to send verification email:', emailResult.error);
+    return res.json({
+      requiresEmailVerification: true,
+      email: user.email,
+      emailError: `Could not send verification email: ${emailResult.error}`,
+    });
+  }
 
   // Don't log them in yet — they must verify email first
   res.json({ requiresEmailVerification: true, email: user.email });
@@ -558,7 +572,7 @@ router.post('/2fa/disable', async (req: AuthRequest, res) => {
 });
 
 // --- Send verification email ---
-router.post('/send-verification', authRateLimit, async (req: AuthRequest, res) => {
+router.post('/send-verification', emailRateLimit, async (req: AuthRequest, res) => {
   const schema = z.object({ email: z.string().email() });
   const result = schema.safeParse(req.body);
   if (!result.success) {
@@ -591,9 +605,19 @@ router.post('/send-verification', authRateLimit, async (req: AuthRequest, res) =
     },
   });
 
-  sendVerificationEmail(user.email, otp, user.id).catch((err) => {
-    console.error('Failed to send verification email:', err);
-  });
+  const emailResult = await Promise.race([
+    sendVerificationEmail(user.email, otp, user.id),
+    new Promise<{ success: false; error: string }>((resolve) =>
+      setTimeout(() => resolve({ success: false, error: 'Email sending timed out' }), 12000)
+    ),
+  ]);
+
+  if (!emailResult.success) {
+    console.error('Failed to resend verification email:', emailResult.error);
+    return res.status(500).json({
+      error: `Could not send verification email: ${emailResult.error}`,
+    });
+  }
 
   res.json({ message: 'If an account exists, a verification code has been sent' });
 });
@@ -638,7 +662,11 @@ router.post('/verify-email', authRateLimit, async (req, res) => {
     },
   });
 
-  await sendWelcomeEmail(user.email, user.name || '', user.id);
+  try {
+    await sendWelcomeEmail(user.email, user.name || '', user.id);
+  } catch {
+    // Non-critical: don't fail verification if welcome email fails
+  }
 
   // Log them in after verification
   const { accessToken, refreshToken } = generateTokens(user.id);
@@ -654,7 +682,7 @@ router.post('/verify-email', authRateLimit, async (req, res) => {
 });
 
 // --- Forgot password ---
-router.post('/forgot-password', authRateLimit, async (req, res) => {
+router.post('/forgot-password', emailRateLimit, async (req, res) => {
   const schema = z.object({ email: z.string().email() });
   const result = schema.safeParse(req.body);
   if (!result.success) {
@@ -688,11 +716,64 @@ router.post('/forgot-password', authRateLimit, async (req, res) => {
   });
 
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-  sendPasswordResetEmail(user.email, resetUrl, user.id).catch((err) => {
-    console.error('Failed to send password reset email:', err);
-  });
+  const emailResult = await Promise.race([
+    sendPasswordResetEmail(user.email, resetUrl, user.id),
+    new Promise<{ success: false; error: string }>((resolve) =>
+      setTimeout(() => resolve({ success: false, error: 'Email sending timed out' }), 12000)
+    ),
+  ]);
+
+  if (!emailResult.success) {
+    console.error('Failed to send password reset email:', emailResult.error);
+    return res.status(500).json({
+      error: `Could not send password reset email: ${emailResult.error}`,
+    });
+  }
 
   res.json({ message: 'If an account exists, a reset link has been sent' });
+});
+
+// --- Debug: SMTP connection test (admin only) ---
+router.get('/email-status', async (req: AuthRequest, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.slice(7);
+  let userId: string;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    userId = decoded.userId;
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const smtp = await testSmtpConnection();
+  const logs = await prisma.emailLog.findMany({
+    take: 20,
+    orderBy: { createdAt: 'desc' },
+    select: { to: true, type: true, status: true, error: true, createdAt: true },
+  });
+
+  res.json({
+    smtp: {
+      ok: smtp.ok,
+      error: smtp.error,
+      config: {
+        host: 'smtp.gmail.com',
+        port: 465,
+        user: process.env.GMAIL_USER ? 'configured' : 'missing',
+        from: process.env.FROM_EMAIL || 'support@hookswing.com',
+      },
+    },
+    recentLogs: logs,
+  });
 });
 
 // --- Reset password ---
