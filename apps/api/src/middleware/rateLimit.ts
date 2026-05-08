@@ -29,7 +29,7 @@ export const emailRateLimit = rateLimit({
 
 export const apiRateLimit = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 300,
   message: { error: 'Too many requests' },
   standardHeaders: true,
   legacyHeaders: false,
