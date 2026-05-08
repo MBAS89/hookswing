@@ -72,14 +72,19 @@ export default function TeamPage() {
       const res = await api.post('/teams', { name: newTeamName });
       setTeams([res.data, ...teams]);
       setNewTeamName('');
-      // Refresh auth to include new team
-      const meRes = await api.get('/auth/me');
-      updateUser(meRes.data.user);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to create team');
-    } finally {
       setCreating(false);
+      return;
     }
+    // Refresh auth context in background — don't block or error if this fails
+    try {
+      const meRes = await api.get('/auth/me');
+      updateUser(meRes.data.user);
+    } catch {
+      // Auth refresh failed but team was created — ignore
+    }
+    setCreating(false);
   };
 
   const renameTeam = async (teamId: string) => {
@@ -98,11 +103,16 @@ export default function TeamPage() {
       await api.delete(`/teams/${teamId}`);
       setTeams(teams.filter((t) => t.id !== teamId));
       setDeleteTeam(null);
-      // Refresh auth
-      const meRes = await api.get('/auth/me');
-      updateUser(meRes.data.user);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to delete team');
+      return;
+    }
+    // Refresh auth context in background
+    try {
+      const meRes = await api.get('/auth/me');
+      updateUser(meRes.data.user);
+    } catch {
+      // ignore
     }
   };
 
@@ -111,11 +121,16 @@ export default function TeamPage() {
     try {
       await api.post(`/teams/${teamId}/leave`);
       setTeams(teams.filter((t) => t.id !== teamId));
-      // Refresh auth
-      const meRes = await api.get('/auth/me');
-      updateUser(meRes.data.user);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to leave team');
+      return;
+    }
+    // Refresh auth context in background
+    try {
+      const meRes = await api.get('/auth/me');
+      updateUser(meRes.data.user);
+    } catch {
+      // ignore
     }
   };
 
