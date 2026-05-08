@@ -115,11 +115,6 @@ export default function WebhookCard({
           <span className={`px-2 py-0.5 rounded text-xs font-mono font-semibold border ${methodColor(webhook.method)}`}>{webhook.method}</span>
           {webhook.statusCode && <span className={`w-2 h-2 rounded-full ${statusColor(webhook.statusCode)}`} />}
           {webhook.isReplay && <span className="text-xs text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">REPLAY</span>}
-          {webhook._count && webhook._count.comments > 0 && (
-            <span className="flex items-center gap-1 text-[10px] text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded ml-1">
-              <MessageSquare className="w-3 h-3" />{webhook._count.comments}
-            </span>
-          )}
           <span className="text-xs text-slate-500 ml-auto">{formatDate(webhook.createdAt)}</span>
           {onCompare && (
             <span onClick={(e) => { e.stopPropagation(); onCompare(); }} className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer transition-colors ${isCompareSelected ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : compareMode ? 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600' : 'bg-slate-800 text-slate-500 border border-slate-700 hover:text-slate-300 hover:bg-slate-700'}`} title="Select for compare">
@@ -130,6 +125,11 @@ export default function WebhookCard({
         <div className="flex items-center gap-3 text-xs text-slate-400">
           <span>{webhook.source || 'custom'}</span><span>•</span><span>{formatBytes(bodySize)}</span><span>•</span><span className="font-mono">{webhook.ip}</span>
           {webhook.statusCode && <><span>•</span><span className={`font-mono ${webhook.statusCode >= 200 && webhook.statusCode < 300 ? 'text-emerald-400' : webhook.statusCode >= 400 ? 'text-red-400' : 'text-amber-400'}`}>{webhook.statusCode}</span></>}
+          {webhook._count && webhook._count.comments > 0 && (
+            <span className="flex items-center gap-1 text-xs font-bold text-white bg-sky-500 px-2 py-0.5 rounded-full shadow-sm shadow-sky-500/20">
+              <MessageSquare className="w-3.5 h-3.5 fill-white/20" />{webhook._count.comments}
+            </span>
+          )}
           <button onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }} className="ml-auto flex items-center gap-1 text-slate-500 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50">
             {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}<span className="text-[10px]">{expanded ? 'Collapse' : 'Expand'}</span>
           </button>
