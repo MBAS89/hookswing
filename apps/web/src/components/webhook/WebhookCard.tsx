@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { methodColor, statusColor, formatDate, formatBytes } from '../../lib/utils';
-import { GitCompare, ChevronDown, ChevronUp, Copy, Play } from 'lucide-react';
+import { GitCompare, ChevronDown, ChevronUp, Copy, Play, RotateCcw, Globe, Code, FileJson, Link2, Loader2, Check, AlertCircle } from 'lucide-react';
 import JsonViewer from './JsonViewer';
+import { api } from '../../lib/api';
 
 interface Webhook {
   id: string;
   method: string;
   headers: any;
   body: any;
+  rawBody?: string | null;
   query: any;
   ip: string;
   userAgent: string | null;
@@ -24,7 +26,6 @@ export default function WebhookCard({
   selected,
   onClick,
   onCompare,
-  onReplayClick,
   compareMode,
   isCompareSelected,
   canReplay,
@@ -33,14 +34,120 @@ export default function WebhookCard({
   selected: boolean;
   onClick: () => void;
   onCompare?: () => void;
-  onReplayClick?: () => void;
   compareMode?: boolean;
   isCompareSelected?: boolean;
   canReplay?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body'>('body');
+  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'query' | 'replay'>('body');
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
+
+  // Replay state
+  const [replayUrl, setReplayUrl] = useState(() => localStorage.getItem('lastReplayUrl') || 'http://localhost:3000/webhook');
+  const [replayHeaders, setReplayHeaders] = useState('');
+  const [replayBody, setReplayBody] = useState('');
+  const [replayQuery, setReplayQuery] = useState('');
+  const [replayLoading, setReplayLoading] = useState(false);
+  const [replayResult, setReplayResult] = useState<{status: number; responseTime: number} | null>(null);
+  const [replayJsonError, setReplayJsonError] = useState('');
+
+  // Initialize replay fields when expanded
+  useEffect(() => {
+    if (expanded) {
+      setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
+      setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2));
+      setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
+      setReplayJsonError('');
+    }
+  }, [expanded, webhook]);
+
+  const handleReplay = async () => {
+    setReplayJsonError('');
+
+    let parsedHeaders: any;
+    let parsedBody: any;
+    let parsedQuery: any;
+    try {
+      parsedHeaders = JSON.parse(replayHeaders || '{}');
+    } catch {
+      setReplayJsonError('Headers: Invalid JSON');
+      setActiveTab('replay');
+      return;
+    }
+    try {
+      parsedBody = replayBody.trim() || undefined;
+      try { parsedBody = JSON.parse(replayBody); } catch { /* keep as raw string */ }
+    } catch {
+      setReplayJsonError('Body: Invalid');
+      setActiveTab('replay');
+      return;
+    }
+    try {
+      parsedQuery = JSON.parse(replayQuery || '{}');
+    } catch {
+      setReplayJsonError('Query: Invalid JSON');
+      setActiveTab('replay');
+      return;
+    }
+
+    setReplayLoading(true);
+    setReplayResult(null);
+    try {
+      const headers: Record<string, string> = {};
+      for (const [k, v] of Object.entries(parsedHeaders)) {
+        const key = k.toLowerCase();
+        if (['content-length', 'transfer-encoding', 'connection', 'host', 'expect', 'keep-alive'].includes(key)) continue;
+        headers[k] = String(v);
+      }
+
+      let url = replayUrl;
+      const queryString = new URLSearchParams();
+      for (const [k, v] of Object.entries(parsedQuery || {})) {
+        if (v !== undefined && v !== null) queryString.append(k, String(v));
+      }
+      if (queryString.toString()) {
+        url += (url.includes('?') ? '&' : '?') + queryString.toString();
+      }
+
+      let body: string | undefined;
+      if (typeof parsedBody === 'string') {
+        body = parsedBody;
+      } else if (parsedBody !== undefined) {
+        body = JSON.stringify(parsedBody);
+        headers['content-type'] = headers['content-type'] || 'application/json';
+      }
+
+      const start = performance.now();
+      const fetchRes = await fetch(url, {
+        method: webhook.method,
+        headers,
+        body,
+      });
+      const responseTime = Math.round(performance.now() - start);
+      let responseBody = '';
+      try { responseBody = await fetchRes.text(); } catch { /* ignore */ }
+
+      const recordRes = await api.post(`/webhooks/${webhook.id}/replay-record`, {
+        targetUrl: replayUrl,
+        statusCode: fetchRes.status,
+        responseTime,
+        responseBody: responseBody.slice(0, 50000),
+        headers: parsedHeaders,
+        body: parsedBody,
+        query: parsedQuery,
+      });
+
+      setReplayResult(recordRes.data);
+    } catch (err: any) {
+      setReplayResult({ status: 0, responseTime: 0 });
+      const msg = err.name === 'TypeError' && err.message?.includes('Failed to fetch')
+        ? 'Could not reach target URL. Check CORS on your server.'
+        : (err.response?.data?.error || err.message || 'Replay failed');
+      alert(msg);
+    } finally {
+      setReplayLoading(false);
+    }
+  };
 
   return (
     <div
@@ -52,7 +159,7 @@ export default function WebhookCard({
           : 'bg-slate-800/50 border-slate-800 hover:border-slate-700'
       }`}
     >
-      {/* Card header — clickable for selection, or expand toggle */}
+      {/* Card header */}
       <button
         onClick={onClick}
         className="w-full text-left p-4"
@@ -102,20 +209,10 @@ export default function WebhookCard({
             </>
           )}
 
-          {canReplay && onReplayClick && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onReplayClick(); }}
-              className="flex items-center gap-1 text-slate-500 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
-              title="Replay"
-            >
-              <Play className="w-3 h-3" />
-              <span className="text-[10px]">Replay</span>
-            </button>
-          )}
           {/* Expand toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-            className="flex items-center gap-1 text-slate-500 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
+            className="ml-auto flex items-center gap-1 text-slate-500 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
           >
             {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             <span className="text-[10px]">{expanded ? 'Collapse' : 'Expand'}</span>
@@ -128,22 +225,28 @@ export default function WebhookCard({
         <div className="border-t border-slate-800">
           {/* Tabs */}
           <div className="flex border-b border-slate-800">
-            {(['overview', 'headers', 'body'] as const).map((tab) => (
+            {([
+              { id: 'overview' as const, label: 'Overview' },
+              { id: 'headers' as const, label: 'Headers' },
+              { id: 'body' as const, label: 'Body' },
+              { id: 'query' as const, label: 'Query' },
+              ...(canReplay ? [{ id: 'replay' as const, label: 'Replay' }] : []),
+            ]).map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${
-                  activeTab === tab
+                  activeTab === tab.id
                     ? 'text-emerald-400 border-b-2 border-emerald-500'
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                {tab}
+                {tab.label}
               </button>
             ))}
           </div>
 
-          <div className="p-4 space-y-3 max-h-80 overflow-auto">
+          <div className="p-4 max-h-[32rem] overflow-auto">
             {activeTab === 'overview' && (
               <div className="space-y-2.5 text-sm">
                 <div className="flex items-center justify-between">
@@ -211,6 +314,165 @@ export default function WebhookCard({
                 ) : (
                   <p className="text-xs text-slate-500">No body</p>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'query' && (
+              <div className="space-y-1.5">
+                {webhook.query && typeof webhook.query === 'object' && Object.keys(webhook.query).length > 0 ? (
+                  Object.entries(webhook.query).map(([key, value]) => (
+                    <div key={key} className="flex items-start gap-3 py-1.5 border-b border-slate-800/50 last:border-0">
+                      <span className="text-emerald-400 text-xs font-mono shrink-0 w-28 truncate">{key}</span>
+                      <span className="text-slate-300 text-xs break-all">{String(value)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-500">No query params</p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'replay' && canReplay && (
+              <div className="space-y-3">
+                {/* Target URL */}
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Globe className="w-3 h-3 text-slate-500" />
+                    <label className="text-xs font-medium text-slate-400">Target URL</label>
+                  </div>
+                  <input
+                    type="text"
+                    value={replayUrl}
+                    onChange={(e) => { setReplayUrl(e.target.value); localStorage.setItem('lastReplayUrl', e.target.value); }}
+                    placeholder="http://localhost:3000/webhook"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+
+                {/* Headers */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <Code className="w-3 h-3 text-slate-500" />
+                      <label className="text-xs font-medium text-slate-400">Headers (JSON)</label>
+                    </div>
+                    <button
+                      onClick={() => setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2))}
+                      className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Reset
+                    </button>
+                  </div>
+                  <textarea
+                    value={replayHeaders}
+                    onChange={(e) => setReplayHeaders(e.target.value)}
+                    rows={5}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                  />
+                </div>
+
+                {/* Body */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <FileJson className="w-3 h-3 text-slate-500" />
+                      <label className="text-xs font-medium text-slate-400">Body</label>
+                    </div>
+                    <button
+                      onClick={() => setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2))}
+                      className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Reset
+                    </button>
+                  </div>
+                  <textarea
+                    value={replayBody}
+                    onChange={(e) => setReplayBody(e.target.value)}
+                    rows={6}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                  />
+                </div>
+
+                {/* Query */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <Link2 className="w-3 h-3 text-slate-500" />
+                      <label className="text-xs font-medium text-slate-400">Query Params (JSON)</label>
+                    </div>
+                    <button
+                      onClick={() => setReplayQuery(JSON.stringify(webhook.query || {}, null, 2))}
+                      className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Reset
+                    </button>
+                  </div>
+                  <textarea
+                    value={replayQuery}
+                    onChange={(e) => setReplayQuery(e.target.value)}
+                    rows={4}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                  />
+                </div>
+
+                {replayJsonError && (
+                  <div className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    {replayJsonError}
+                  </div>
+                )}
+
+                {/* Send button */}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={handleReplay}
+                    disabled={replayLoading}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {replayLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                    Send Replay
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
+                      setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2));
+                      setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
+                      setReplayJsonError('');
+                    }}
+                    disabled={replayLoading}
+                    className="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    Reset All
+                  </button>
+                </div>
+
+                {replayResult && (
+                  <div className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg ${
+                    replayResult.status >= 200 && replayResult.status < 300
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : replayResult.status === 0
+                      ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  }`}>
+                    {replayResult.status >= 200 && replayResult.status < 300 ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : (
+                      <AlertCircle className="w-3.5 h-3.5" />
+                    )}
+                    {replayResult.status === 0 ? 'Replay failed' : `Response: ${replayResult.status} in ${replayResult.responseTime}ms`}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!canReplay && activeTab === 'replay' && (
+              <div className="text-center py-8 text-slate-500">
+                <Play className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Replay requires Pro or Team plan</p>
               </div>
             )}
           </div>

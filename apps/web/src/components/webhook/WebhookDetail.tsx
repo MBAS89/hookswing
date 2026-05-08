@@ -21,7 +21,6 @@ export default function WebhookDetail({
   onReplay,
   canReplay,
   isTeamProject,
-  openReplay,
 }: {
   webhook: Webhook;
   onClose: () => void;
@@ -29,7 +28,6 @@ export default function WebhookDetail({
   onReplay: (id: string, url: string) => void;
   canReplay?: boolean;
   isTeamProject?: boolean;
-  openReplay?: boolean;
 }) {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'comments'>('overview');
@@ -56,12 +54,7 @@ export default function WebhookDetail({
     }
   }, [showReplay, webhook]);
 
-  // Open replay panel when triggered from card
-  useEffect(() => {
-    if (openReplay) {
-      setShowReplay(true);
-    }
-  }, [openReplay]);
+
 
   // Comments (Team plan or team project)
   const isTeamPlan = user?.plan === 'TEAM' || !!isTeamProject;
