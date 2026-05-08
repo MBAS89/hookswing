@@ -32,7 +32,7 @@ export default function ProjectPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [projectLoading, setProjectLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const { webhooks, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook } = useWebhooks(id || null);
+  const { webhooks, pagination, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook } = useWebhooks(id || null);
   const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
   const [filterMethod, setFilterMethod] = useState('');
 
@@ -684,6 +684,15 @@ export default function ProjectPage() {
                   canReplay={canReplay}
                 />
               ))}
+              {pagination.totalPages > pagination.page && (
+                <button
+                  onClick={() => fetchWebhooks(pagination.page + 1, true)}
+                  disabled={loading}
+                  className="w-full py-2.5 text-sm text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 border border-slate-800 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {loading ? 'Loading...' : `Load more (${pagination.total - webhooks.length} remaining)`}
+                </button>
+              )}
             </div>
           )}
         </div>

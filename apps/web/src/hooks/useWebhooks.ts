@@ -32,15 +32,15 @@ export function useWebhooks(projectId: string | null) {
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 50, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(false);
 
-  const fetchWebhooks = useCallback(async (page = 1) => {
+  const fetchWebhooks = useCallback(async (page = 1, append = false) => {
     if (!projectId) return;
-    setLoading(true);
+    if (!append) setLoading(true);
     try {
-      const res = await api.get(`/projects/${projectId}/webhooks?page=${page}`);
-      setWebhooks(res.data.webhooks);
+      const res = await api.get(`/projects/${projectId}/webhooks?page=${page}&limit=200`);
+      setWebhooks((prev) => append ? [...prev, ...res.data.webhooks] : res.data.webhooks);
       setPagination(res.data.pagination);
     } catch {
-      setWebhooks([]);
+      if (!append) setWebhooks([]);
     } finally {
       setLoading(false);
     }
@@ -51,8 +51,8 @@ export function useWebhooks(projectId: string | null) {
   }, [fetchWebhooks]);
 
   const addWebhook = useCallback((webhook: Webhook) => {
-    setWebhooks((prev) => [webhook, ...prev].slice(0, pagination.limit));
-  }, [pagination.limit]);
+    setWebhooks((prev) => [webhook, ...prev]);
+  }, []);
 
   const deleteWebhook = useCallback(async (id: string) => {
     await api.delete(`/webhooks/${id}`);

@@ -43,7 +43,7 @@ router.get('/projects/:projectId/webhooks', async (req: AuthRequest, res) => {
   }
 
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+  const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 200));
   const method = req.query.method as string | undefined;
   const search = req.query.search as string | undefined;
   const effectivePlan = project.teamId ? 'TEAM' : req.user!.plan;
