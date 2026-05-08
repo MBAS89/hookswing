@@ -16,7 +16,23 @@ async function canUseAlerts(userId: string, projectId: string): Promise<boolean>
   return plan === 'PRO' || plan === 'TEAM';
 }
 
-// List alerts for a project
+// Check if user can MANAGE alerts for this project:
+// - Personal project: owner only
+// - Team project: team admins only
+async function canManageAlerts(userId: string, projectId: string): Promise<boolean> {
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      OR: [
+        { userId },
+        { team: { members: { some: { userId, role: 'ADMIN' } } } },
+      ],
+    },
+  });
+  return !!project;
+}
+
+// List alerts for a project — any member can view
 router.get('/', async (req: AuthRequest, res) => {
   const project = await prisma.project.findFirst({
     where: {
@@ -37,13 +53,20 @@ router.get('/', async (req: AuthRequest, res) => {
     orderBy: { createdAt: 'desc' },
   });
 
-  res.json({ alerts, canUseAlerts: await canUseAlerts(req.user!.id, req.params.projectId) });
+  res.json({
+    alerts,
+    canUseAlerts: await canUseAlerts(req.user!.id, req.params.projectId),
+    canManageAlerts: await canManageAlerts(req.user!.id, req.params.projectId),
+  });
 });
 
-// Create alert
+// Create alert — admin/owner only
 router.post('/', async (req: AuthRequest, res) => {
   if (!await canUseAlerts(req.user!.id, req.params.projectId)) {
     return res.status(403).json({ error: 'Alerts require Pro or Team plan' });
+  }
+  if (!await canManageAlerts(req.user!.id, req.params.projectId)) {
+    return res.status(403).json({ error: 'Only the project owner or team admin can add alerts' });
   }
 
   const schema = z.discriminatedUnion('type', [
@@ -67,16 +90,9 @@ router.post('/', async (req: AuthRequest, res) => {
     return res.status(400).json({ error: 'Invalid input' });
   }
 
-  const project = await prisma.project.findFirst({
-    where: {
-      id: req.params.projectId,
-      OR: [
-        { userId: req.user!.id },
-        { team: { members: { some: { userId: req.user!.id } } } },
-      ],
-    },
+  const project = await prisma.project.findUnique({
+    where: { id: req.params.projectId },
   });
-
   if (!project) {
     return res.status(404).json({ error: 'Project not found' });
   }
@@ -109,8 +125,12 @@ router.post('/', async (req: AuthRequest, res) => {
   res.status(201).json(alert);
 });
 
-// Update alert (toggle enabled)
+// Update alert (toggle enabled) — admin/owner only
 router.patch('/:alertId', async (req: AuthRequest, res) => {
+  if (!await canManageAlerts(req.user!.id, req.params.projectId)) {
+    return res.status(403).json({ error: 'Only the project owner or team admin can update alerts' });
+  }
+
   const schema = z.object({
     enabled: z.boolean().optional(),
   });
@@ -118,20 +138,6 @@ router.patch('/:alertId', async (req: AuthRequest, res) => {
   const result = schema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({ error: 'Invalid input' });
-  }
-
-  const project = await prisma.project.findFirst({
-    where: {
-      id: req.params.projectId,
-      OR: [
-        { userId: req.user!.id },
-        { team: { members: { some: { userId: req.user!.id } } } },
-      ],
-    },
-  });
-
-  if (!project) {
-    return res.status(404).json({ error: 'Project not found' });
   }
 
   const data: any = {};
@@ -164,18 +170,15 @@ router.patch('/:alertId', async (req: AuthRequest, res) => {
   res.json({ success: true });
 });
 
-// Delete alert
+// Delete alert — admin/owner only
 router.delete('/:alertId', async (req: AuthRequest, res) => {
-  const project = await prisma.project.findFirst({
-    where: {
-      id: req.params.projectId,
-      OR: [
-        { userId: req.user!.id },
-        { team: { members: { some: { userId: req.user!.id } } } },
-      ],
-    },
-  });
+  if (!await canManageAlerts(req.user!.id, req.params.projectId)) {
+    return res.status(403).json({ error: 'Only the project owner or team admin can delete alerts' });
+  }
 
+  const project = await prisma.project.findUnique({
+    where: { id: req.params.projectId },
+  });
   if (!project) {
     return res.status(404).json({ error: 'Project not found' });
   }

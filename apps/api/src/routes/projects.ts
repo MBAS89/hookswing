@@ -141,12 +141,21 @@ router.get('/:id', async (req: AuthRequest, res) => {
     include: {
       _count: { select: { webhooks: true } },
       webhooks: { orderBy: { createdAt: 'desc' }, take: 1, select: { createdAt: true } },
-      team: { select: { ownerId: true } },
+      team: { select: { ownerId: true, id: true } },
     },
   });
 
   if (!project) {
     return res.status(404).json({ error: 'Project not found' });
+  }
+
+  // Check if current user is a team admin (for UI permission hints)
+  let isTeamAdmin = false;
+  if (project.teamId) {
+    const membership = await prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId: project.teamId, userId: req.user!.id } },
+    });
+    isTeamAdmin = membership?.role === 'ADMIN';
   }
 
   const effectivePlan = project.teamId ? 'TEAM' : req.user!.plan;
@@ -170,6 +179,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
   res.json({
     ...project,
+    isTeamAdmin,
     webhookCount,
     historyLimitDays: cutoff ? Math.round((Date.now() - cutoff.getTime()) / (24 * 60 * 60 * 1000)) : null,
     webhookUrl: project.customSlug

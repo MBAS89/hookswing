@@ -9,7 +9,7 @@ import WebhookCompare from '../components/webhook/WebhookCompare';
 import {
   Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish,
   Edit3, X, Globe, Crown, Bell, MessageSquare, ToggleLeft, ToggleRight, Send,
-  GitCompare, FileDown, ChevronDown, ChevronUp,
+  GitCompare, FileDown, ChevronDown, ChevronUp, Shield,
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -23,6 +23,7 @@ interface Project {
   webhookCount: number;
   historyLimitDays: number | null;
   teamId?: string | null;
+  isTeamAdmin?: boolean;
 }
 
 export default function ProjectPage() {
@@ -55,6 +56,7 @@ export default function ProjectPage() {
   // Alerts
   const [alerts, setAlerts] = useState<Array<{ id: string; type: string; url: string; enabled: boolean; config?: any }>>([]);
   const [canUseAlerts, setCanUseAlerts] = useState(false);
+  const [canManageAlerts, setCanManageAlerts] = useState(false);
   const [showAlertForm, setShowAlertForm] = useState(false);
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [alertType, setAlertType] = useState<'slack' | 'discord' | 'telegram'>('slack');
@@ -64,6 +66,7 @@ export default function ProjectPage() {
   const [alertLoading, setAlertLoading] = useState(false);
 
   const canUseCustomSlug = hasProFeatures;
+  const canEditProject = !isTeamProject || project?.isTeamAdmin;
 
   const fetchAlerts = useCallback(async () => {
     if (!id) return;
@@ -71,6 +74,7 @@ export default function ProjectPage() {
       const res = await api.get(`/projects/${id}/alerts`);
       setAlerts(res.data.alerts);
       setCanUseAlerts(res.data.canUseAlerts);
+      setCanManageAlerts(res.data.canManageAlerts);
     } catch {
       setAlerts([]);
     }
@@ -145,6 +149,31 @@ export default function ProjectPage() {
       setSlugError(err.response?.data?.error || 'Failed to update');
     } finally {
       setSavingSlug(false);
+    }
+  };
+
+  // Project rename
+  const [editingName, setEditingName] = useState(false);
+  const [editNameValue, setEditNameValue] = useState('');
+  const [editDescValue, setEditDescValue] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState('');
+
+  const saveProjectName = async () => {
+    if (!project) return;
+    setNameError('');
+    setSavingName(true);
+    try {
+      const res = await api.patch(`/projects/${project.id}`, {
+        name: editNameValue.trim(),
+        description: editDescValue.trim() || null,
+      });
+      setProject({ ...project, name: res.data.name, description: res.data.description });
+      setEditingName(false);
+    } catch (err: any) {
+      setNameError(err.response?.data?.error || 'Failed to update');
+    } finally {
+      setSavingName(false);
     }
   };
 
@@ -230,10 +259,59 @@ export default function ProjectPage() {
       {/* Project Header */}
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-4">
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-lg font-bold text-white">{project?.name || 'Project'}</h1>
-            {project?.description && (
-              <p className="text-sm text-slate-400 mt-0.5">{project.description}</p>
+          <div className="flex-1 min-w-0">
+            {editingName ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={editNameValue}
+                    onChange={(e) => setEditNameValue(e.target.value)}
+                    placeholder="Project name"
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    autoFocus
+                  />
+                  <button
+                    onClick={saveProjectName}
+                    disabled={savingName || !editNameValue.trim()}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                  >
+                    {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => { setEditingName(false); setNameError(''); }}
+                    className="text-slate-400 hover:text-white p-1.5"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={editDescValue}
+                  onChange={(e) => setEditDescValue(e.target.value)}
+                  placeholder="Description (optional)"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+                {nameError && <p className="text-xs text-red-400">{nameError}</p>}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <h1 className="text-lg font-bold text-white">{project?.name || 'Project'}</h1>
+                  {project?.description && (
+                    <p className="text-sm text-slate-400 mt-0.5">{project.description}</p>
+                  )}
+                </div>
+                {canEditProject && (
+                  <button
+                    onClick={() => { setEditingName(true); setEditNameValue(project?.name || ''); setEditDescValue(project?.description || ''); }}
+                    className="text-slate-500 hover:text-white transition-colors shrink-0"
+                    title="Rename project"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             )}
           </div>
           <div className="flex items-start gap-3">
@@ -291,7 +369,7 @@ export default function ProjectPage() {
                 <span className="text-xs bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full">{alerts.length}</span>
               )}
             </div>
-            {canUseAlerts ? (
+            {canManageAlerts ? (
               <button
                 onClick={() => setShowAlertForm(!showAlertForm)}
                 className="text-xs flex items-center gap-1 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-md transition-colors"
@@ -299,6 +377,11 @@ export default function ProjectPage() {
                 <Bell className="w-3 h-3" />
                 {showAlertForm ? 'Cancel' : 'Add Alert'}
               </button>
+            ) : isTeamProject ? (
+              <span className="text-xs flex items-center gap-1 text-slate-500 bg-slate-800 px-2.5 py-1 rounded-md" title="Only team admins can manage alerts">
+                <Shield className="w-3 h-3" />
+                Admin only
+              </span>
             ) : (
               <span className="text-xs flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md">
                 <Crown className="w-3 h-3" />
@@ -378,19 +461,27 @@ export default function ProjectPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => toggleAlert(alert.id, alert.enabled)}
-                    className="text-slate-400 hover:text-white transition-colors"
-                    title={alert.enabled ? 'Disable' : 'Enable'}
-                  >
-                    {alert.enabled ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-5 h-5" />}
-                  </button>
-                  <button
-                    onClick={() => deleteAlert(alert.id)}
-                    className="text-slate-500 hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {canManageAlerts ? (
+                    <>
+                      <button
+                        onClick={() => toggleAlert(alert.id, alert.enabled)}
+                        className="text-slate-400 hover:text-white transition-colors"
+                        title={alert.enabled ? 'Disable' : 'Enable'}
+                      >
+                        {alert.enabled ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-5 h-5" />}
+                      </button>
+                      <button
+                        onClick={() => deleteAlert(alert.id)}
+                        className="text-slate-500 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${alert.enabled ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
+                      {alert.enabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
