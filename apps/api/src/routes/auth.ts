@@ -696,7 +696,15 @@ router.get('/me', async (req: AuthRequest, res) => {
       },
     });
     if (!user) return res.status(401).json({ error: 'User not found' });
-    res.json({ user });
+
+    // Get current month usage
+    const now = new Date();
+    const usage = await prisma.webhookUsage.findUnique({
+      where: { userId_year_month: { userId: user.id, year: now.getFullYear(), month: now.getMonth() } },
+    });
+    const limit = user.plan === 'FREE' ? 500 : 10000;
+
+    res.json({ user, usage: { used: usage?.count || 0, limit } });
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
