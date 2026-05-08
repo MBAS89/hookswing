@@ -51,8 +51,20 @@ export default function WebhookCard({
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'query' | 'comments' | 'replay'>('body');
   const [cardComments, setCardComments] = useState<any[]>([]);
   const [cardCommentsLoading, setCardCommentsLoading] = useState(false);
-  const commentCount = webhook._count?.comments || 0;
+  const [commentCount, setCommentCount] = useState(webhook._count?.comments ?? 0);
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
+
+  // Fallback: fetch comment count client-side when backend _count isn't available yet
+  useEffect(() => {
+    if (webhook._count !== undefined) {
+      setCommentCount(webhook._count.comments ?? 0);
+      return;
+    }
+    api.get(`/webhooks/${webhook.id}/comments`).then((res) => {
+      const count = Array.isArray(res.data) ? res.data.length : 0;
+      setCommentCount(count);
+    }).catch(() => {});
+  }, [webhook.id, webhook._count]);
 
   // Replay state
   const [replayUrl, setReplayUrl] = useState(() => localStorage.getItem('lastReplayUrl') || 'http://localhost:3000/webhook');
