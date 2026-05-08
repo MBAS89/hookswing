@@ -228,6 +228,9 @@ router.post('/:id/replay-record', async (req: AuthRequest, res) => {
     statusCode: z.number().int(),
     responseTime: z.number().int(),
     responseBody: z.string().max(50000).optional(),
+    headers: z.record(z.any()).optional(),
+    body: z.any().optional(),
+    query: z.record(z.any()).optional(),
   });
 
   const result = schema.safeParse(req.body);
@@ -235,14 +238,14 @@ router.post('/:id/replay-record', async (req: AuthRequest, res) => {
     return res.status(400).json({ error: 'Invalid input' });
   }
 
-  const { targetUrl, statusCode, responseTime, responseBody } = result.data;
+  const { targetUrl, statusCode, responseTime, responseBody, headers, body, query } = result.data;
 
   const createData: any = {
     projectId: webhook.projectId,
     method: webhook.method,
-    headers: webhook.headers,
-    body: webhook.body,
-    query: webhook.query,
+    headers: headers !== undefined ? headers : webhook.headers,
+    body: body !== undefined ? body : webhook.body,
+    query: query !== undefined ? query : webhook.query,
     ip: '127.0.0.1',
     userAgent: 'HookSwing-Replay',
     statusCode,

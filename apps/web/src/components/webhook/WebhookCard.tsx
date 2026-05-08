@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { methodColor, statusColor, formatDate, formatBytes } from '../../lib/utils';
-import { GitCompare, ChevronDown, ChevronUp, Copy } from 'lucide-react';
+import { GitCompare, ChevronDown, ChevronUp, Copy, Play } from 'lucide-react';
 import JsonViewer from './JsonViewer';
 
 interface Webhook {
@@ -24,15 +24,19 @@ export default function WebhookCard({
   selected,
   onClick,
   onCompare,
+  onReplayClick,
   compareMode,
   isCompareSelected,
+  canReplay,
 }: {
   webhook: Webhook;
   selected: boolean;
   onClick: () => void;
   onCompare?: () => void;
+  onReplayClick?: () => void;
   compareMode?: boolean;
   isCompareSelected?: boolean;
+  canReplay?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body'>('body');
@@ -98,10 +102,20 @@ export default function WebhookCard({
             </>
           )}
 
+          {canReplay && onReplayClick && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onReplayClick(); }}
+              className="flex items-center gap-1 text-slate-500 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
+              title="Replay"
+            >
+              <Play className="w-3 h-3" />
+              <span className="text-[10px]">Replay</span>
+            </button>
+          )}
           {/* Expand toggle */}
           <button
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-            className="ml-auto flex items-center gap-1 text-slate-500 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
+            className="flex items-center gap-1 text-slate-500 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50"
           >
             {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             <span className="text-[10px]">{expanded ? 'Collapse' : 'Expand'}</span>

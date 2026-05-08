@@ -34,6 +34,7 @@ export default function ProjectPage() {
   const [copied, setCopied] = useState(false);
   const { webhooks, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook } = useWebhooks(id || null);
   const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
+  const [openReplayFor, setOpenReplayFor] = useState<string | null>(null);
   const [filterMethod, setFilterMethod] = useState('');
 
   // Compare mode
@@ -676,11 +677,17 @@ export default function ProjectPage() {
                       toggleCompare(webhook.id);
                     } else {
                       setSelectedWebhook(webhook);
+                      setOpenReplayFor(null);
                     }
                   }}
                   onCompare={canCompare ? () => toggleCompare(webhook.id) : undefined}
+                  onReplayClick={canReplay ? () => {
+                    setSelectedWebhook(webhook);
+                    setOpenReplayFor(webhook.id);
+                  } : undefined}
                   compareMode={compareMode}
                   isCompareSelected={compareSelection.includes(webhook.id)}
+                  canReplay={canReplay}
                 />
               ))}
             </div>
@@ -690,8 +697,8 @@ export default function ProjectPage() {
         {selectedWebhook && (
           <WebhookDetail
             webhook={selectedWebhook}
-            onClose={() => setSelectedWebhook(null)}
-            onDelete={(id) => { deleteWebhook(id); setSelectedWebhook(null); }}
+            onClose={() => { setSelectedWebhook(null); setOpenReplayFor(null); }}
+            onDelete={(id) => { deleteWebhook(id); setSelectedWebhook(null); setOpenReplayFor(null); }}
             onReplay={async (id, url) => {
               try {
                 await replayWebhook(id, url);
@@ -701,6 +708,7 @@ export default function ProjectPage() {
             }}
             canReplay={canReplay}
             isTeamProject={isTeamProject}
+            openReplay={openReplayFor === selectedWebhook?.id}
           />
         )}
       </div>
