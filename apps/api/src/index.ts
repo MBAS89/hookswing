@@ -19,10 +19,20 @@ try {
   console.error('Migration deploy failed:', err);
 }
 
+import { prisma } from './lib/prisma';
 import { server } from './server';
 
 const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
-  console.log(`🚀 HookSwing API running on port ${PORT}`);
-});
+// Explicitly connect to the database before starting the server
+prisma.$connect()
+  .then(() => {
+    console.log('✅ Database connected');
+    server.listen(PORT, () => {
+      console.log(`🚀 HookSwing API running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ Database connection failed:', err.message);
+    process.exit(1);
+  });
