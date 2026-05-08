@@ -2,14 +2,24 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import { io, Socket } from 'socket.io-client';
-import { Terminal, Trash2 } from 'lucide-react';
+import { Terminal, Trash2, Wifi, WifiOff, Zap } from 'lucide-react';
 
-type LineType = 'input' | 'output' | 'error' | 'success' | 'webhook' | 'info';
+type LineType = 'input' | 'output' | 'error' | 'success' | 'webhook' | 'info' | 'warn';
+
+interface WebhookMeta {
+  method?: string;
+  path?: string;
+  statusCode?: number;
+  responseTime?: number;
+  source?: string;
+  size?: string;
+}
 
 interface Line {
   type: LineType;
   text: string;
   timestamp: string;
+  meta?: WebhookMeta;
 }
 
 const API_URL = window.location.origin;
@@ -25,16 +35,81 @@ let _forwardUrl = '';
 let _forwardStats = { total: 0, success: 0, failed: 0 };
 let _hasWelcomed = false;
 let _showed404Hint = false;
+let _sessionStart: number | null = null;
+let _planLimit = { used: 0, limit: 500 };
+let _reconnectAttempts = 0;
 
 // Ref that the socket callbacks read — always points to the latest closures.
 const liveRef = {
-  addLine: (type: LineType, text: string) => {},
+  addLine: (type: LineType, text: string, meta?: WebhookMeta) => {},
   setListening: (v: boolean) => {},
   setForwarding: (v: boolean) => {},
   setForwardStats: (fn: (prev: typeof _forwardStats) => typeof _forwardStats) => {},
+  setSessionStart: (v: number | null) => {},
+  setPlanLimit: (v: typeof _planLimit) => {},
+  setReconnectAttempts: (v: number) => {},
 };
 
 function setSocket(s: Socket | null) { _socket = s; }
+
+function formatDuration(ms: number) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+  const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+  const s = String(totalSec % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+function buildProgressBar(used: number, limit: number) {
+  const pct = Math.min(100, Math.round((used / limit) * 100));
+  const filled = Math.floor(pct / 10);
+  const bar = '█'.repeat(filled) + '░'.repeat(10 - filled);
+  return { pct, bar };
+}
+
+// ── Small HookSwing Logo SVG ──
+function CliLogo({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 1350 1600" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      <path d="M675 1.61273L1348.5 267.613V888.279C1348.5 1260.68 675 1597.61 675 1597.61C675 1597.61 1.5 1260.68 1.5 888.279V267.613L675 1.61273Z" fill="#10B981" stroke="#059669" strokeWidth="3" />
+      <path opacity="0.3" d="M675 161.613L1168.5 374.184V852.47C1168.5 1135.9 675 1401.61 675 1401.61C675 1401.61 181.5 1135.9 181.5 852.47V374.184L675 161.613Z" fill="#059669" />
+      <path opacity="0.9" d="M425.5 1065.61C454.219 1065.61 477.5 1042.33 477.5 1013.61C477.5 984.894 454.219 961.613 425.5 961.613C396.781 961.613 373.5 984.894 373.5 1013.61C373.5 1042.33 396.781 1065.61 425.5 1065.61Z" fill="white" />
+      <path opacity="0.7" d="M605 1065.61C633.995 1065.61 657.5 1042.33 657.5 1013.61C657.5 984.894 633.995 961.613 605 961.613C576.005 961.613 552.5 984.894 552.5 1013.61C552.5 1042.33 576.005 1065.61 605 1065.61Z" fill="white" />
+      <path opacity="0.5" d="M778.5 1065.61C807.219 1065.61 830.5 1042.33 830.5 1013.61C830.5 984.894 807.219 961.613 778.5 961.613C749.781 961.613 726.5 984.894 726.5 1013.61C726.5 1042.33 749.781 1065.61 778.5 1065.61Z" fill="white" />
+      <path opacity="0.5" d="M924.5 1065.61C953.219 1065.61 976.5 1042.33 976.5 1013.61C976.5 984.894 953.219 961.613 924.5 961.613C895.781 961.613 872.5 984.894 872.5 1013.61C872.5 1042.33 895.781 1065.61 924.5 1065.61Z" fill="white" fillOpacity="0.5" />
+    </svg>
+  );
+}
+
+// ── Method & Status Color Helpers ──
+function methodColor(method: string) {
+  const m = method.toUpperCase();
+  if (m === 'GET') return 'text-sky-400';
+  if (m === 'POST') return 'text-emerald-400';
+  if (m === 'PUT') return 'text-amber-400';
+  if (m === 'PATCH') return 'text-purple-400';
+  if (m === 'DELETE') return 'text-red-400';
+  return 'text-slate-300';
+}
+
+function methodBg(method: string) {
+  const m = method.toUpperCase();
+  if (m === 'GET') return 'bg-sky-500/10';
+  if (m === 'POST') return 'bg-emerald-500/10';
+  if (m === 'PUT') return 'bg-amber-500/10';
+  if (m === 'PATCH') return 'bg-purple-500/10';
+  if (m === 'DELETE') return 'bg-red-500/10';
+  return 'bg-slate-500/10';
+}
+
+function statusColor(code?: number) {
+  if (!code) return 'text-slate-500';
+  if (code >= 200 && code < 300) return 'text-emerald-400';
+  if (code >= 300 && code < 400) return 'text-purple-400';
+  if (code >= 400 && code < 500) return 'text-amber-400';
+  if (code >= 500) return 'text-red-400';
+  return 'text-slate-300';
+}
 
 export default function CliPage() {
   const { user } = useAuth();
@@ -45,12 +120,17 @@ export default function CliPage() {
   const [listening, setListening] = useState(_listening);
   const [forwarding, setForwarding] = useState(_forwarding);
   const [forwardStats, setForwardStats] = useState({ ..._forwardStats });
+  const [sessionStart, setSessionStart] = useState<number | null>(_sessionStart);
+  const [sessionTime, setSessionTime] = useState('00:00:00');
+  const [planLimit, setPlanLimit] = useState({ ..._planLimit });
+  const [reconnectAttempts, setReconnectAttempts] = useState(_reconnectAttempts);
   const inputRef = useRef<HTMLInputElement>(null);
   const linesEndRef = useRef<HTMLDivElement>(null);
+  const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Keep liveRef always pointing to latest closures ──
-  liveRef.addLine = (type: LineType, text: string) => {
-    const line: Line = { type, text, timestamp: new Date().toLocaleTimeString() };
+  liveRef.addLine = (type: LineType, text: string, meta?: WebhookMeta) => {
+    const line: Line = { type, text, timestamp: new Date().toLocaleTimeString(), meta };
     _lines = [..._lines, line];
     setLines(_lines);
   };
@@ -63,6 +143,9 @@ export default function CliPage() {
       return next;
     });
   };
+  liveRef.setSessionStart = (v: number | null) => { _sessionStart = v; setSessionStart(v); };
+  liveRef.setPlanLimit = (v: typeof _planLimit) => { _planLimit = v; setPlanLimit(v); };
+  liveRef.setReconnectAttempts = (v: number) => { _reconnectAttempts = v; setReconnectAttempts(v); };
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -74,11 +157,44 @@ export default function CliPage() {
     inputRef.current?.focus();
   }, []);
 
+  // Session timer
+  useEffect(() => {
+    if (sessionStart) {
+      sessionTimerRef.current = setInterval(() => {
+        setSessionTime(formatDuration(Date.now() - sessionStart));
+      }, 1000);
+    } else {
+      if (sessionTimerRef.current) {
+        clearInterval(sessionTimerRef.current);
+        sessionTimerRef.current = null;
+      }
+      setSessionTime('00:00:00');
+    }
+    return () => {
+      if (sessionTimerRef.current) {
+        clearInterval(sessionTimerRef.current);
+        sessionTimerRef.current = null;
+      }
+    };
+  }, [sessionStart]);
+
+  // Fetch usage stats
+  const fetchUsage = useCallback(async () => {
+    try {
+      const res = await api.get('/auth/me');
+      if (res.data.usage) {
+        liveRef.setPlanLimit(res.data.usage);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Welcome message (only once per session)
   useEffect(() => {
     if (!_hasWelcomed) {
       _hasWelcomed = true;
-      liveRef.addLine('info', 'HookSwing Browser CLI v1.0.0');
+      liveRef.addLine('info', 'HookSwing Browser CLI v1.1.0');
       liveRef.addLine('info', 'Type "help" for available commands.');
       liveRef.addLine('info', '');
     }
@@ -92,6 +208,8 @@ export default function CliPage() {
     }
     liveRef.setListening(false);
     liveRef.setForwarding(false);
+    liveRef.setSessionStart(null);
+    liveRef.setReconnectAttempts(0);
     _forwardUrl = '';
     _showed404Hint = false;
   }, []);
@@ -105,11 +223,18 @@ export default function CliPage() {
       return;
     }
 
+    // Reset state
+    liveRef.setForwardStats(() => ({ total: 0, success: 0, failed: 0 }));
+    liveRef.setSessionStart(Date.now());
+    liveRef.setReconnectAttempts(0);
+    fetchUsage();
+
     api.get('/projects')
       .then((res) => {
         const project = res.data.projects.find((p: any) => p.slug === slug || p.customSlug === slug);
         if (!project) {
           liveRef.addLine('error', `Project "${slug}" not found.`);
+          liveRef.setSessionStart(null);
           return;
         }
 
@@ -123,24 +248,41 @@ export default function CliPage() {
         const socket = io(API_URL, {
           auth: { token },
           transports: ['websocket', 'polling'],
+          reconnection: true,
+          reconnectionAttempts: 10,
+          reconnectionDelay: 1000,
+          reconnectionDelayMax: 10000,
         });
 
         setSocket(socket);
         _forwardUrl = targetUrl;
         liveRef.setListening(true);
         liveRef.setForwarding(!!targetUrl);
-        liveRef.setForwardStats(() => ({ total: 0, success: 0, failed: 0 }));
 
         socket.on('connect', () => {
-          liveRef.addLine('success', 'Connected. Waiting for webhooks...');
+          liveRef.setReconnectAttempts(0);
+          if (_reconnectAttempts > 0) {
+            liveRef.addLine('success', 'Reconnected. Waiting for webhooks...');
+          } else {
+            liveRef.addLine('success', 'Connected. Waiting for webhooks...');
+          }
           socket.emit('subscribe', project.id);
         });
 
         socket.on('webhook', async (webhook: any) => {
           const size = webhook.body ? JSON.stringify(webhook.body).length : 0;
           const sizeStr = size > 1024 ? `${(size / 1024).toFixed(1)}KB` : `${size}B`;
-          const text = `[${new Date(webhook.createdAt).toLocaleTimeString()}]  ${webhook.method.padEnd(6)}  ${webhook.source || webhook.ip}  ${sizeStr}`;
-          liveRef.addLine('webhook', text);
+          const time = new Date(webhook.createdAt).toLocaleTimeString();
+          const method = webhook.method?.toUpperCase() || 'UNKNOWN';
+          const path = webhook.path || '/';
+          const source = webhook.source || webhook.ip || 'custom';
+
+          liveRef.addLine('webhook', `[${time}]  ${method.padEnd(6)}  ${path.padEnd(18)}  ${sizeStr.padEnd(6)}  (${source})`, {
+            method,
+            path,
+            source,
+            size: sizeStr,
+          });
 
           liveRef.setForwardStats((prev) => ({ ...prev, total: prev.total + 1 }));
 
@@ -161,8 +303,11 @@ export default function CliPage() {
               headers['content-type'] = headers['content-type'] || 'application/json';
             }
 
+            // ── Path preservation ──
+            const forwardTarget = targetUrl.replace(/\/$/, '') + (webhook.path || '');
+
             const start = performance.now();
-            const res = await fetch(targetUrl, {
+            const res = await fetch(forwardTarget, {
               method: webhook.method,
               headers,
               body,
@@ -171,14 +316,14 @@ export default function CliPage() {
 
             if (res.ok) {
               liveRef.setForwardStats((prev) => ({ ...prev, success: prev.success + 1 }));
-              liveRef.addLine('success', `  → ${res.status} OK in ${responseTime}ms`);
+              liveRef.addLine('success', `  → ${res.status} OK in ${responseTime}ms`, { statusCode: res.status, responseTime });
             } else {
               liveRef.setForwardStats((prev) => ({ ...prev, failed: prev.failed + 1 }));
-              liveRef.addLine('error', `  → ${res.status} ${res.statusText} in ${responseTime}ms`);
+              liveRef.addLine('error', `  → ${res.status} ${res.statusText} in ${responseTime}ms`, { statusCode: res.status, responseTime });
               if (res.status === 404 && !_showed404Hint) {
                 _showed404Hint = true;
                 liveRef.addLine('info', `  Your local server got the request but returned 404.`);
-                liveRef.addLine('info', `  Make sure you have a route matching ${new URL(targetUrl).pathname}`);
+                liveRef.addLine('info', `  Make sure you have a route matching ${new URL(forwardTarget).pathname}`);
               }
             }
           } catch (err: any) {
@@ -192,21 +337,36 @@ export default function CliPage() {
           }
         });
 
-        socket.on('disconnect', () => {
-          liveRef.addLine('info', 'Disconnected.');
+        socket.on('disconnect', (reason) => {
+          if (reason === 'io client disconnect') {
+            // Intentional disconnect — handled by stopListening
+            return;
+          }
+          liveRef.addLine('warn', `Disconnected: ${reason}`);
           liveRef.setListening(false);
         });
 
         socket.on('connect_error', (err) => {
           if (!_listening) return;
           liveRef.addLine('error', `Connection error: ${err.message}`);
+        });
+
+        socket.on('reconnect_attempt', (attempt) => {
+          liveRef.setReconnectAttempts(attempt);
+          liveRef.addLine('warn', `Reconnecting... (attempt ${attempt})`);
+        });
+
+        socket.on('reconnect_failed', () => {
+          liveRef.addLine('error', 'Failed to reconnect after multiple attempts.');
           liveRef.setListening(false);
+          liveRef.setSessionStart(null);
         });
       })
       .catch(() => {
         liveRef.addLine('error', 'Failed to fetch projects.');
+        liveRef.setSessionStart(null);
       });
-  }, [stopListening]);
+  }, [stopListening, fetchUsage]);
 
   const executeCommand = useCallback(async (raw: string) => {
     const trimmed = raw.trim();
@@ -311,7 +471,7 @@ export default function CliPage() {
         const fwdUrl = args[1];
         if (!fwdSlug || !fwdUrl) {
           liveRef.addLine('error', 'Usage: forward <project-slug> <local-url>');
-          liveRef.addLine('info', '  Example: forward my-project http://localhost:3000/webhook');
+          liveRef.addLine('info', '  Example: forward my-project http://localhost:3000');
           break;
         }
         if (_listening) {
@@ -428,18 +588,21 @@ export default function CliPage() {
       case 'input': return 'text-emerald-400';
       case 'error': return 'text-red-400';
       case 'success': return 'text-emerald-400';
-      case 'webhook': return 'text-sky-400';
+      case 'webhook': return 'text-slate-300';
       case 'info': return 'text-slate-500';
+      case 'warn': return 'text-amber-400';
       default: return 'text-slate-300';
     }
   };
+
+  const { bar: usageBar } = buildProgressBar(planLimit.used + forwardStats.total, planLimit.limit);
 
   return (
     <div className="h-full flex flex-col bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800">
-        <div className="flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-emerald-400" />
+        <div className="flex items-center gap-2.5">
+          <CliLogo className="w-5 h-5 shrink-0" />
           <span className="text-sm font-medium text-white">HookSwing CLI</span>
           {_listening && (
             <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
@@ -447,14 +610,32 @@ export default function CliPage() {
               {_forwarding ? 'Forwarding' : 'Listening'}
             </span>
           )}
+          {reconnectAttempts > 0 && (
+            <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+              <WifiOff className="w-3 h-3" />
+              Reconnecting {reconnectAttempts}
+            </span>
+          )}
         </div>
-        <button
-          onClick={() => { _lines = []; setLines([]); }}
-          className="text-slate-500 hover:text-white transition-colors"
-          title="Clear"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-3">
+          {listening && (
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-400">
+              <Zap className="w-3 h-3 text-emerald-400" />
+              <span className="text-slate-300">{sessionTime}</span>
+              <span className="text-slate-600">|</span>
+              <span>{planLimit.used + forwardStats.total} / {planLimit.limit}</span>
+              <span className="text-emerald-500">{usageBar.slice(0, filledCount(planLimit.used + forwardStats.total, planLimit.limit))}</span>
+              <span className="text-slate-700">{usageBar.slice(filledCount(planLimit.used + forwardStats.total, planLimit.limit))}</span>
+            </div>
+          )}
+          <button
+            onClick={() => { _lines = []; setLines([]); }}
+            className="text-slate-500 hover:text-white transition-colors"
+            title="Clear"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Terminal output */}
@@ -464,8 +645,8 @@ export default function CliPage() {
       >
         {lines.map((line, i) => (
           <div key={i} className={`${lineColor(line.type)} whitespace-pre-wrap break-all leading-relaxed`}>
-            {line.type === 'webhook' ? (
-              <span>{line.text}</span>
+            {line.type === 'webhook' && line.meta ? (
+              <WebhookLine meta={line.meta} />
             ) : line.type === 'info' ? (
               <span className="text-slate-600"># {line.text}</span>
             ) : (
@@ -492,5 +673,41 @@ export default function CliPage() {
         />
       </div>
     </div>
+  );
+}
+
+// ── Helper for progress bar filled count ──
+function filledCount(used: number, limit: number) {
+  const pct = Math.min(100, Math.round((used / limit) * 100));
+  return Math.floor(pct / 10);
+}
+
+// ── Rich Webhook Line Renderer ──
+function WebhookLine({ meta }: { meta: WebhookMeta }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      {meta.method && (
+        <span className={`inline-flex items-center justify-center px-1.5 py-0.5 rounded text-xs font-bold ${methodColor(meta.method)} ${methodBg(meta.method)} min-w-[3rem]`}>
+          {meta.method}
+        </span>
+      )}
+      {meta.path !== undefined && (
+        <span className="text-slate-300">{meta.path}</span>
+      )}
+      {meta.statusCode !== undefined && (
+        <span className={`text-xs font-bold ${statusColor(meta.statusCode)}`}>
+          {meta.statusCode}
+        </span>
+      )}
+      {meta.responseTime !== undefined && (
+        <span className="text-slate-500 text-xs">{meta.responseTime}ms</span>
+      )}
+      {meta.source && (
+        <span className="text-slate-500 text-xs">({meta.source})</span>
+      )}
+      {meta.size && (
+        <span className="text-slate-600 text-xs">{meta.size}</span>
+      )}
+    </span>
   );
 }
