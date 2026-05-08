@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Copy, CheckCircle2, AlertCircle, Clock, Globe, Hash, FileJson, ArrowRightLeft, MessageSquare, Terminal, Play, RotateCcw, Loader2, Check, Link2, Zap } from 'lucide-react';
 import { methodColor, statusColor, formatBytes, formatDate } from '../../lib/utils';
 import JsonViewer from './JsonViewer';
+import JsonEditor from './JsonEditor';
 import { api } from '../../lib/api';
 import type { Webhook } from '../../hooks/useWebhooks';
 
@@ -211,7 +212,7 @@ export default function WebhookModal({ webhook, onClose, canReplay }: WebhookMod
                     <label className="text-sm font-semibold text-sky-400 flex items-center gap-2"><Hash className="w-4 h-4"/>Headers <span className="text-slate-600 font-normal text-xs">JSON</span></label>
                     <button onClick={()=>setReplayHeaders(JSON.stringify(webhook.headers||{},null,2))} className="text-xs text-slate-500 hover:text-sky-400 flex items-center gap-1 transition-colors"><RotateCcw className="w-3 h-3"/>Reset</button>
                   </div>
-                  <div className="relative"><div className="absolute left-0 top-0 bottom-0 w-1.5 bg-sky-500/30 rounded-l-xl"/><textarea value={replayHeaders} onChange={e=>setReplayHeaders(e.target.value)} rows={12} className="w-full bg-slate-950 border-2 border-sky-500/20 rounded-xl pl-5 pr-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-sky-500/50 resize-none leading-relaxed transition-colors"/></div>
+                  <JsonEditor value={replayHeaders} onChange={setReplayHeaders} rows={12} accentColor="sky" />
                 </div>
               )}
 
@@ -222,7 +223,7 @@ export default function WebhookModal({ webhook, onClose, canReplay }: WebhookMod
                     <label className="text-sm font-semibold text-purple-400 flex items-center gap-2"><FileJson className="w-4 h-4"/>Body</label>
                     <button onClick={()=>setReplayBody(webhook.rawBody||JSON.stringify(webhook.body||{},null,2))} className="text-xs text-slate-500 hover:text-purple-400 flex items-center gap-1 transition-colors"><RotateCcw className="w-3 h-3"/>Reset</button>
                   </div>
-                  <div className="relative"><div className="absolute left-0 top-0 bottom-0 w-1.5 bg-purple-500/30 rounded-l-xl"/><textarea value={replayBody} onChange={e=>setReplayBody(e.target.value)} rows={14} className="w-full bg-slate-950 border-2 border-purple-500/20 rounded-xl pl-5 pr-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-purple-500/50 resize-none leading-relaxed transition-colors"/></div>
+                  <JsonEditor value={replayBody} onChange={setReplayBody} rows={14} accentColor="purple" />
                 </div>
               )}
 
@@ -233,7 +234,7 @@ export default function WebhookModal({ webhook, onClose, canReplay }: WebhookMod
                     <label className="text-sm font-semibold text-amber-400 flex items-center gap-2"><Link2 className="w-4 h-4"/>Query Params <span className="text-slate-600 font-normal text-xs">JSON</span></label>
                     <button onClick={()=>setReplayQuery(JSON.stringify(webhook.query||{},null,2))} className="text-xs text-slate-500 hover:text-amber-400 flex items-center gap-1 transition-colors"><RotateCcw className="w-3 h-3"/>Reset</button>
                   </div>
-                  <div className="relative"><div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500/30 rounded-l-xl"/><textarea value={replayQuery} onChange={e=>setReplayQuery(e.target.value)} rows={8} className="w-full bg-slate-950 border-2 border-amber-500/20 rounded-xl pl-5 pr-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-amber-500/50 resize-none leading-relaxed transition-colors"/></div>
+                  <JsonEditor value={replayQuery} onChange={setReplayQuery} rows={8} accentColor="amber" />
                 </div>
               )}
 

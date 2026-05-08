@@ -35,3 +35,11 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* Prism JSON syntax highlighting - dark theme */
+.json-editor-wrap pre .token.property { color: #7dd3fc !important; }   /* sky-300    - keys */
+.json-editor-wrap pre .token.string  { color: #86efac !important; }     /* emerald-300 - strings */
+.json-editor-wrap pre .token.number  { color: #fbbf24 !important; }     /* amber-400  - numbers */
+.json-editor-wrap pre .token.boolean { color: #c084fc !important; }     /* purple-400 - true/false */
+.json-editor-wrap pre .token.null    { color: #f87171 !important; }     /* red-400    - null */
+.json-editor-wrap pre .token.punctuation { color: #94a3b8 !important; } /* slate-400  - {}, [], :, , */
