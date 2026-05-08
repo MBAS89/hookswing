@@ -125,9 +125,12 @@ async function handleHook(req: express.Request, res: express.Response) {
     },
   });
 
+  // Compute original request path (after the slug) for CLI forwarding
+  const webhookPath = req.params[0] ? `/${req.params[0]}` : '/';
+
   if (!isDropped) {
     // Socket.IO broadcast to project room
-    io.to(project.id).emit('webhook', webhook);
+    io.to(project.id).emit('webhook', { ...webhook, path: webhookPath });
 
     // Broadcast to WebSocket clients (CLI)
     const connections = wsConnections.get(slug);
@@ -136,7 +139,7 @@ async function handleHook(req: express.Request, res: express.Response) {
       if (active.length > 1) {
         console.log(`[WS] Broadcasting webhook to ${active.length} connections for slug: ${slug}`);
       }
-      const payload = JSON.stringify({ type: 'webhook', data: webhook });
+      const payload = JSON.stringify({ type: 'webhook', data: { ...webhook, path: webhookPath } });
       active.forEach((ws) => ws.send(payload));
     }
 
