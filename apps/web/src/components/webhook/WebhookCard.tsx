@@ -5,6 +5,13 @@ import JsonViewer from './JsonViewer';
 import JsonEditor from './JsonEditor';
 import { api } from '../../lib/api';
 
+function formatReplayBody(rawBody: string | null | undefined, body: any): string {
+  if (rawBody) {
+    try { return JSON.stringify(JSON.parse(rawBody), null, 2); } catch { return rawBody; }
+  }
+  return JSON.stringify(body || {}, null, 2);
+}
+
 interface Webhook {
   id: string;
   method: string;
@@ -56,7 +63,7 @@ export default function WebhookCard({
   useEffect(() => {
     if (expanded && activeTab === 'replay') {
       setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
-      setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2));
+      setReplayBody(formatReplayBody(webhook.rawBody, webhook.body));
       setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
       setReplayJsonError('');
     }
@@ -95,7 +102,7 @@ export default function WebhookCard({
 
   const resetAll = () => {
     setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
-    setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2));
+    setReplayBody(formatReplayBody(webhook.rawBody, webhook.body));
     setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
     setReplayJsonError('');
   };
@@ -207,7 +214,7 @@ export default function WebhookCard({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-medium text-purple-400 flex items-center gap-1.5"><FileJson className="w-3.5 h-3.5"/>Body</label>
-                      <button onClick={()=>setReplayBody(webhook.rawBody||JSON.stringify(webhook.body||{},null,2))} className="text-[10px] text-slate-500 hover:text-purple-400 flex items-center gap-1"><RotateCcw className="w-3 h-3"/>Reset</button>
+                      <button onClick={()=>setReplayBody(formatReplayBody(webhook.rawBody, webhook.body))} className="text-[10px] text-slate-500 hover:text-purple-400 flex items-center gap-1"><RotateCcw className="w-3 h-3"/>Reset</button>
                     </div>
                     <JsonEditor value={replayBody} onChange={setReplayBody} rows={10} accentColor="purple" />
                   </div>

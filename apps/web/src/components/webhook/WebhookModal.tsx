@@ -6,6 +6,13 @@ import JsonEditor from './JsonEditor';
 import { api } from '../../lib/api';
 import type { Webhook } from '../../hooks/useWebhooks';
 
+function formatReplayBody(rawBody: string | null | undefined, body: any): string {
+  if (rawBody) {
+    try { return JSON.stringify(JSON.parse(rawBody), null, 2); } catch { return rawBody; }
+  }
+  return JSON.stringify(body || {}, null, 2);
+}
+
 interface WebhookModalProps {
   webhook: Webhook;
   onClose: () => void;
@@ -29,7 +36,7 @@ export default function WebhookModal({ webhook, onClose, canReplay }: WebhookMod
 
   useEffect(() => {
     setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
-    setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2));
+    setReplayBody(formatReplayBody(webhook.rawBody, webhook.body));
     setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
     setReplayJsonError('');
   }, [webhook]);
@@ -78,7 +85,7 @@ export default function WebhookModal({ webhook, onClose, canReplay }: WebhookMod
 
   const resetAll = () => {
     setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
-    setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2));
+    setReplayBody(formatReplayBody(webhook.rawBody, webhook.body));
     setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
     setReplayJsonError('');
   };
@@ -221,7 +228,7 @@ export default function WebhookModal({ webhook, onClose, canReplay }: WebhookMod
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-semibold text-purple-400 flex items-center gap-2"><FileJson className="w-4 h-4"/>Body</label>
-                    <button onClick={()=>setReplayBody(webhook.rawBody||JSON.stringify(webhook.body||{},null,2))} className="text-xs text-slate-500 hover:text-purple-400 flex items-center gap-1 transition-colors"><RotateCcw className="w-3 h-3"/>Reset</button>
+                    <button onClick={()=>setReplayBody(formatReplayBody(webhook.rawBody, webhook.body))} className="text-xs text-slate-500 hover:text-purple-400 flex items-center gap-1 transition-colors"><RotateCcw className="w-3 h-3"/>Reset</button>
                   </div>
                   <JsonEditor value={replayBody} onChange={setReplayBody} rows={14} accentColor="purple" />
                 </div>

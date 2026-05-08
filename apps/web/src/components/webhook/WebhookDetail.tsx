@@ -7,6 +7,13 @@ import JsonViewer from './JsonViewer';
 import WebhookModal from './WebhookModal';
 import type { Webhook } from '../../hooks/useWebhooks';
 
+function formatReplayBody(rawBody: string | null | undefined, body: any): string {
+  if (rawBody) {
+    try { return JSON.stringify(JSON.parse(rawBody), null, 2); } catch { return rawBody; }
+  }
+  return JSON.stringify(body || {}, null, 2);
+}
+
 interface Comment {
   id: string;
   content: string;
@@ -48,7 +55,7 @@ export default function WebhookDetail({
   useEffect(() => {
     if (showReplay) {
       setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
-      setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2));
+      setReplayBody(formatReplayBody(webhook.rawBody, webhook.body));
       setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
       setReplayJsonError('');
     }
@@ -210,7 +217,7 @@ export default function WebhookDetail({
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-slate-400">Body</label>
                 <button
-                  onClick={() => setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2))}
+                  onClick={() => setReplayBody(formatReplayBody(webhook.rawBody, webhook.body))}
                   className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -361,7 +368,7 @@ export default function WebhookDetail({
             <button
               onClick={() => {
                 setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
-                setReplayBody(webhook.rawBody || JSON.stringify(webhook.body || {}, null, 2));
+                setReplayBody(formatReplayBody(webhook.rawBody, webhook.body));
                 setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
                 setReplayJsonError('');
               }}
