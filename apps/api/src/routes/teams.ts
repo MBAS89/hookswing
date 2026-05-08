@@ -60,6 +60,7 @@ router.post('/', async (req: AuthRequest, res) => {
     },
     include: {
       members: { include: { user: { select: { id: true, email: true, name: true } } } },
+      projects: { select: { id: true, name: true, slug: true, description: true } },
       _count: { select: { projects: true } },
     },
   });

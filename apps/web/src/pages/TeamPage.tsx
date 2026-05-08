@@ -275,9 +275,9 @@ export default function TeamPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">{team.members.length} members</span>
+                      <span className="text-xs text-slate-500">{team.members?.length || 0} members</span>
                       <span className="text-xs text-slate-600">•</span>
-                      <span className="text-xs text-slate-500">{team.projects.length} projects</span>
+                      <span className="text-xs text-slate-500">{team.projects?.length || 0} projects</span>
                     </div>
                   </div>
 
@@ -370,7 +370,7 @@ export default function TeamPage() {
                 </div>
 
                 {/* Projects */}
-                {team.projects && team.projects.length > 0 && (
+                {team.projects?.length > 0 && (
                   <div className="px-6 py-4 border-b border-slate-800">
                     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Projects</h3>
                     <div className="grid sm:grid-cols-2 gap-2">
@@ -397,7 +397,7 @@ export default function TeamPage() {
                 <div className="px-6 py-4">
                   <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Members</h3>
                   <div className="space-y-2">
-                    {team.members.map((member) => (
+                    {(team.members || []).map((member) => (
                       <div key={member.id} className="flex items-center justify-between py-2 border-b border-slate-800/50 last:border-0">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
