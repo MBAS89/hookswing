@@ -552,7 +552,7 @@ export default function WebhookDetail({
       </div>
 
       {showModal && (
-        <WebhookModal webhook={webhook} onClose={() => setShowModal(false)} />
+        <WebhookModal webhook={webhook} onClose={() => setShowModal(false)} canReplay={canReplay} />
       )}
     </div>
   );
