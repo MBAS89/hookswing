@@ -573,7 +573,7 @@ export default function ProjectPage() {
             </span>
           )}
           <span className="text-xs text-slate-500 bg-slate-800 px-2 py-1 rounded-full">
-            {filtered.length} webhooks
+            {pagination.total > 0 ? `${filtered.length} from ${pagination.total}` : `${filtered.length} webhooks`}
           </span>
         </div>
         <div className="flex items-center gap-2">
