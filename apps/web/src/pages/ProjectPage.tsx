@@ -532,7 +532,7 @@ export default function ProjectPage() {
                   <span className="text-sm text-slate-600">Not set</span>
                 )}
               </div>
-              {canUseCustomSlug ? (
+              {canEditProject ? (
                 <button
                   onClick={() => setEditingSlug(true)}
                   className="text-xs flex items-center gap-1 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-md transition-colors"
@@ -540,6 +540,11 @@ export default function ProjectPage() {
                   <Edit3 className="w-3 h-3" />
                   {project?.customSlug ? 'Edit' : 'Set custom'}
                 </button>
+              ) : isTeamProject ? (
+                <span className="text-xs flex items-center gap-1 text-slate-500 bg-slate-800 px-2.5 py-1 rounded-md" title="Only team admins can change the custom slug">
+                  <Shield className="w-3 h-3" />
+                  Admin only
+                </span>
               ) : (
                 <span className="text-xs flex items-center gap-1 text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md">
                   <Crown className="w-3 h-3" />
