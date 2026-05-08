@@ -325,14 +325,27 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
+  let tokenValid = false;
   try {
     jwt.verify(token, process.env.JWT_SECRET!);
-    console.log('[WS] Token verified — connection accepted');
-  } catch (err: any) {
-    console.log('[WS] Rejected — invalid token:', err.message);
+    tokenValid = true;
+  } catch {
+    // Not an access token — try refresh token
+    try {
+      jwt.verify(token, process.env.JWT_REFRESH_SECRET!);
+      tokenValid = true;
+    } catch {
+      tokenValid = false;
+    }
+  }
+
+  if (!tokenValid) {
+    console.log('[WS] Rejected — invalid token');
     ws.close(1008, 'Invalid token');
     return;
   }
+
+  console.log('[WS] Token verified — connection accepted');
 
   // Data-frame heartbeat (proxies can't strip JSON like they can ping/pong)
   let heartbeatTimeout: NodeJS.Timeout | null = null;
