@@ -221,7 +221,8 @@ router.get('/github', (req, res) => {
 
   const redirectUri = `${process.env.FRONTEND_URL || 'https://hookswing.com'}/api/auth/github/callback`;
   const mode = req.query.mode as string || 'web';
-  const state = Buffer.from(JSON.stringify({ random: Math.random().toString(36).substring(2, 15), mode })).toString('base64');
+  const callbackPort = req.query.callback_port as string | undefined;
+  const state = Buffer.from(JSON.stringify({ random: Math.random().toString(36).substring(2, 15), mode, callbackPort })).toString('base64');
 
   const url = new URL('https://github.com/login/oauth/authorize');
   url.searchParams.set('client_id', clientId);
@@ -237,10 +238,12 @@ router.get('/github/callback', async (req, res) => {
 
   // Decode state to check if this is a CLI login
   let mode = 'web';
+  let callbackPort: string | undefined;
   try {
     if (state) {
       const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
       mode = decoded.mode || 'web';
+      callbackPort = decoded.callbackPort;
     }
   } catch { /* ignore invalid state */ }
 
@@ -408,6 +411,14 @@ router.get('/github/callback', async (req, res) => {
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     });
+
+    if (mode === 'cli' && callbackPort) {
+      console.log('[GitHub OAuth] CLI mode — redirecting to localhost:' + callbackPort);
+      const redirectUrl = new URL(`http://localhost:${callbackPort}`);
+      redirectUrl.searchParams.set('accessToken', jwtAccess);
+      redirectUrl.searchParams.set('refreshToken', refreshToken);
+      return res.redirect(redirectUrl.toString());
+    }
 
     if (mode === 'cli') {
       console.log('[GitHub OAuth] CLI mode — showing token page');
