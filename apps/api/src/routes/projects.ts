@@ -70,13 +70,16 @@ router.post('/', async (req: AuthRequest, res) => {
   const { teamId } = result.data;
   const userId = req.user!.id;
 
-  // If creating for a team, verify membership
+  // If creating for a team, verify admin role
   if (teamId) {
     const membership = await prisma.teamMember.findUnique({
       where: { teamId_userId: { teamId, userId } },
     });
     if (!membership) {
       return res.status(403).json({ error: 'You are not a member of this team' });
+    }
+    if (membership.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only team admins can create projects for this team' });
     }
   } else {
     // Personal project: check plan limit

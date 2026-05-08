@@ -55,7 +55,9 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const personalProjects = projects.filter((p) => !p.team);
   const teamProjects = projects.filter((p) => p.team);
 
-  const teamOptions = user?.teams?.map((t) => ({ id: t.team.id, name: t.team.name })) || [];
+  const teamOptions = user?.teams
+    ?.filter((t) => t.role === 'ADMIN')
+    ?.map((t) => ({ id: t.team.id, name: t.team.name })) || [];
   const isTeamPlan = user?.plan === 'TEAM';
   const hasAnyTeams = (user?.teams && user.teams.length > 0) || false;
 
