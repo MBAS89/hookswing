@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2, Check, AlertCircle, Maximize2, RotateCcw, Code, Globe, FileJson, Link } from 'lucide-react';
+import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2, Check, AlertCircle, Maximize2, RotateCcw, Code, Globe, FileJson, Link, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { methodColor, formatDate, formatBytes } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
@@ -19,6 +19,11 @@ interface Comment {
   content: string;
   createdAt: string;
   user: { id: string; name: string | null; email: string };
+  likes: number;
+  dislikes: number;
+  userReaction: 'like' | 'dislike' | null;
+  replies: Comment[];
+  _count?: { replies: number };
 }
 
 export default function WebhookDetail({
@@ -69,6 +74,9 @@ export default function WebhookDetail({
   const [commentText, setCommentText] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [replyLoading, setReplyLoading] = useState(false);
 
   useEffect(() => {
     if (!isTeamPlan) return;
@@ -79,17 +87,46 @@ export default function WebhookDetail({
       .finally(() => setCommentsLoading(false));
   }, [webhook.id, isTeamPlan]);
 
-  const addComment = async () => {
-    if (!commentText.trim()) return;
-    setCommentLoading(true);
+  const addComment = async (parentId?: string) => {
+    const text = parentId ? replyText : commentText;
+    if (!text.trim()) return;
+    if (parentId) setReplyLoading(true); else setCommentLoading(true);
     try {
-      const res = await api.post(`/webhooks/${webhook.id}/comments`, { content: commentText.trim() });
-      setComments((prev) => [...prev, res.data]);
-      setCommentText('');
+      const res = await api.post(`/webhooks/${webhook.id}/comments`, { content: text.trim(), parentId });
+      if (parentId) {
+        setComments((prev) => prev.map((c) =>
+          c.id === parentId
+            ? { ...c, replies: [...c.replies, res.data], _count: { ...(c._count || { replies: 0 }), replies: (c._count?.replies || 0) + 1 } }
+            : c
+        ));
+        setReplyText('');
+        setReplyingTo(null);
+      } else {
+        setComments((prev) => [...prev, res.data]);
+        setCommentText('');
+      }
     } catch {
       alert('Failed to add comment');
     } finally {
-      setCommentLoading(false);
+      if (parentId) setReplyLoading(false); else setCommentLoading(false);
+    }
+  };
+
+  const reactComment = async (commentId: string, type: 'like' | 'dislike') => {
+    try {
+      const res = await api.post(`/webhooks/comments/${commentId}/react`, { type });
+      setComments((prev) => prev.map((c) => {
+        if (c.id === commentId) {
+          return { ...c, likes: res.data.likes, dislikes: res.data.dislikes, userReaction: res.data.userReaction };
+        }
+        return { ...c, replies: c.replies.map((r) =>
+          r.id === commentId
+            ? { ...r, likes: res.data.likes, dislikes: res.data.dislikes, userReaction: res.data.userReaction }
+            : r
+        )};
+      }));
+    } catch {
+      alert('Failed to react');
     }
   };
 
@@ -509,7 +546,7 @@ export default function WebhookDetail({
                     className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                   <button
-                    onClick={addComment}
+                    onClick={() => addComment()}
                     disabled={commentLoading || !commentText.trim()}
                     className="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
                   >
@@ -525,7 +562,7 @@ export default function WebhookDetail({
                 ) : comments.length === 0 ? (
                   <p className="text-sm text-slate-600 text-center py-4">No comments yet</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {comments.map((comment) => (
                       <div key={comment.id} className="bg-slate-800/50 rounded-lg p-3">
                         <div className="flex items-center justify-between mb-1">
@@ -547,7 +584,104 @@ export default function WebhookDetail({
                             </button>
                           )}
                         </div>
-                        <p className="text-sm text-slate-200">{comment.content}</p>
+                        <p className="text-sm text-slate-200 mb-2">{comment.content}</p>
+
+                        {/* Like / Dislike / Reply */}
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => reactComment(comment.id, 'like')}
+                            className={`flex items-center gap-1 text-xs transition-colors ${comment.userReaction === 'like' ? 'text-emerald-400' : 'text-slate-500 hover:text-emerald-400'}`}
+                          >
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                            {comment.likes > 0 && <span>{comment.likes}</span>}
+                          </button>
+                          <button
+                            onClick={() => reactComment(comment.id, 'dislike')}
+                            className={`flex items-center gap-1 text-xs transition-colors ${comment.userReaction === 'dislike' ? 'text-red-400' : 'text-slate-500 hover:text-red-400'}`}
+                          >
+                            <ThumbsDown className="w-3.5 h-3.5" />
+                            {comment.dislikes > 0 && <span>{comment.dislikes}</span>}
+                          </button>
+                          <button
+                            onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                            className="text-xs text-slate-500 hover:text-sky-400 transition-colors"
+                          >
+                            Reply
+                          </button>
+                          {comment._count && comment._count.replies > comment.replies.length && (
+                            <span className="text-[10px] text-slate-600">
+                              {comment._count.replies} {comment._count.replies === 1 ? 'reply' : 'replies'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Reply input */}
+                        {replyingTo === comment.id && (
+                          <div className="flex gap-2 mt-2">
+                            <input
+                              type="text"
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && addComment(comment.id)}
+                              placeholder="Write a reply..."
+                              autoFocus
+                              className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                            />
+                            <button
+                              onClick={() => addComment(comment.id)}
+                              disabled={replyLoading || !replyText.trim()}
+                              className="bg-sky-500 hover:bg-sky-400 text-white px-3 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
+                            >
+                              {replyLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Nested replies */}
+                        {comment.replies.length > 0 && (
+                          <div className="mt-2 ml-3 pl-3 border-l-2 border-slate-700/50 space-y-2">
+                            {comment.replies.map((reply) => (
+                              <div key={reply.id} className="bg-slate-900/50 rounded-lg p-2.5">
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400 text-[9px] font-bold">
+                                      {(reply.user.name || reply.user.email).charAt(0).toUpperCase()}
+                                    </div>
+                                    <span className="text-[11px] font-medium text-slate-300">
+                                      {reply.user.name || reply.user.email}
+                                    </span>
+                                    <span className="text-[10px] text-slate-600">{formatDate(reply.createdAt)}</span>
+                                  </div>
+                                  {reply.user.id === user?.id && (
+                                    <button
+                                      onClick={() => deleteComment(reply.id)}
+                                      className="text-slate-600 hover:text-red-400 transition-colors"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-200 mb-1.5">{reply.content}</p>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => reactComment(reply.id, 'like')}
+                                    className={`flex items-center gap-0.5 text-[10px] transition-colors ${reply.userReaction === 'like' ? 'text-emerald-400' : 'text-slate-500 hover:text-emerald-400'}`}
+                                  >
+                                    <ThumbsUp className="w-3 h-3" />
+                                    {reply.likes > 0 && <span>{reply.likes}</span>}
+                                  </button>
+                                  <button
+                                    onClick={() => reactComment(reply.id, 'dislike')}
+                                    className={`flex items-center gap-0.5 text-[10px] transition-colors ${reply.userReaction === 'dislike' ? 'text-red-400' : 'text-slate-500 hover:text-red-400'}`}
+                                  >
+                                    <ThumbsDown className="w-3 h-3" />
+                                    {reply.dislikes > 0 && <span>{reply.dislikes}</span>}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

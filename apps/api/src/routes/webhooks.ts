@@ -66,6 +66,7 @@ router.get('/projects/:projectId/webhooks', async (req: AuthRequest, res) => {
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
+      include: { _count: { select: { comments: true } } },
     }),
     prisma.webhook.count({ where }),
   ]);
@@ -475,17 +476,45 @@ router.get('/:id/comments', async (req: AuthRequest, res) => {
   }
 
   const comments = await prisma.webhookComment.findMany({
-    where: { webhookId: req.params.id },
-    include: { user: { select: { id: true, name: true, email: true } } },
+    where: { webhookId: req.params.id, parentId: null },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+      reactions: true,
+      replies: {
+        take: 3,
+        orderBy: { createdAt: 'asc' },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          reactions: true,
+        },
+      },
+      _count: { select: { replies: true } },
+    },
     orderBy: { createdAt: 'asc' },
   });
 
-  res.json(comments);
+  const userId = req.user!.id;
+  const enrich = (c: any) => {
+    const likes = c.reactions.filter((r: any) => r.type === 'like').length;
+    const dislikes = c.reactions.filter((r: any) => r.type === 'dislike').length;
+    const userReaction = c.reactions.find((r: any) => r.userId === userId)?.type || null;
+    const { reactions, ...rest } = c;
+    return {
+      ...rest,
+      likes,
+      dislikes,
+      userReaction,
+      replies: c.replies?.map(enrich) || [],
+    };
+  };
+
+  res.json(comments.map(enrich));
 });
 
 router.post('/:id/comments', async (req: AuthRequest, res) => {
   const schema = z.object({
     content: z.string().min(1).max(2000),
+    parentId: z.string().optional(),
   });
 
   const result = schema.safeParse(req.body);
@@ -515,11 +544,21 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
     return res.status(403).json({ error: 'Comments require Team plan' });
   }
 
+  if (result.data.parentId) {
+    const parent = await prisma.webhookComment.findFirst({
+      where: { id: result.data.parentId, webhookId: req.params.id },
+    });
+    if (!parent) {
+      return res.status(404).json({ error: 'Parent comment not found' });
+    }
+  }
+
   const comment = await prisma.webhookComment.create({
     data: {
       webhookId: req.params.id,
       userId: req.user!.id,
       content: result.data.content,
+      parentId: result.data.parentId || null,
     },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
@@ -528,13 +567,13 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
     await logActivity({
       teamId: webhook.project.teamId,
       userId: req.user!.id,
-      action: 'comment_added',
+      action: result.data.parentId ? 'comment_replied' : 'comment_added',
       targetType: 'webhook',
       targetId: req.params.id,
     });
   }
 
-  res.status(201).json(comment);
+  res.status(201).json({ ...comment, likes: 0, dislikes: 0, userReaction: null, replies: [] });
 });
 
 router.delete('/:id/comments/:commentId', async (req: AuthRequest, res) => {
@@ -573,6 +612,120 @@ router.delete('/:id/comments/:commentId', async (req: AuthRequest, res) => {
   }
 
   res.json({ success: true });
+});
+
+// --- Comment reactions (like/dislike) ---
+
+router.post('/comments/:commentId/react', async (req: AuthRequest, res) => {
+  const schema = z.object({ type: z.enum(['like', 'dislike']) });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid reaction type' });
+  }
+
+  const comment = await prisma.webhookComment.findFirst({
+    where: { id: req.params.commentId },
+    include: {
+      webhook: {
+        include: { project: { select: { teamId: true, userId: true } } },
+      },
+    },
+  });
+
+  if (!comment) {
+    return res.status(404).json({ error: 'Comment not found' });
+  }
+
+  const hasAccess = comment.webhook.project?.userId === req.user!.id ||
+    (comment.webhook.project?.teamId
+      ? await prisma.teamMember.findFirst({ where: { teamId: comment.webhook.project.teamId, userId: req.user!.id } })
+      : null);
+
+  if (!hasAccess) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const existing = await prisma.commentReaction.findFirst({
+    where: { commentId: req.params.commentId, userId: req.user!.id },
+  });
+
+  let action: 'added' | 'removed' | 'changed' = 'added';
+
+  if (existing) {
+    if (existing.type === result.data.type) {
+      await prisma.commentReaction.delete({ where: { id: existing.id } });
+      action = 'removed';
+    } else {
+      await prisma.commentReaction.update({
+        where: { id: existing.id },
+        data: { type: result.data.type },
+      });
+      action = 'changed';
+    }
+  } else {
+    await prisma.commentReaction.create({
+      data: {
+        commentId: req.params.commentId,
+        userId: req.user!.id,
+        type: result.data.type,
+      },
+    });
+  }
+
+  const counts = await prisma.commentReaction.groupBy({
+    by: ['type'],
+    where: { commentId: req.params.commentId },
+    _count: { type: true },
+  });
+
+  const likes = counts.find((c: any) => c.type === 'like')?._count?.type || 0;
+  const dislikes = counts.find((c: any) => c.type === 'dislike')?._count?.type || 0;
+
+  res.json({
+    action,
+    likes,
+    dislikes,
+    userReaction: action === 'removed' ? null : result.data.type,
+  });
+});
+
+router.delete('/comments/:commentId/react', async (req: AuthRequest, res) => {
+  const comment = await prisma.webhookComment.findFirst({
+    where: { id: req.params.commentId },
+    include: {
+      webhook: {
+        include: { project: { select: { teamId: true, userId: true } } },
+      },
+    },
+  });
+
+  if (!comment) {
+    return res.status(404).json({ error: 'Comment not found' });
+  }
+
+  const hasAccess = comment.webhook.project?.userId === req.user!.id ||
+    (comment.webhook.project?.teamId
+      ? await prisma.teamMember.findFirst({ where: { teamId: comment.webhook.project.teamId, userId: req.user!.id } })
+      : null);
+
+  if (!hasAccess) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  await prisma.commentReaction.deleteMany({
+    where: { commentId: req.params.commentId, userId: req.user!.id },
+  });
+
+  const counts = await prisma.commentReaction.groupBy({
+    by: ['type'],
+    where: { commentId: req.params.commentId },
+    _count: { type: true },
+  });
+
+  const likes = counts.find((c: any) => c.type === 'like')?._count?.type || 0;
+  const dislikes = counts.find((c: any) => c.type === 'dislike')?._count?.type || 0;
+
+  res.json({ likes, dislikes, userReaction: null });
 });
 
 export default router;

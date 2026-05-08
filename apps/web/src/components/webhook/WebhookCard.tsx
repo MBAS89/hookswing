@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { methodColor, statusColor, formatDate, formatBytes } from '../../lib/utils';
-import { GitCompare, ChevronDown, ChevronUp, Copy, Play, RotateCcw, Globe, Hash, FileJson, Link2, Loader2, Check, AlertCircle, Zap } from 'lucide-react';
+import { GitCompare, ChevronDown, ChevronUp, Copy, Play, RotateCcw, Globe, Hash, FileJson, Link2, Loader2, Check, AlertCircle, Zap, MessageSquare } from 'lucide-react';
 import JsonViewer from './JsonViewer';
 import JsonEditor from './JsonEditor';
 import { api } from '../../lib/api';
@@ -27,6 +27,7 @@ interface Webhook {
   isReplay: boolean;
   originalId: string | null;
   createdAt: string;
+  _count?: { comments: number };
 }
 
 export default function WebhookCard({
@@ -114,6 +115,11 @@ export default function WebhookCard({
           <span className={`px-2 py-0.5 rounded text-xs font-mono font-semibold border ${methodColor(webhook.method)}`}>{webhook.method}</span>
           {webhook.statusCode && <span className={`w-2 h-2 rounded-full ${statusColor(webhook.statusCode)}`} />}
           {webhook.isReplay && <span className="text-xs text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">REPLAY</span>}
+          {webhook._count && webhook._count.comments > 0 && (
+            <span className="flex items-center gap-1 text-[10px] text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded ml-1">
+              <MessageSquare className="w-3 h-3" />{webhook._count.comments}
+            </span>
+          )}
           <span className="text-xs text-slate-500 ml-auto">{formatDate(webhook.createdAt)}</span>
           {onCompare && (
             <span onClick={(e) => { e.stopPropagation(); onCompare(); }} className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer transition-colors ${isCompareSelected ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : compareMode ? 'bg-slate-700 text-slate-300 border border-slate-600 hover:bg-slate-600' : 'bg-slate-800 text-slate-500 border border-slate-700 hover:text-slate-300 hover:bg-slate-700'}`} title="Select for compare">

@@ -17,6 +17,7 @@ export interface Webhook {
   isReplay: boolean;
   originalId: string | null;
   createdAt: string;
+  _count?: { comments: number };
 }
 
 interface Pagination {

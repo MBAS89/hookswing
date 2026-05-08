@@ -17,6 +17,7 @@ export type ActivityAction =
   | 'custom_slug_changed'
   | 'export_downloaded'
   | 'comment_added'
+  | 'comment_replied'
   | 'comment_deleted';
 
 export async function logActivity({
@@ -67,5 +68,6 @@ export const actionLabels: Record<ActivityAction, string> = {
   custom_slug_changed: 'changed the custom slug',
   export_downloaded: 'downloaded an export',
   comment_added: 'added a comment',
+  comment_replied: 'replied to a comment',
   comment_deleted: 'deleted a comment',
 };
