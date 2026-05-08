@@ -19,6 +19,154 @@ import {
 
 const router = Router();
 
+function cliSuccessPage(accessToken: string, refreshToken: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HookSwing CLI — Login Success</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .container {
+      max-width: 560px;
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px;
+    }
+    h1 { font-size: 20px; margin-bottom: 8px; color: #fff; }
+    p { color: #94a3b8; margin-bottom: 20px; font-size: 14px; line-height: 1.5; }
+    .token-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .token-box label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .token-box code {
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 12px;
+      color: #e2e8f0;
+      word-break: break-all;
+      display: block;
+      line-height: 1.4;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #334155;
+      color: #e2e8f0;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: #475569; }
+    .done { text-align: center; margin-top: 24px; }
+    .done-icon { font-size: 40px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="done"><div class="done-icon">✅</div></div>
+    <h1>CLI Login Successful</h1>
+    <p>Copy the tokens below and paste them into your terminal when prompted.</p>
+
+    <div class="token-box">
+      <label>Access Token</label>
+      <code id="at">${accessToken}</code>
+      <button class="copy-btn" onclick="copy('at')">Copy</button>
+    </div>
+
+    <div class="token-box">
+      <label>Refresh Token</label>
+      <code id="rt">${refreshToken}</code>
+      <button class="copy-btn" onclick="copy('rt')">Copy</button>
+    </div>
+
+    <p style="margin-top:20px;font-size:13px;">After copying, return to your terminal and paste the tokens to complete login.</p>
+  </div>
+  <script>
+    function copy(id) {
+      const text = document.getElementById(id).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('[onclick="copy(\\'' + id + '\\')"]');
+        btn.innerText = 'Copied!';
+        setTimeout(() => btn.innerText = 'Copy', 1500);
+      });
+    }
+  </script>
+</body>
+</html>`;
+}
+
+function cliErrorPage(message: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HookSwing CLI — Login Failed</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .container {
+      max-width: 480px;
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+    h1 { font-size: 20px; margin: 12px 0 8px; color: #fff; }
+    p { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+    .icon { font-size: 40px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">❌</div>
+    <h1>CLI Login Failed</h1>
+    <p>${message}</p>
+    <p style="margin-top:16px;">Please close this window and try again in your terminal:<br><code style="color:#fbbf24;">hookswing login --github</code></p>
+  </div>
+</body>
+</html>`;
+}
+
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -72,7 +220,8 @@ router.get('/github', (req, res) => {
   }
 
   const redirectUri = `${process.env.FRONTEND_URL || 'https://hookswing.com'}/api/auth/github/callback`;
-  const state = Math.random().toString(36).substring(2, 15);
+  const mode = req.query.mode as string || 'web';
+  const state = Buffer.from(JSON.stringify({ random: Math.random().toString(36).substring(2, 15), mode })).toString('base64');
 
   const url = new URL('https://github.com/login/oauth/authorize');
   url.searchParams.set('client_id', clientId);
@@ -84,15 +233,30 @@ router.get('/github', (req, res) => {
 });
 
 router.get('/github/callback', async (req, res) => {
-  const { code, error: githubError, error_description: githubErrorDesc } = req.query as { code?: string; error?: string; error_description?: string };
+  const { code, state, error: githubError, error_description: githubErrorDesc } = req.query as { code?: string; state?: string; error?: string; error_description?: string };
+
+  // Decode state to check if this is a CLI login
+  let mode = 'web';
+  try {
+    if (state) {
+      const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+      mode = decoded.mode || 'web';
+    }
+  } catch { /* ignore invalid state */ }
 
   if (githubError) {
     console.error('[GitHub OAuth] GitHub returned error:', githubError, githubErrorDesc);
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('GitHub login denied or failed.'));
+    }
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=github_denied`);
   }
 
   if (!code) {
     console.error('[GitHub OAuth] No code in query params');
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('No authorization code received from GitHub.'));
+    }
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=no_code`);
   }
 
@@ -101,6 +265,9 @@ router.get('/github/callback', async (req, res) => {
 
   if (!clientId || !clientSecret) {
     console.error('[GitHub OAuth] Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET');
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('GitHub OAuth is not configured on the server.'));
+    }
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=oauth_not_configured`);
   }
 
@@ -127,12 +294,18 @@ router.get('/github/callback', async (req, res) => {
 
     if (tokenRes.data.error) {
       console.error('[GitHub OAuth] GitHub token error:', tokenRes.data.error, tokenRes.data.error_description);
+      if (mode === 'cli') {
+        return res.type('html').send(cliErrorPage(`GitHub token exchange failed: ${tokenRes.data.error}`));
+      }
       return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_exchange_failed&detail=${encodeURIComponent(tokenRes.data.error)}`);
     }
 
     accessToken = tokenRes.data.access_token;
     if (!accessToken) {
       console.error('[GitHub OAuth] No access token in response:', tokenRes.data);
+      if (mode === 'cli') {
+        return res.type('html').send(cliErrorPage('No access token received from GitHub.'));
+      }
       return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_exchange_failed`);
     }
   } catch (err: any) {
@@ -151,6 +324,9 @@ router.get('/github/callback', async (req, res) => {
     console.log('[GitHub OAuth] GitHub user:', JSON.stringify({ id: githubUser.id, login: githubUser.login, name: githubUser.name, email: githubUser.email }));
   } catch (err: any) {
     console.error('[GitHub OAuth] Profile fetch error:', err.response?.data || err.message);
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Failed to fetch your GitHub profile.'));
+    }
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=github_api_error`);
   }
 
@@ -177,6 +353,9 @@ router.get('/github/callback', async (req, res) => {
 
   if (!githubId || !email) {
     console.error('[GitHub OAuth] Missing githubId or email:', { githubId, email });
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Could not retrieve your GitHub email. Please make sure your email is verified on GitHub.'));
+    }
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=github_no_email`);
   }
 
@@ -212,6 +391,9 @@ router.get('/github/callback', async (req, res) => {
     }
   } catch (err: any) {
     console.error('[GitHub OAuth] DB error:', err.message);
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Database error. Please try again.'));
+    }
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=db_error`);
   }
 
@@ -227,6 +409,11 @@ router.get('/github/callback', async (req, res) => {
       },
     });
 
+    if (mode === 'cli') {
+      console.log('[GitHub OAuth] CLI mode — showing token page');
+      return res.type('html').send(cliSuccessPage(jwtAccess, refreshToken));
+    }
+
     const redirectUrl = new URL(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/auth/github/callback`);
     redirectUrl.searchParams.set('accessToken', jwtAccess);
     redirectUrl.searchParams.set('refreshToken', refreshToken);
@@ -235,6 +422,9 @@ router.get('/github/callback', async (req, res) => {
     res.redirect(redirectUrl.toString());
   } catch (err: any) {
     console.error('[GitHub OAuth] Token generation error:', err.message);
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Token generation failed. Please try again.'));
+    }
     return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_gen_error`);
   }
 });
