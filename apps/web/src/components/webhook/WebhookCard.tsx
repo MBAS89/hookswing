@@ -51,7 +51,17 @@ export default function WebhookCard({
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'query' | 'comments' | 'replay'>('body');
   const [cardComments, setCardComments] = useState<any[]>([]);
   const [cardCommentsLoading, setCardCommentsLoading] = useState(false);
+  const [commentCount, setCommentCount] = useState(webhook._count?.comments || 0);
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
+
+  // Fetch comment count if backend doesn't provide _count yet
+  useEffect(() => {
+    if (webhook._count?.comments) return;
+    api.get(`/webhooks/${webhook.id}/comments`).then((res) => {
+      const count = Array.isArray(res.data) ? res.data.length : 0;
+      setCommentCount(count);
+    }).catch(() => {});
+  }, [webhook.id, webhook._count?.comments]);
 
   // Replay state
   const [replayUrl, setReplayUrl] = useState(() => localStorage.getItem('lastReplayUrl') || 'http://localhost:3000/webhook');
@@ -127,9 +137,9 @@ export default function WebhookCard({
         <div className="flex items-center gap-3 text-xs text-slate-400">
           <span>{webhook.source || 'custom'}</span><span>•</span><span>{formatBytes(bodySize)}</span><span>•</span><span className="font-mono">{webhook.ip}</span>
           {webhook.statusCode && <><span>•</span><span className={`font-mono ${webhook.statusCode >= 200 && webhook.statusCode < 300 ? 'text-emerald-400' : webhook.statusCode >= 400 ? 'text-red-400' : 'text-amber-400'}`}>{webhook.statusCode}</span></>}
-          {webhook._count && webhook._count.comments > 0 && (
+          {commentCount > 0 && (
             <span className="flex items-center gap-1 text-xs font-bold text-white bg-sky-500 px-2 py-0.5 rounded-full shadow-sm shadow-sky-500/20">
-              <MessageSquare className="w-3.5 h-3.5 fill-white/20" />{webhook._count.comments}
+              <MessageSquare className="w-3.5 h-3.5 fill-white/20" />{commentCount}
             </span>
           )}
           <button onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }} className="ml-auto flex items-center gap-1 text-slate-500 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50">
@@ -142,7 +152,7 @@ export default function WebhookCard({
         <div className="border-t border-slate-800">
           <div className="flex border-b border-slate-800">
             {(
-              [{id:'overview',label:'Overview'},{id:'headers',label:'Headers'},{id:'body',label:'Body'},{id:'query',label:'Query'},{id:'comments',label:`Comments${webhook._count?.comments ? ` (${webhook._count.comments})` : ''}`},...(canReplay?[{id:'replay',label:'Replay'}]:[{id:undefined,label:''}].filter(()=>false))] as {id:'overview'|'headers'|'body'|'query'|'comments'|'replay';label:string}[]
+              [{id:'overview',label:'Overview'},{id:'headers',label:'Headers'},{id:'body',label:'Body'},{id:'query',label:'Query'},{id:'comments',label:`Comments${commentCount > 0 ? ` (${commentCount})` : ''}`},...(canReplay?[{id:'replay',label:'Replay'}]:[{id:undefined,label:''}].filter(()=>false))] as {id:'overview'|'headers'|'body'|'query'|'comments'|'replay';label:string}[]
             ).map(t => (
               <button key={t.id} onClick={() => { setActiveTab(t.id); if (t.id==='comments') { setCardCommentsLoading(true); api.get(`/webhooks/${webhook.id}/comments`).then(r=>setCardComments(r.data)).catch(()=>setCardComments([])).finally(()=>setCardCommentsLoading(false)); }}} className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${activeTab===t.id?'text-emerald-400 border-b-2 border-emerald-500':'text-slate-500 hover:text-slate-300'}`}>{t.label}</button>
             ))}
