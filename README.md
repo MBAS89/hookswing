@@ -23,6 +23,8 @@ Free webhook bins delete your data. ngrok tunnels die when your laptop sleeps. H
 - **Team sharing** — one URL, whole team sees the same feed in real time
 - **Smart alerts** — Slack, Discord, and Telegram notifications
 - **Custom subdomains** — clean URLs like `/hook/my-company` (Pro/Team)
+- **Path preservation** — webhooks sent to `/hook/abc123/api/webhook` forward to `localhost:3000/api/webhook`
+- **GitHub OAuth login** — one-click CLI authentication
 - **Email verification & 2FA** — enterprise-grade security
 
 ## Architecture
@@ -69,10 +71,13 @@ hookswing/
 - **Billing** — Stripe-powered subscriptions with Customer Portal
 
 ### CLI (Open Source)
-- **Forward** — WebSocket-based forwarding to localhost (no ngrok)
+- **Forward** — WebSocket-based forwarding to localhost (no ngrok), preserves original request paths
+- **GitHub OAuth** — `hookswing login --github` opens browser, no copy-paste
+- **Auto token refresh** — Uses 30-day refresh tokens, stays connected through access token expiry
 - **List** — Projects and webhook counts
 - **Replay** — Replay webhooks from terminal (Pro/Team)
 - **Web CLI** — Browser-based terminal at `/dashboard/cli`, no install required
+- **Visual feedback** — ASCII logo, colored method/status output, session timer, live usage bar
 
 ## Quick Start (Local Dev)
 
@@ -155,23 +160,38 @@ npm link
 # Authenticate
 hookswing login
 
-# Forward webhooks to localhost
-hookswing forward abc123def456 http://localhost:3000/webhook
+# Or log in with GitHub (opens browser automatically)
+hookswing login --github
+
+# Forward webhooks to localhost (path preserved automatically)
+hookswing forward abc123def456 http://localhost:3000
 
 # Or use your custom slug
-hookswing forward my-company http://localhost:3000/webhook
+hookswing forward my-company http://localhost:3000
 ```
+
+**Path preservation:** A webhook sent to `/hook/abc123/api/webhook` is forwarded to `http://localhost:3000/api/webhook` automatically. The path after the slug is kept intact.
 
 Output:
 ```
-🪝 HookSwing Forwarder
-   Project: My SaaS (abc123def456)
-   Target:  http://localhost:3000/webhook
+  _    _               ____                  _     
+ | |  | |             / ___| _   _ ___  __ _| |    
+ | |__| | _____      _\___ \| | | / __|/ _` | |    
+ |  __  |/ _ \ \ /\ / /___) | |_| \__ \ (_| | |    
+ | |  | | (_) \ V  V //___ \>  _ <| |_) \__,_| |    
+ |_|  |_|\___/ \_/\_/ \____/_| \_\ .__/ \__, |_|    
+                                 |_|    |___/      
 
-   [Press Ctrl+C to stop]
+  Target: http://localhost:3000
+  Project: My SaaS (abc123def456)
 
-[14:32:10] POST  200  1.2KB  45ms  stripe:invoice.payment_succeeded
-[14:35:22] POST  500  0.8KB  12ms  github:push  ⚠️ Server Error
+  Session: 00:12:34  |  Requests: 8 / 100 ████████░░
+
+  [Press Ctrl+C to stop]
+
+[14:32:10] POST   /api/webhook       200   (stripe)
+[14:35:22] POST   /api/webhook       500   (github)  ⚠️ Server Error
+[14:37:01] GET    /health            200   (custom)
 ```
 
 ### Replay a Webhook
