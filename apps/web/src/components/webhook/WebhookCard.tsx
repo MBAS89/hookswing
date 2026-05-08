@@ -48,7 +48,9 @@ export default function WebhookCard({
   canReplay?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'query' | 'replay'>('body');
+  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'query' | 'comments' | 'replay'>('body');
+  const [cardComments, setCardComments] = useState<any[]>([]);
+  const [cardCommentsLoading, setCardCommentsLoading] = useState(false);
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
 
   // Replay state
@@ -140,9 +142,9 @@ export default function WebhookCard({
         <div className="border-t border-slate-800">
           <div className="flex border-b border-slate-800">
             {(
-              [{id:'overview',label:'Overview'},{id:'headers',label:'Headers'},{id:'body',label:'Body'},{id:'query',label:'Query'},...(canReplay?[{id:'replay',label:'Replay'}]:[{id:undefined,label:''}].filter(()=>false))] as {id:'overview'|'headers'|'body'|'query'|'replay';label:string}[]
+              [{id:'overview',label:'Overview'},{id:'headers',label:'Headers'},{id:'body',label:'Body'},{id:'query',label:'Query'},{id:'comments',label:`Comments${webhook._count?.comments ? ` (${webhook._count.comments})` : ''}`},...(canReplay?[{id:'replay',label:'Replay'}]:[{id:undefined,label:''}].filter(()=>false))] as {id:'overview'|'headers'|'body'|'query'|'comments'|'replay';label:string}[]
             ).map(t => (
-              <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${activeTab===t.id?'text-emerald-400 border-b-2 border-emerald-500':'text-slate-500 hover:text-slate-300'}`}>{t.label}</button>
+              <button key={t.id} onClick={() => { setActiveTab(t.id); if (t.id==='comments') { setCardCommentsLoading(true); api.get(`/webhooks/${webhook.id}/comments`).then(r=>setCardComments(r.data)).catch(()=>setCardComments([])).finally(()=>setCardCommentsLoading(false)); }}} className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${activeTab===t.id?'text-emerald-400 border-b-2 border-emerald-500':'text-slate-500 hover:text-slate-300'}`}>{t.label}</button>
             ))}
           </div>
           <div className="p-4 max-h-[32rem] overflow-auto">
@@ -169,6 +171,47 @@ export default function WebhookCard({
                 {webhook.query&&typeof webhook.query==='object'&&Object.keys(webhook.query).length>0?Object.entries(webhook.query).map(([k,v])=>(
                   <div key={k} className="flex items-start gap-3 py-1.5 border-b border-slate-800/50 last:border-0"><span className="text-emerald-400 text-xs font-mono shrink-0 w-28 truncate">{k}</span><span className="text-slate-300 text-xs break-all">{String(v)}</span></div>
                 )):<p className="text-xs text-slate-500">No query params</p>}
+              </div>
+            )}
+
+            {/* ===== COMMENTS TAB ===== */}
+            {activeTab==='comments'&&(
+              <div className="space-y-2">
+                {cardCommentsLoading ? (
+                  <div className="flex items-center justify-center h-16"><Loader2 className="w-4 h-4 text-emerald-400 animate-spin"/></div>
+                ) : cardComments.length === 0 ? (
+                  <p className="text-xs text-slate-500 text-center py-4">No comments yet</p>
+                ) : (
+                  cardComments.map((comment: any) => (
+                    <div key={comment.id} className="bg-slate-800/50 rounded-lg p-2.5">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[10px] font-bold">
+                          {(comment.user?.name || comment.user?.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-[11px] font-medium text-slate-300">{comment.user?.name || comment.user?.email}</span>
+                        <span className="text-[10px] text-slate-600">{formatDate(comment.createdAt)}</span>
+                        <span className="ml-auto flex items-center gap-2 text-[10px] text-slate-500">
+                          {comment.likes > 0 && <span className="text-emerald-400">▲ {comment.likes}</span>}
+                          {comment.dislikes > 0 && <span className="text-red-400">▼ {comment.dislikes}</span>}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-200">{comment.content}</p>
+                      {comment.replies?.length > 0 && (
+                        <div className="mt-1.5 ml-2 pl-2 border-l border-slate-700/50 space-y-1.5">
+                          {comment.replies.map((reply: any) => (
+                            <div key={reply.id}>
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-[10px] font-medium text-slate-400">{reply.user?.name || reply.user?.email}</span>
+                                <span className="text-[9px] text-slate-600">{formatDate(reply.createdAt)}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-300">{reply.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             )}
 
