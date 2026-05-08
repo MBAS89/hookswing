@@ -132,12 +132,12 @@ async function handleHook(req: express.Request, res: express.Response) {
     // Broadcast to WebSocket clients (CLI)
     const connections = wsConnections.get(slug);
     if (connections) {
+      const active = Array.from(connections).filter((ws) => ws.readyState === 1);
+      if (active.length > 1) {
+        console.log(`[WS] Broadcasting webhook to ${active.length} connections for slug: ${slug}`);
+      }
       const payload = JSON.stringify({ type: 'webhook', data: webhook });
-      connections.forEach((ws) => {
-        if (ws.readyState === 1) {
-          ws.send(payload);
-        }
-      });
+      active.forEach((ws) => ws.send(payload));
     }
 
     // Fire alerts (async, don't block response)
@@ -351,10 +351,10 @@ wss.on('connection', (ws, req) => {
     try {
       const data = JSON.parse(message.toString());
       if (data.action === 'subscribe' && data.slug) {
-        console.log(`[WS] Client subscribed to slug: ${data.slug}`);
         const connections = wsConnections.get(data.slug) || new Set();
         connections.add(ws);
         wsConnections.set(data.slug, connections);
+        console.log(`[WS] Client subscribed to slug: ${data.slug} — ${connections.size} total connection(s)`);
       } else if (data.action === 'heartbeat') {
         resetHeartbeatTimeout();
         if (ws.readyState === 1) {
