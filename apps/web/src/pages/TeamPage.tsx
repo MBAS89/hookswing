@@ -41,7 +41,7 @@ interface TeamInvite {
 }
 
 export default function TeamPage() {
-  const { user, updateUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTeamName, setNewTeamName] = useState('');
@@ -114,13 +114,7 @@ export default function TeamPage() {
       setCreating(false);
       return;
     }
-    // Refresh auth context in background — don't block or error if this fails
-    try {
-      const meRes = await api.get('/auth/me');
-      updateUser(meRes.data.user);
-    } catch {
-      // Auth refresh failed but team was created — ignore
-    }
+    await refreshUser();
     setCreating(false);
   };
 
@@ -144,13 +138,6 @@ export default function TeamPage() {
       alert(err.response?.data?.error || 'Failed to delete team');
       return;
     }
-    // Refresh auth context in background
-    try {
-      const meRes = await api.get('/auth/me');
-      updateUser(meRes.data.user);
-    } catch {
-      // ignore
-    }
   };
 
   const leaveTeam = async (teamId: string) => {
@@ -162,13 +149,7 @@ export default function TeamPage() {
       alert(err.response?.data?.error || 'Failed to leave team');
       return;
     }
-    // Refresh auth context in background
-    try {
-      const meRes = await api.get('/auth/me');
-      updateUser(meRes.data.user);
-    } catch {
-      // ignore
-    }
+    await refreshUser();
   };
 
   const transferOwnership = async (teamId: string) => {
@@ -201,6 +182,7 @@ export default function TeamPage() {
       await api.post(`/teams/invites/${token}/accept`);
       setMyInvites((prev) => prev.filter((i) => i.token !== token));
       fetchTeams();
+      await refreshUser();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to accept invite');
     }
@@ -210,6 +192,7 @@ export default function TeamPage() {
     try {
       await api.post(`/teams/invites/${token}/decline`);
       setMyInvites((prev) => prev.filter((i) => i.token !== token));
+      await refreshUser();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to decline invite');
     }

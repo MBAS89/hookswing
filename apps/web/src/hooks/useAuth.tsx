@@ -29,6 +29,7 @@ interface AuthContextType {
   register: (email: string, password: string, name?: string) => Promise<any>;
   logout: () => void;
   updateUser: (user: User) => void;
+  refreshUser: () => Promise<void>;
   setUnreadNotifications: (count: number) => void;
 }
 
@@ -117,8 +118,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(updatedUser);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await api.get('/auth/me');
+      setUser(res.data.user);
+      setPendingInvites(res.data.pendingInvites || 0);
+      setUnreadNotifications(res.data.unreadNotifications || 0);
+    } catch {
+      // silent fail
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, pendingInvites, unreadNotifications, loading, login, verify2FA, verifyEmail, resendVerification, register, logout, updateUser, setUnreadNotifications }}>
+    <AuthContext.Provider value={{ user, pendingInvites, unreadNotifications, loading, login, verify2FA, verifyEmail, resendVerification, register, logout, updateUser, refreshUser, setUnreadNotifications }}>
       {children}
     </AuthContext.Provider>
   );

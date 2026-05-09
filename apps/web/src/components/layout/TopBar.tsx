@@ -67,7 +67,7 @@ function timeAgo(iso: string) {
 }
 
 export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -101,6 +101,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
     try {
       await api.post(`/teams/invites/${token}/accept`);
       await markRead(notifId);
+      await refreshUser();
       refresh();
     } catch (e) {
       // silent
@@ -114,6 +115,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
     try {
       await api.post(`/teams/invites/${token}/decline`);
       await markRead(notifId);
+      await refreshUser();
       refresh();
     } catch (e) {
       // silent
