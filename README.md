@@ -173,11 +173,17 @@ hookswing login
 hookswing login --github
 
 # Forward webhooks to localhost (path preserved automatically)
+# Shorthand: just type the port number
+hookswing forward abc123def456 3000
+
+# Or the full localhost URL
 hookswing forward abc123def456 http://localhost:3000
 
 # Or use your custom slug
-hookswing forward my-company http://localhost:3000
+hookswing forward my-company localhost:3000
 ```
+
+**URL shorthand:** You can type just the port number (`3000`), `localhost:3000`, or the full URL (`http://localhost:3000`). Any port works — `8080`, `1337`, `9999`, etc.
 
 **Path preservation:** A webhook sent to `/hook/abc123/api/webhook` is forwarded to `http://localhost:3000/api/webhook` automatically. The path after the slug is kept intact.
 
@@ -206,10 +212,11 @@ Output:
 ### Replay a Webhook
 
 ```bash
-# From CLI
-hookswing replay wh_123abc456 http://localhost:3000/webhook
+# From CLI (port shorthand works here too)
+hookswing replay wh_123abc456 3000
 
-# Send a realistic test payload
+# Send a realistic test payload (any port or full URL)
+hookswing test stripe invoice.payment_succeeded 3000
 hookswing test stripe invoice.payment_succeeded https://hookswing.com/hook/abc123
 
 # Or in the web dashboard — click any webhook, hit Replay, edit the target URL

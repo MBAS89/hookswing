@@ -306,9 +306,18 @@ hookswing logout
 # Removes config file`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.3 Forward Webhooks to Localhost</h3>
-              <CodeBlock code={`hookswing forward abc123def456 http://localhost:3000`} />
-              <p className="text-slate-300 mt-3">You can also use your custom slug:</p>
-              <CodeBlock code={`hookswing forward my-company http://localhost:3000`} />
+              <p className="text-slate-300 mb-2">You can type just the port number, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">localhost:port</code>, or the full URL. Any port works.</p>
+              <CodeBlock code={`# Just the port — easiest
+hookswing forward abc123def456 3000
+
+# Or localhost:port
+hookswing forward abc123def456 localhost:3000
+
+# Or the full URL
+hookswing forward abc123def456 http://localhost:3000
+
+# Custom slug works too
+hookswing forward my-company 8080`} />
               <p className="text-slate-300 mt-3">Output:</p>
               <CodeBlock code={`  _    _               ____                  _     
  | |  | |             / ___| _   _ ___  __ _| |    
@@ -329,10 +338,11 @@ hookswing logout
 [03:18:15] POST   /api/webhook       500   (github)  ⚠️ Server Error`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.4 Send Test Payloads</h3>
-              <CodeBlock code={`hookswing test stripe invoice.payment_succeeded https://hookswing.com/hook/abc123
+              <p className="text-slate-300 mb-2">Port shorthand works here too — <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">3000</code> becomes <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">http://localhost:3000</code> automatically.</p>
+              <CodeBlock code={`hookswing test stripe invoice.payment_succeeded 3000
 # → 200 OK in 245ms — source: stripe
 
-hookswing test github push http://localhost:3000/webhook
+hookswing test github push localhost:3000/webhook
 # → 200 OK in 12ms — source: github
 
 hookswing test shopify orders/create https://your-app.com/webhook
@@ -344,7 +354,9 @@ hookswing test shopify orders/create https://your-app.com/webhook
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.6 Replay from CLI</h3>
               <p className="text-slate-300 mb-2"><span className="text-amber-400 font-medium">Available on: Pro and Team plans.</span></p>
-              <CodeBlock code={`hookswing replay wh_123abc456 http://localhost:3000/webhook`} />
+              <CodeBlock code={`hookswing replay wh_123abc456 3000
+# or
+hookswing replay wh_123abc456 http://localhost:3000/webhook`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.7 Update CLI</h3>
               <CodeBlock code={`npm update -g hookswing`} />

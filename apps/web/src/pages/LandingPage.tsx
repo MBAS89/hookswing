@@ -137,7 +137,7 @@ function Hero() {
               <div className="w-3 h-3 rounded-full bg-red-500" />
               <div className="w-3 h-3 rounded-full bg-amber-500" />
               <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span className="ml-2 text-xs text-slate-400 font-mono">hookswing forward abc123 http://localhost:3000/webhook</span>
+              <span className="ml-2 text-xs text-slate-400 font-mono">hookswing forward abc123 3000</span>
             </div>
             <div className="p-6 font-mono text-sm text-left space-y-2">
               <div className="text-slate-400">🪝 HookSwing Forwarder</div>
@@ -306,10 +306,10 @@ function DeepDiveSection() {
               <div className="p-4 space-y-1 text-slate-300">
                 <div><span className="text-emerald-400">$</span> npm install -g hookswing</div>
                 <div className="text-slate-500">+ hookswing@1.0.17</div>
-                <div className="pt-2"><span className="text-emerald-400">$</span> hookswing test stripe invoice.payment_succeeded https://hookswing.com/hook/abc123</div>
-                <div className="text-slate-500 pt-1">→ 200 OK in 245ms — source: stripe</div>
-                <div className="pt-2"><span className="text-emerald-400">$</span> hookswing forward abc123 http://localhost:3000</div>
-                <div className="text-slate-500 pt-1">Connected. Forwarding webhooks...</div>
+                <div className="pt-2"><span className="text-emerald-400">$</span> hookswing test stripe invoice.payment_succeeded 3000</div>
+                <div className="text-slate-500 pt-1">→ 200 OK in 245ms — source: stripe (normalized from "3000")</div>
+                <div className="pt-2"><span className="text-emerald-400">$</span> hookswing forward abc123 3000</div>
+                <div className="text-slate-500 pt-1">Connected. Forwarding webhooks to http://localhost:3000...</div>
               </div>
             </div>
           </div>

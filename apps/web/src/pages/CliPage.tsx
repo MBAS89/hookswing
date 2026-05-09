@@ -210,6 +210,7 @@ export default function CliPage() {
       _hasWelcomed = true;
       liveRef.addLine('info', 'HookSwing Browser CLI v1.1.0');
       liveRef.addLine('info', 'Type "help" for available commands.');
+      liveRef.addLine('info', 'Tip: Type just the port number (e.g. 3000) — it becomes http://localhost:3000');
       liveRef.addLine('info', '');
     }
   }, []);
@@ -408,11 +409,14 @@ export default function CliPage() {
         liveRef.addLine('output', '  projects, list      List your projects');
         liveRef.addLine('output', '  webhooks <slug>     List recent webhooks for a project');
         liveRef.addLine('output', '  forward <slug> <url> Forward webhooks to a local server');
+        liveRef.addLine('output', '                       (port shorthand: 3000 → http://localhost:3000)');
         liveRef.addLine('output', '  listen <slug>       Watch webhooks without forwarding');
         liveRef.addLine('output', '  stop                Stop listening');
         liveRef.addLine('output', '  replay <id> <url>   Replay a webhook to a URL');
+        liveRef.addLine('output', '                       (port shorthand: 3000 → http://localhost:3000)');
         liveRef.addLine('output', '  curl <id>           Copy curl command to replay a webhook');
         liveRef.addLine('output', '  tester <provider> <event> <url>  Send a test payload');
+        liveRef.addLine('output', '                                    (port shorthand: 3000 → http://localhost:3000)');
         liveRef.addLine('output', '  clear               Clear terminal');
         break;
 
