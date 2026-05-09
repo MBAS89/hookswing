@@ -512,8 +512,9 @@ router.post('/alerts/:id/test', async (req: AuthRequest, res) => {
 
     res.json({ success: true });
   } catch (err: any) {
-    console.error('[AdminAlert] Test failed:', err.message);
-    res.status(500).json({ error: 'Failed to send test message. Check your bot token and chat ID.' });
+    const telegramError = err.response?.data?.description || err.message;
+    console.error('[AdminAlert] Test failed:', telegramError);
+    res.status(500).json({ error: `Telegram: ${telegramError}` });
   }
 });
 

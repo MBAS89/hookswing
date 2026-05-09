@@ -113,10 +113,11 @@ export async function fireAdminAlert(event: AdminAlertEvent, data: Record<string
           );
         }
       } catch (err: any) {
-        console.error(`[AdminAlert] Failed to send ${config.type} alert for ${event}:`, err.message);
+        const telegramError = err.response?.data?.description || err.message;
+        console.error(`[AdminAlert] Failed to send ${config.type} alert for ${event}:`, telegramError);
       }
     }
   } catch (err: any) {
-    console.error('[AdminAlert] Error firing admin alert:', err.message);
+    console.error('[AdminAlert] Error firing admin alert:', err.message || err);
   }
 }
