@@ -67,7 +67,7 @@ function timeAgo(iso: string) {
 }
 
 export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
-  const { user, logout, unreadNotifications, setUnreadNotifications } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -75,6 +75,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const notifRef = useRef<HTMLDivElement>(null);
   const {
     notifications,
+    unreadCount,
     markRead,
     markAllRead,
     deleteNotification,
@@ -123,7 +124,6 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
 
   const handleMarkAllRead = async () => {
     await markAllRead();
-    setUnreadNotifications(0);
   };
 
   const handleDelete = async (id: string) => {
@@ -133,7 +133,6 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const handleNotifClick = (n: any) => {
     if (!n.read) {
       markRead(n.id);
-      setUnreadNotifications(Math.max(0, unreadNotifications - 1));
     }
     if (n.data?.teamId) {
       navigate(`/dashboard/teams`);
@@ -167,9 +166,9 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
             className="relative text-slate-400 hover:text-white transition-colors"
           >
             <Bell className="w-5 h-5" />
-            {unreadNotifications > 0 && (
+            {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
-                {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </button>
@@ -178,7 +177,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
             <div className="absolute right-0 mt-3 w-[360px] max-h-[480px] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
                 <h3 className="text-sm font-semibold text-white">Notifications</h3>
-                {unreadNotifications > 0 && (
+                {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
                     className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
@@ -256,10 +255,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 {!n.read && (
                                   <button
-                                    onClick={() => {
-                                      markRead(n.id);
-                                      setUnreadNotifications(Math.max(0, unreadNotifications - 1));
-                                    }}
+                                    onClick={() => markRead(n.id)}
                                     className="p-1 text-slate-500 hover:text-emerald-400 transition-colors"
                                     title="Mark read"
                                   >
