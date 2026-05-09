@@ -88,11 +88,12 @@ function TestResultCard({
   );
 }
 
-function FixCodeBlock({ framework, provider }: { framework: string; provider: string }) {
+function FixCodeBlock({ framework, provider, plan }: { framework: string; provider: string; plan: string }) {
   const [code, setCode] = useState<string | null>(null);
   const [language, setLanguage] = useState('javascript');
   const [criticalNote, setCriticalNote] = useState('');
   const [copied, setCopied] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -101,9 +102,39 @@ function FixCodeBlock({ framework, provider }: { framework: string; provider: st
         setCode(res.data.code);
         setLanguage(res.data.language);
         setCriticalNote(res.data.criticalNote);
+        setBlocked(false);
       })
-      .catch(() => setCode(null));
+      .catch((err) => {
+        if (err.response?.status === 403) {
+          setBlocked(true);
+        }
+        setCode(null);
+      });
   }, [framework, provider]);
+
+  if (blocked) {
+    return (
+      <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-6">
+        <div className="flex items-start gap-3">
+          <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-white mb-1">
+              {framework} fix code is a Pro feature
+            </p>
+            <p className="text-xs text-slate-400 mb-3">
+              Free plan includes Express fix code only. Upgrade to Pro for all frameworks.
+            </p>
+            <button
+              onClick={() => window.location.href = '/dashboard/account?tab=billing'}
+              className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+            >
+              Upgrade to Pro
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!code) return null;
 
@@ -153,7 +184,7 @@ export default function HookShieldPage() {
   const [currentScan, setCurrentScan] = useState<ScanResult | null>(null);
   const [scans, setScans] = useState<ScanResult[]>([]);
   const [scansLoading, setScansLoading] = useState(false);
-  const [usage, setUsage] = useState<{ usedThisMonth: number; limit: number; remaining: number } | null>(null);
+  const [usage, setUsage] = useState<{ usedThisMonth: number; limit: number | string; remaining: number | string } | null>(null);
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   const fetchScans = useCallback(async () => {
@@ -245,6 +276,7 @@ export default function HookShieldPage() {
 
   const plan = user?.plan || 'FREE';
   const planLabel = plan === 'FREE' ? 'Free' : plan === 'PRO' ? 'Pro' : 'Team';
+  const isPaid = plan === 'PRO' || plan === 'TEAM';
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -324,15 +356,17 @@ export default function HookShieldPage() {
                   {usage.remaining} remaining
                 </span>
               </div>
-              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    usage.usedThisMonth >= usage.limit ? 'bg-red-500' :
-                    usage.usedThisMonth >= usage.limit * 0.8 ? 'bg-amber-500' : 'bg-emerald-500'
-                  }`}
-                  style={{ width: `${Math.min(100, (usage.usedThisMonth / usage.limit) * 100)}%` }}
-                />
-              </div>
+              {typeof usage.limit === 'number' && (
+                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      usage.usedThisMonth >= usage.limit ? 'bg-red-500' :
+                      usage.usedThisMonth >= usage.limit * 0.8 ? 'bg-amber-500' : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${Math.min(100, (usage.usedThisMonth / usage.limit) * 100)}%` }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -397,7 +431,33 @@ export default function HookShieldPage() {
                   <FixCodeBlock
                     framework={currentScan.detectedFramework}
                     provider={currentScan.provider}
+                    plan={plan}
                   />
+                )}
+
+                {currentScan.status === 'COMPLETED' && isPaid && (
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await api.post(`/security-scans/${currentScan.id}/export`, { format: 'markdown' }, { responseType: 'blob' });
+                          const url = window.URL.createObjectURL(new Blob([res.data]));
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.setAttribute('download', `hookshield-report-${currentScan.id}.md`);
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                        } catch (err: any) {
+                          toast.error(err.response?.data?.error || 'Export failed');
+                        }
+                      }}
+                      className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors border border-slate-700"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      Export Report
+                    </button>
+                  </div>
                 )}
               </>
             )}
@@ -460,6 +520,27 @@ export default function HookShieldPage() {
                       </td>
                       <td className="py-2.5 px-3 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {isPaid && scan.status === 'COMPLETED' && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await api.post(`/security-scans/${scan.id}/export`, { format: 'markdown' }, { responseType: 'blob' });
+                                  const url = window.URL.createObjectURL(new Blob([res.data]));
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.setAttribute('download', `hookshield-report-${scan.id}.md`);
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  link.remove();
+                                } catch (err: any) {
+                                  toast.error(err.response?.data?.error || 'Export failed');
+                                }
+                              }}
+                              className="text-xs text-slate-400 hover:text-white font-medium"
+                            >
+                              Export
+                            </button>
+                          )}
                           <button
                             onClick={() => handleRescan(scan)}
                             className="text-xs text-emerald-400 hover:text-emerald-300 font-medium"
@@ -479,6 +560,36 @@ export default function HookShieldPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Free plan upgrade banner */}
+          {plan === 'FREE' && (
+            <div className="mt-6 rounded-xl border border-slate-700 bg-slate-900 p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-white mb-1">Unlock Full HookShield Protection</h4>
+                  <p className="text-xs text-slate-400 mb-3">
+                    You're on the Free plan (5 scans/month, last 3 scans kept, Express fixes only).
+                    Upgrade to Pro for 30 scans/month, 90-day history, all framework fixes, and PDF exports.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded">30 scans/month</span>
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded">90-day history</span>
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded">All frameworks</span>
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded">PDF exports</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/dashboard/account?tab=billing')}
+                  className="shrink-0 bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+                >
+                  Upgrade
+                </button>
+              </div>
             </div>
           )}
         </div>

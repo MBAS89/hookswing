@@ -12,10 +12,25 @@ router.use(apiRateLimit);
 
 // Rate limit config per plan
 const SCAN_LIMITS = {
-  FREE: { perHour: 5, perMonth: 30 },
-  PRO: { perHour: 30, perMonth: 500 },
-  TEAM: { perHour: 100, perMonth: 2000 },
+  FREE: { perHour: 5, perMonth: 5 },
+  PRO: { perHour: 30, perMonth: 30 },
+  TEAM: { perHour: 100, perMonth: Infinity },
 };
+
+// History retention per plan
+const HISTORY_LIMITS = {
+  FREE: { maxScans: 3, days: null },      // last 3 scans only
+  PRO: { maxScans: null, days: 90 },      // 90 days
+  TEAM: { maxScans: null, days: null },   // unlimited
+};
+
+// Fix code framework gating
+function canAccessFramework(plan: string, framework: string): boolean {
+  if (plan === 'FREE' && framework.toLowerCase() !== 'express') {
+    return false;
+  }
+  return true;
+}
 
 function isValidTargetUrl(url: string): boolean {
   try {
@@ -148,7 +163,7 @@ async function checkRateLimits(userId: string, plan: string) {
   const monthCount = await prisma.securityScan.count({
     where: { userId, createdAt: { gte: monthStart } },
   });
-  if (monthCount >= limits.perMonth) {
+  if (limits.perMonth !== Infinity && monthCount >= limits.perMonth) {
     return { allowed: false, reason: `Scan limit reached: ${limits.perMonth} per month` };
   }
 
@@ -331,12 +346,20 @@ router.get('/', async (req: AuthRequest, res) => {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // Apply plan-based history limits
+  const historyLimit = HISTORY_LIMITS[plan as keyof typeof HISTORY_LIMITS] || HISTORY_LIMITS.FREE;
+  const historyWhere: any = { userId, deletedAt: null };
+  if (historyLimit.days) {
+    const cutoff = new Date(Date.now() - historyLimit.days * 24 * 60 * 60 * 1000);
+    historyWhere.createdAt = { gte: cutoff };
+  }
+
   const [scans, total, usedThisMonth] = await Promise.all([
     prisma.securityScan.findMany({
-      where: { userId, deletedAt: null },
+      where: historyWhere,
       orderBy: { createdAt: 'desc' },
       skip,
-      take: limit,
+      take: historyLimit.maxScans ?? limit,
       select: {
         id: true,
         targetUrl: true,
@@ -366,9 +389,10 @@ router.get('/', async (req: AuthRequest, res) => {
     totalPages: Math.ceil(total / limit),
     usage: {
       usedThisMonth,
-      limit: scanLimit,
-      remaining: Math.max(0, scanLimit - usedThisMonth),
+      limit: scanLimit === Infinity ? 'unlimited' : scanLimit,
+      remaining: scanLimit === Infinity ? 'unlimited' : Math.max(0, scanLimit - usedThisMonth),
     },
+    plan,
   });
 });
 
@@ -408,6 +432,15 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 router.get('/fix-code', async (req: AuthRequest, res) => {
   const framework = (req.query.framework as string) || 'express';
   const provider = (req.query.provider as string) || 'STRIPE';
+  const plan = req.user!.plan || 'FREE';
+
+  if (!canAccessFramework(plan, framework)) {
+    return res.status(403).json({
+      error: 'Framework-specific fix code is a Pro feature. Upgrade to access all frameworks.',
+      upgradeUrl: '/dashboard/account?tab=billing',
+      availableFramework: 'express',
+    });
+  }
 
   const snippet = getFixSnippet(framework, provider);
   if (!snippet) {
@@ -415,6 +448,76 @@ router.get('/fix-code', async (req: AuthRequest, res) => {
   }
 
   res.json(snippet);
+});
+
+// POST /api/security-scans/:id/export — export scan report
+router.post('/:id/export', async (req: AuthRequest, res) => {
+  const userId = req.user!.id;
+  const plan = req.user!.plan || 'FREE';
+  const { format = 'markdown' } = req.body;
+
+  if (plan === 'FREE') {
+    return res.status(403).json({
+      error: 'Export is a Pro feature. Upgrade to export reports.',
+      upgradeUrl: '/dashboard/account?tab=billing',
+    });
+  }
+
+  const scan = await prisma.securityScan.findFirst({
+    where: { id: req.params.id, userId, deletedAt: null },
+  });
+
+  if (!scan) {
+    return res.status(404).json({ error: 'Scan not found' });
+  }
+
+  const results = scan.results as any;
+  const lines = [
+    `# HookShield Security Report`,
+    ``,
+    `**Target:** ${scan.targetUrl}`,
+    `**Provider:** ${scan.provider}`,
+    `**Score:** ${scan.securityScore ?? 'N/A'}/100`,
+    `**Status:** ${scan.isVulnerable ? 'VULNERABLE' : 'SECURE'}`,
+    `**Framework:** ${scan.detectedFramework ?? 'Unknown'}`,
+    `**Date:** ${scan.createdAt}`,
+    ``,
+    `## Test Results`,
+    ``,
+    `| Test | Status Code | Result |`,
+    `|------|-------------|--------|`,
+    `| No Signature | ${results.testA_noSignature?.statusCode ?? '-'} | ${results.testA_noSignature?.passed ? 'PASS' : 'FAIL'} |`,
+    `| Invalid Signature | ${results.testB_invalidSignature?.statusCode ?? '-'} | ${results.testB_invalidSignature?.passed ? 'PASS' : 'FAIL'} |`,
+    `| Wrong Secret | ${results.testC_wrongSecret?.statusCode ?? '-'} | ${results.testC_wrongSecret?.passed ? 'PASS' : 'FAIL'} |`,
+    ``,
+    `## Recommendation`,
+    ``,
+    `${results.summary?.recommendation ?? 'No recommendation available.'}`,
+    ``,
+    `---`,
+    `Generated by HookShield — https://hookswing.com`,
+  ];
+
+  const content = lines.join('\n');
+
+  if (format === 'json') {
+    return res.json({
+      scan: {
+        targetUrl: scan.targetUrl,
+        provider: scan.provider,
+        securityScore: scan.securityScore,
+        isVulnerable: scan.isVulnerable,
+        detectedFramework: scan.detectedFramework,
+        createdAt: scan.createdAt,
+        results: scan.results,
+      },
+    });
+  }
+
+  // Markdown / text export
+  res.setHeader('Content-Type', 'text/markdown');
+  res.setHeader('Content-Disposition', `attachment; filename="hookshield-report-${scan.id}.md"`);
+  res.send(content);
 });
 
 export default router;
