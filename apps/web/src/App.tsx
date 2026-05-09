@@ -31,6 +31,7 @@ import BeeceptorAlternativePage from './pages/alternatives/BeeceptorAlternativeP
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DeleteAccountPage from './pages/DeleteAccountPage';
 import DashboardLayout from './components/layout/DashboardLayout';
+import { usePageTracking } from './hooks/usePageTracking';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -41,6 +42,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
+  usePageTracking();
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
