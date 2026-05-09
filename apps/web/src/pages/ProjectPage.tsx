@@ -40,9 +40,7 @@ export default function ProjectPage() {
   const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
 
   // Capture initial URL params in refs so they survive after re-renders
-  const initialWebhookIdRef = useRef(searchParams.get('webhook'));
   const initialTabRef = useRef(searchParams.get('tab') as 'overview' | 'headers' | 'body' | 'comments' | null);
-  const [pendingWebhookId, setPendingWebhookId] = useState<string | null>(initialWebhookIdRef.current);
   const [filterMethod, setFilterMethod] = useState('');
   const [filterEventType, setFilterEventType] = useState('');
 
@@ -105,39 +103,35 @@ export default function ProjectPage() {
     fetchAlerts();
   }, [id, fetchAlerts]);
 
-  // Auto-select webhook from URL query param — tries loaded list first,
-  // then fetches directly via API if not found (e.g. paginated away)
+  // Auto-select webhook from URL query param — runs once on mount
   useEffect(() => {
-    if (!pendingWebhookId) return;
+    const whId = searchParams.get('webhook');
+    if (!whId) return;
 
-    const wh = webhooks.find((w) => w.id === pendingWebhookId);
-    if (wh) {
-      setSelectedWebhook(wh);
-      setPendingWebhookId(null);
-      return;
-    }
-
-    // Not in loaded list (or list hasn't loaded yet) — fetch directly
-    let cancelled = false;
-    api.get(`/webhooks/${pendingWebhookId}`)
-      .then((res) => {
-        if (cancelled) return;
-        setWebhooks((prev: any) => {
-          if (prev.some((w: any) => w.id === res.data.id)) return prev;
-          return [res.data, ...prev];
+    // Give the normal paginated list a moment to load, then fetch directly
+    // if the webhook isn't there (old webhooks may be paginated away)
+    const timer = setTimeout(() => {
+      const inList = webhooks.find((w) => w.id === whId);
+      if (inList) {
+        setSelectedWebhook(inList);
+        return;
+      }
+      api.get(`/webhooks/${whId}`)
+        .then((res) => {
+          setWebhooks((prev: any) => {
+            if (prev.some((w: any) => w.id === res.data.id)) return prev;
+            return [res.data, ...prev];
+          });
+          setSelectedWebhook(res.data);
+        })
+        .catch(() => {
+          /* webhook not found or no access — silently ignore */
         });
-        setSelectedWebhook(res.data);
-        setPendingWebhookId(null);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          toast.error(err.response?.data?.error || 'Webhook not found');
-          setPendingWebhookId(null);
-        }
-      });
+    }, 200);
 
-    return () => { cancelled = true; };
-  }, [pendingWebhookId, webhooks, setWebhooks, toast]);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useSocket(id || null, useCallback((webhook) => {
     addWebhook(webhook);

@@ -49,6 +49,10 @@ export default function WebhookCard({
   canReplay?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (selected) setExpanded(true);
+  }, [selected]);
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'query' | 'replay'>('body');
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
   const toast = useToast();

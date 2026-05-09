@@ -16,6 +16,7 @@ export interface DiscussionComment {
   _count?: { replies: number };
   webhook: { id: string; method: string; source: string | null; projectId: string };
   projectName: string;
+  parentId?: string | null;
 }
 
 export function useDiscussion(teamId: string | null) {
@@ -34,7 +35,6 @@ export function useDiscussion(teamId: string | null) {
       return;
     }
 
-    // Prevent double-fetch in React Strict Mode for the same teamId
     if (lastFetchedRef.current === teamId) return;
     lastFetchedRef.current = teamId;
 
@@ -80,8 +80,23 @@ export function useDiscussion(teamId: string | null) {
 
     socket.on('comment:new', (comment: DiscussionComment) => {
       setComments((prev) => {
-        // Prevent duplicates
         if (prev.some((c) => c.id === comment.id)) return prev;
+
+        // If it's a reply, nest it under its parent
+        if (comment.parentId) {
+          return prev.map((c) => {
+            if (c.id === comment.parentId) {
+              return {
+                ...c,
+                replies: [...c.replies, comment],
+                _count: { replies: (c._count?.replies ?? c.replies.length) + 1 },
+              };
+            }
+            return c;
+          });
+        }
+
+        // Top-level comment — prepend
         return [comment, ...prev];
       });
     });
@@ -90,7 +105,11 @@ export function useDiscussion(teamId: string | null) {
       setComments((prev) =>
         prev
           .filter((c) => c.id !== commentId)
-          .map((c) => ({ ...c, replies: c.replies.filter((r) => r.id !== commentId) }))
+          .map((c) => ({
+            ...c,
+            replies: c.replies.filter((r) => r.id !== commentId),
+            _count: { replies: Math.max(0, (c._count?.replies ?? c.replies.length) - 1) },
+          }))
       );
     });
 
@@ -129,6 +148,26 @@ export function useDiscussion(teamId: string | null) {
   const addReply = useCallback(async (webhookId: string, content: string, parentId?: string) => {
     if (!content.trim()) return;
     const res = await api.post(`/webhooks/${webhookId}/comments`, { content: content.trim(), parentId });
+    // Optimistically add if socket is slow / disconnected
+    const newComment = res.data;
+    if (newComment) {
+      setComments((prev) => {
+        if (prev.some((c) => c.id === newComment.id)) return prev;
+        if (parentId) {
+          return prev.map((c) => {
+            if (c.id === parentId) {
+              return {
+                ...c,
+                replies: [...c.replies, { ...newComment, likes: 0, dislikes: 0, userReaction: null, replies: [] }],
+                _count: { replies: (c._count?.replies ?? c.replies.length) + 1 },
+              };
+            }
+            return c;
+          });
+        }
+        return [newComment, ...prev];
+      });
+    }
     return res.data;
   }, []);
 

@@ -590,8 +590,9 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
         id: webhook.id,
         method: webhook.method,
         source: webhook.source,
+        projectId: webhook.project.id,
       },
-      project: webhook.project,
+      projectName: webhook.project.name,
     });
   }
 
