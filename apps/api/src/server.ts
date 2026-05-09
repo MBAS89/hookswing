@@ -15,6 +15,7 @@ import billingRoutes from './routes/billing';
 import alertRoutes from './routes/alerts';
 import dashboardRoutes from './routes/dashboard';
 import adminRoutes from './routes/admin';
+import testerRoutes from './routes/tester';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { setIO } from './lib/socketio';
@@ -258,6 +259,7 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/projects/:projectId/alerts', alertRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/tester', testerRoutes);
 
 // Serve frontend static files (production only)
 const webDistPath = path.resolve(__dirname, '../../web/dist');
@@ -303,15 +305,53 @@ io.on('connection', (socket) => {
 });
 
 function inferSource(headers: any): string | null {
-  const ua = headers['user-agent'] || '';
-  if (ua.includes('Stripe')) return 'stripe';
-  if (ua.includes('GitHub')) return 'github';
-  if (headers['x-github-event']) return 'github';
-  if (headers['x-stripe-signature']) return 'stripe';
-  if (ua.includes('Twilio')) return 'twilio';
-  if (headers['x-twilio-signature']) return 'twilio';
-  if (ua.includes('PayPal')) return 'paypal';
-  if (headers['x-paypal-transmission-id']) return 'paypal';
+  const ua = (headers['user-agent'] || '').toLowerCase();
+  const h = Object.fromEntries(
+    Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])
+  );
+
+  if (ua.includes('stripe')) return 'stripe';
+  if (h['x-stripe-signature']) return 'stripe';
+
+  if (ua.includes('github')) return 'github';
+  if (h['x-github-event']) return 'github';
+
+  if (ua.includes('twilio')) return 'twilio';
+  if (h['x-twilio-signature']) return 'twilio';
+
+  if (ua.includes('paypal')) return 'paypal';
+  if (h['x-paypal-transmission-id']) return 'paypal';
+
+  if (ua.includes('shopify')) return 'shopify';
+  if (h['x-shopify-topic']) return 'shopify';
+
+  if (ua.includes('slack')) return 'slack';
+  if (h['x-slack-signature']) return 'slack';
+
+  if (ua.includes('discord')) return 'discord';
+  if (h['x-signature-ed25519']) return 'discord';
+
+  if (ua.includes('microsoft teams')) return 'microsoft_teams';
+
+  if (ua.includes('sendgrid')) return 'sendgrid';
+
+  if (ua.includes('mailgun')) return 'mailgun';
+
+  if (ua.includes('zoom')) return 'zoom';
+
+  if (ua.includes('calendly')) return 'calendly';
+  if (h['calendly-webhook-signature']) return 'calendly';
+
+  if (ua.includes('typeform')) return 'typeform';
+
+  if (ua.includes('square')) return 'square';
+  if (h['x-square-signature']) return 'square';
+
+  if (ua.includes('google')) return 'google';
+  if (ua.includes('apis-google')) return 'google';
+
+  if (h['x-webhook-source']) return String(h['x-webhook-source']);
+
   return null;
 }
 

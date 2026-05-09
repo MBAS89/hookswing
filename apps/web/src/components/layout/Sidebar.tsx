@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, Trash2,
+  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, Trash2, Zap,
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
@@ -16,6 +16,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+    { icon: Zap, label: 'Tester', href: '/dashboard/tester' },
     { icon: Users, label: 'Team', href: '/dashboard/team' },
     { icon: Terminal, label: 'CLI', href: '/dashboard/cli' },
     ...(user?.role === 'ADMIN' ? [{ icon: Shield, label: 'Admin', href: '/dashboard/admin' }] : []),

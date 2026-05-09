@@ -398,6 +398,7 @@ export default function CliPage() {
         liveRef.addLine('output', '  stop                Stop listening');
         liveRef.addLine('output', '  replay <id> <url>   Replay a webhook to a URL');
         liveRef.addLine('output', '  curl <id>           Copy curl command to replay a webhook');
+        liveRef.addLine('output', '  tester <provider> <event> <url>  Send a test payload');
         liveRef.addLine('output', '  clear               Clear terminal');
         break;
 
@@ -546,6 +547,32 @@ export default function CliPage() {
           liveRef.addLine('success', 'Copied to clipboard!');
         } catch {
           liveRef.addLine('error', `Webhook "${curlId}" not found.`);
+        }
+        break;
+      }
+
+      case 'tester': {
+        const tProvider = args[0];
+        const tEvent = args[1];
+        const tUrl = args[2];
+        if (!tProvider || !tEvent || !tUrl) {
+          liveRef.addLine('error', 'Usage: tester <provider> <event> <target-url>');
+          liveRef.addLine('info', '  Example: tester stripe invoice.payment_succeeded https://hookswing.com/hook/abc123');
+          liveRef.addLine('info', '  Providers: stripe, github, paypal, shopify, twilio, slack, discord, microsoft_teams, sendgrid, mailgun, zoom, calendly, typeform, google, square, generic');
+          break;
+        }
+        try {
+          liveRef.addLine('info', `Sending ${tProvider}/${tEvent} → ${tUrl}...`);
+          const res = await api.post('/tester/send', { targetUrl: tUrl, provider: tProvider, eventType: tEvent });
+          const { response, responseTime, source } = res.data;
+          if (response) {
+            const color = response.status >= 200 && response.status < 300 ? 'success' : 'error';
+            liveRef.addLine(color as LineType, `  ${response.status} ${response.statusText} in ${responseTime}ms — source: ${source}`);
+          } else {
+            liveRef.addLine('error', '  No response received');
+          }
+        } catch (err: any) {
+          liveRef.addLine('error', err.response?.data?.error || err.message || 'Test failed');
         }
         break;
       }

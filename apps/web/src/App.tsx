@@ -10,6 +10,7 @@ import BillingPage from './pages/BillingPage';
 import TeamPage from './pages/TeamPage';
 import WorkspacePage from './pages/WorkspacePage';
 import CliPage from './pages/CliPage';
+import TesterPage from './pages/TesterPage';
 import AdminPage from './pages/AdminPage';
 import AccountPage from './pages/AccountPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
@@ -42,6 +43,7 @@ function AppRoutes() {
       <Route path="/dashboard/account" element={<PrivateRoute><DashboardLayout><AccountPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/team" element={<PrivateRoute><DashboardLayout><TeamPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/workspace/:teamId" element={<PrivateRoute><DashboardLayout><WorkspacePage /></DashboardLayout></PrivateRoute>} />
+      <Route path="/dashboard/tester" element={<PrivateRoute><DashboardLayout><TesterPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/cli" element={<PrivateRoute><DashboardLayout><CliPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/admin" element={<PrivateRoute><DashboardLayout><AdminPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
