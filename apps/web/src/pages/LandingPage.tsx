@@ -447,9 +447,9 @@ function PricingSection() {
 
   function getCta(plan: typeof plans[0]) {
     if (!user) return { text: plan.cta, action: () => navigate('/register') };
-    if (currentPlan === plan.planKey) return { text: 'Current Plan', action: () => navigate('/dashboard/account' + (yearly ? '?yearly=true' : '')), disabled: true };
-    if (plan.planKey === 'FREE') return { text: 'Downgrade', action: () => navigate('/dashboard/account' + (yearly ? '?yearly=true' : '')) };
-    return { text: `Upgrade to ${plan.name}`, action: () => navigate('/dashboard/account' + (yearly ? '?yearly=true' : '')) };
+    if (currentPlan === plan.planKey) return { text: 'Current Plan', action: () => navigate('/dashboard/account?tab=billing' + (yearly ? '&yearly=true' : '')), disabled: true };
+    if (plan.planKey === 'FREE') return { text: 'Downgrade', action: () => navigate('/dashboard/account?tab=billing' + (yearly ? '&yearly=true' : '')) };
+    return { text: `Upgrade to ${plan.name}`, action: () => navigate('/dashboard/account?tab=billing' + (yearly ? '&yearly=true' : '')) };
   }
 
   return (

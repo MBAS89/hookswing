@@ -45,7 +45,12 @@ function formatCurrency(amount: number, currency: string) {
 
 export default function AccountPage() {
   const { user, updateUser, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    if (tab && tabs.some((t) => t.id === tab)) return tab;
+    return 'profile';
+  });
 
   return (
     <div className="max-w-4xl mx-auto">
