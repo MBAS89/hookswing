@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, Trash2, Zap, MessageSquare, Send, ChevronUp, ChevronDown, Loader2,
+  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, Trash2, Zap, MessageSquare, Send, ChevronUp, ChevronDown, Loader2, Headphones,
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { api } from '../../lib/api';
+import { useSupport } from '../../hooks/useSupport';
 import CreateProjectModal from '../project/CreateProjectModal';
 import ConfirmModal from '../ui/ConfirmModal';
 
@@ -33,9 +34,54 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [feedbackLoading, setFeedbackLoading] = useState(false);
 
+  const hasSupport = user?.plan === 'PRO' || user?.plan === 'TEAM';
+  const {
+    messages: supportMessages,
+    unreadCount: supportUnread,
+    loading: supportLoading,
+    fetchMessages: fetchSupportMessages,
+    sendMessage: sendSupportMessage,
+    markRead: markSupportRead,
+  } = useSupport();
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportText, setSupportText] = useState('');
+  const [supportSending, setSupportSending] = useState(false);
+  const supportScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (hasSupport) {
+      fetchSupportMessages();
+    }
+  }, [hasSupport, fetchSupportMessages]);
+
+  useEffect(() => {
+    if (supportOpen && supportScrollRef.current) {
+      supportScrollRef.current.scrollTop = supportScrollRef.current.scrollHeight;
+    }
+  }, [supportMessages, supportOpen]);
+
+  useEffect(() => {
+    if (supportOpen && supportUnread > 0) {
+      markSupportRead();
+    }
+  }, [supportOpen, supportUnread, markSupportRead]);
+
   const handleCreate = async (name: string, description?: string, teamId?: string) => {
     const project = await createProject(name, description, teamId);
     navigate(`/dashboard/projects/${project.id}`);
+  };
+
+  const handleSendSupport = async () => {
+    if (!supportText.trim()) return;
+    setSupportSending(true);
+    try {
+      await sendSupportMessage(supportText.trim());
+      setSupportText('');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to send message');
+    } finally {
+      setSupportSending(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -228,6 +274,82 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         </div>
 
         <div className="p-3 border-t border-slate-800 space-y-2">
+          {/* Live Support */}
+          {hasSupport && (
+            <div>
+              <button
+                onClick={() => setSupportOpen(!supportOpen)}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <Headphones className="w-4 h-4" />
+                <span className="flex-1 text-left">Live Support</span>
+                {supportUnread > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {supportUnread}
+                  </span>
+                )}
+                {supportOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+              {supportOpen && (
+                <div className="mt-2 px-3 flex flex-col" style={{ height: '280px' }}>
+                  <div
+                    ref={supportScrollRef}
+                    className="flex-1 overflow-y-auto space-y-2 mb-2 pr-1"
+                  >
+                    {supportLoading ? (
+                      <div className="flex items-center justify-center h-20">
+                        <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                      </div>
+                    ) : supportMessages.length === 0 ? (
+                      <p className="text-xs text-slate-500 text-center py-4">Start a conversation with our support team</p>
+                    ) : (
+                      supportMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`flex ${msg.isAdmin ? 'justify-start' : 'justify-end'}`}
+                        >
+                          <div
+                            className={`max-w-[85%] px-2.5 py-1.5 rounded-lg text-xs ${
+                              msg.isAdmin
+                                ? 'bg-slate-800 text-slate-200'
+                                : 'bg-emerald-500/20 text-emerald-300'
+                            }`}
+                          >
+                            <p className="break-words">{msg.message}</p>
+                            <p className="text-[9px] text-slate-500 mt-0.5 text-right">
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={supportText}
+                      onChange={(e) => setSupportText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && supportText.trim() && !supportSending) {
+                          handleSendSupport();
+                        }
+                      }}
+                      placeholder="Type a message..."
+                      className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                    />
+                    <button
+                      onClick={handleSendSupport}
+                      disabled={supportSending || !supportText.trim()}
+                      className="shrink-0 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-2.5 py-1.5 rounded-lg transition-colors"
+                    >
+                      {supportSending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Feedback */}
           <div>
             <button

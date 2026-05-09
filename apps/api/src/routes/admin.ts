@@ -3,6 +3,7 @@ import { z } from 'zod';
 import axios from 'axios';
 import { prisma } from '../lib/prisma';
 import { stripe } from '../lib/stripe';
+import { getIO } from '../lib/socketio';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import { apiRateLimit } from '../middleware/rateLimit';
@@ -561,6 +562,101 @@ router.patch('/feedback/:id/status', async (req: AuthRequest, res) => {
 router.delete('/feedback/:id', async (req: AuthRequest, res) => {
   await prisma.feedback.delete({
     where: { id: req.params.id },
+  });
+  res.json({ success: true });
+});
+
+// ── Support Chat Management ──
+router.get('/support', async (_req: AuthRequest, res) => {
+  const messages = await prisma.supportChat.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: { select: { id: true, name: true, email: true, plan: true } },
+    },
+  });
+
+  // Group by user and get unread count per user
+  const userMap = new Map<string, any>();
+  for (const msg of messages) {
+    const uid = msg.userId;
+    if (!userMap.has(uid)) {
+      userMap.set(uid, {
+        user: msg.user,
+        messages: [],
+        unreadCount: 0,
+        lastMessageAt: msg.createdAt,
+      });
+    }
+    const entry = userMap.get(uid);
+    entry.messages.push(msg);
+    if (!msg.isAdmin && !msg.read) {
+      entry.unreadCount++;
+    }
+  }
+
+  const conversations = Array.from(userMap.values()).map((e) => ({
+    user: e.user,
+    unreadCount: e.unreadCount,
+    lastMessageAt: e.lastMessageAt,
+    messageCount: e.messages.length,
+  }));
+
+  res.json({ conversations });
+});
+
+router.get('/support/:userId', async (req: AuthRequest, res) => {
+  const messages = await prisma.supportChat.findMany({
+    where: { userId: req.params.userId },
+    orderBy: { createdAt: 'asc' },
+    include: {
+      user: { select: { id: true, name: true, email: true, plan: true } },
+    },
+  });
+  res.json({ messages });
+});
+
+router.post('/support/:userId/reply', async (req: AuthRequest, res) => {
+  const schema = z.object({
+    message: z.string().min(1).max(2000),
+  });
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const chat = await prisma.supportChat.create({
+    data: {
+      userId: req.params.userId,
+      message: result.data.message,
+      isAdmin: true,
+      read: false,
+    },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  const io = getIO();
+  if (io) {
+    io.to(`support:${req.params.userId}`).emit('support:message', chat);
+    io.to('support:admin').emit('support:message', chat);
+  }
+
+  res.status(201).json({ chat });
+});
+
+router.post('/support/:userId/mark-read', async (req: AuthRequest, res) => {
+  await prisma.supportChat.updateMany({
+    where: { userId: req.params.userId, isAdmin: false, read: false },
+    data: { read: true },
+  });
+  res.json({ success: true });
+});
+
+router.delete('/support/:userId', async (req: AuthRequest, res) => {
+  await prisma.supportChat.deleteMany({
+    where: { userId: req.params.userId },
   });
   res.json({ success: true });
 });

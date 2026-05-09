@@ -18,6 +18,7 @@ import dashboardRoutes from './routes/dashboard';
 import adminRoutes from './routes/admin';
 import testerRoutes from './routes/tester';
 import feedbackRoutes from './routes/feedback';
+import supportRoutes from './routes/support';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { setIO } from './lib/socketio';
@@ -282,6 +283,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tester', testerRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/support', supportRoutes);
 
 // Serve frontend static files (production only)
 const webDistPath = path.resolve(__dirname, '../../web/dist');
@@ -329,6 +331,26 @@ io.on('connection', (socket) => {
 
   socket.on('unsubscribe', (projectId: string) => {
     socket.leave(projectId);
+  });
+
+  socket.on('support:join', () => {
+    if (userId) {
+      socket.join(`support:${userId}`);
+    }
+  });
+
+  socket.on('support:join_admin', () => {
+    socket.join('support:admin');
+  });
+
+  socket.on('support:leave', () => {
+    if (userId) {
+      socket.leave(`support:${userId}`);
+    }
+  });
+
+  socket.on('support:leave_admin', () => {
+    socket.leave('support:admin');
   });
 });
 

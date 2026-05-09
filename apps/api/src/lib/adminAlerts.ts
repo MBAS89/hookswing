@@ -9,6 +9,7 @@ export const ADMIN_ALERT_EVENTS = [
   'payment_failed',
   'payment_succeeded',
   'plan_changed_by_admin',
+  'support_message',
 ] as const;
 
 export type AdminAlertEvent = (typeof ADMIN_ALERT_EVENTS)[number];
@@ -21,6 +22,7 @@ const eventLabels: Record<AdminAlertEvent, string> = {
   payment_failed: '⚠️ Payment Failed',
   payment_succeeded: '✅ Payment Succeeded',
   plan_changed_by_admin: '🔧 Plan Changed by Admin',
+  support_message: '💬 Support Message',
 };
 
 function escapeHtml(text: string): string {
@@ -77,6 +79,12 @@ function buildTelegramMessage(event: AdminAlertEvent, data: Record<string, any>)
       text += `\n📦 New Plan: <b>${data.plan || 'N/A'}</b>`;
       text += data.previousPlan ? `\n📦 Previous: ${data.previousPlan}` : '';
       text += data.adminEmail ? `\n👤 By Admin: ${escapeHtml(data.adminEmail)}` : '';
+      break;
+    case 'support_message':
+      text += `\n📧 User: <code>${escapeHtml(data.email || 'N/A')}</code>`;
+      text += data.name ? `\n👤 Name: ${escapeHtml(data.name)}` : '';
+      text += `\n💬 Message: <em>${escapeHtml(data.message || 'N/A')}</em>`;
+      text += `\n\n<a href="https://hookswing.com/dashboard/admin">Open Admin Dashboard →</a>`;
       break;
   }
 
