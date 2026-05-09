@@ -142,9 +142,11 @@ async function checkRateLimits(userId: string, plan: string) {
     return { allowed: false, reason: `Scan limit reached: ${limits.perHour} per hour` };
   }
 
-  const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  // Calendar month — resets on the 1st of each month
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthCount = await prisma.securityScan.count({
-    where: { userId, createdAt: { gte: oneMonthAgo } },
+    where: { userId, createdAt: { gte: monthStart } },
   });
   if (monthCount >= limits.perMonth) {
     return { allowed: false, reason: `Scan limit reached: ${limits.perMonth} per month` };
@@ -325,7 +327,9 @@ router.get('/', async (req: AuthRequest, res) => {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
   const skip = (page - 1) * limit;
 
-  const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  // Calendar month — resets on the 1st of each month
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [scans, total, usedThisMonth] = await Promise.all([
     prisma.securityScan.findMany({
@@ -348,7 +352,7 @@ router.get('/', async (req: AuthRequest, res) => {
     prisma.securityScan.count({ where: { userId, deletedAt: null } }),
     // Usage count includes deleted scans — deleting doesn't give credits back
     prisma.securityScan.count({
-      where: { userId, createdAt: { gte: oneMonthAgo } },
+      where: { userId, createdAt: { gte: monthStart } },
     }),
   ]);
 
