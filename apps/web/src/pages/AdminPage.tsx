@@ -7,7 +7,7 @@ import {
   Search, Loader2, Crown, ChevronLeft, ChevronRight,
   Shield, TrendingUp, Activity, DollarSign, BarChart3, Globe,
   XCircle, AlertTriangle, Bell, Send, Trash2, ToggleLeft, ToggleRight,
-  Check, Loader2 as LoaderIcon,
+  Check, Loader2 as LoaderIcon, MessageSquare, MessageCircle,
 } from 'lucide-react';
 import { methodColor } from '../lib/utils';
 import {
@@ -30,7 +30,7 @@ const STATUS_BADGES: Record<string, string> = {
 export default function AdminPage() {
   const { user } = useAuth();
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'subscriptions' | 'projects' | 'webhooks' | 'teams' | 'alerts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'subscriptions' | 'projects' | 'webhooks' | 'teams' | 'alerts' | 'feedback'>('overview');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
 
@@ -68,6 +68,7 @@ export default function AdminPage() {
     { key: 'webhooks' as const, label: 'Webhooks', icon: Radio },
     { key: 'teams' as const, label: 'Teams', icon: Users2 },
     { key: 'alerts' as const, label: 'Alerts', icon: Bell },
+    { key: 'feedback' as const, label: 'Feedback', icon: MessageSquare },
   ];
 
   return (
@@ -112,6 +113,7 @@ export default function AdminPage() {
         {activeTab === 'webhooks' && <WebhooksTab />}
         {activeTab === 'teams' && <TeamsTab />}
         {activeTab === 'alerts' && <AlertsTab />}
+        {activeTab === 'feedback' && <FeedbackTab />}
       </div>
     </div>
   );
@@ -1075,6 +1077,167 @@ function AlertsTab() {
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ── Feedback Tab ──
+const FEEDBACK_STATUS_BADGES: Record<string, string> = {
+  open: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  in_progress: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+  resolved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  closed: 'bg-slate-700 text-slate-400 border-slate-600',
+};
+
+const FEEDBACK_STATUS_LABELS: Record<string, string> = {
+  open: 'Open',
+  in_progress: 'In Progress',
+  resolved: 'Resolved',
+  closed: 'Closed',
+};
+
+const FEEDBACK_SUBJECT_LABELS: Record<string, string> = {
+  improvement: 'Improvement',
+  bug: 'Bug',
+  suggestion: 'Suggestion',
+  feature_request: 'Feature Request',
+  other: 'Other',
+};
+
+function FeedbackTab() {
+  const toast = useToast();
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const fetchFeedback = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/feedback');
+      setItems(res.data.feedback || []);
+    } catch {
+      toast.error('Failed to load feedback');
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => { fetchFeedback(); }, [fetchFeedback]);
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      await api.patch(`/admin/feedback/${id}/status`, { status });
+      setItems((prev) => prev.map((f) => (f.id === id ? { ...f, status } : f)));
+      toast.success('Status updated');
+    } catch {
+      toast.error('Failed to update status');
+    }
+  };
+
+  const deleteFeedback = async (id: string) => {
+    try {
+      await api.delete(`/admin/feedback/${id}`);
+      setItems((prev) => prev.filter((f) => f.id !== id));
+      toast.success('Feedback deleted');
+    } catch {
+      toast.error('Failed to delete');
+    }
+  };
+
+  const filtered = statusFilter === 'all' ? items : items.filter((f) => f.status === statusFilter);
+
+  const counts = {
+    all: items.length,
+    open: items.filter((f) => f.status === 'open').length,
+    in_progress: items.filter((f) => f.status === 'in_progress').length,
+    resolved: items.filter((f) => f.status === 'resolved').length,
+    closed: items.filter((f) => f.status === 'closed').length,
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        {(['all', 'open', 'in_progress', 'resolved', 'closed'] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+              statusFilter === s
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+            }`}
+          >
+            {s === 'all' ? 'All' : FEEDBACK_STATUS_LABELS[s]} ({counts[s]})
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 text-slate-500">
+          <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">No feedback yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((f) => (
+            <div key={f.id} className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${FEEDBACK_STATUS_BADGES[f.status] || 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                      {FEEDBACK_STATUS_LABELS[f.status] || f.status}
+                    </span>
+                    <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
+                      {FEEDBACK_SUBJECT_LABELS[f.subject] || f.subject}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {new Date(f.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-white whitespace-pre-wrap">{f.message}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-[10px] font-bold">
+                      {(f.user?.name || f.user?.email || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-xs text-slate-400">{f.user?.name || f.user?.email}</span>
+                    {f.user?.plan && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${STATUS_BADGES[f.user.plan] || ''}`}>
+                        {f.user.plan}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <select
+                    value={f.status}
+                    onChange={(e) => updateStatus(f.id, e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="open">Open</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                  <button
+                    onClick={() => deleteFeedback(f.id)}
+                    className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

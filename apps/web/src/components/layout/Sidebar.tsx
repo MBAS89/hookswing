@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, Trash2, Zap,
+  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, Trash2, Zap, MessageSquare, Send, ChevronUp, ChevronDown, Loader2,
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
+import { api } from '../../lib/api';
 import CreateProjectModal from '../project/CreateProjectModal';
 import ConfirmModal from '../ui/ConfirmModal';
 
@@ -27,6 +28,10 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
 
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackSubject, setFeedbackSubject] = useState('improvement');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   const handleCreate = async (name: string, description?: string, teamId?: string) => {
     const project = await createProject(name, description, teamId);
@@ -222,7 +227,62 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
           )}
         </div>
 
-        <div className="p-3 border-t border-slate-800">
+        <div className="p-3 border-t border-slate-800 space-y-2">
+          {/* Feedback */}
+          <div>
+            <button
+              onClick={() => setFeedbackOpen(!feedbackOpen)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span className="flex-1 text-left">Send Feedback</span>
+              {feedbackOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+            {feedbackOpen && (
+              <div className="mt-2 px-3 space-y-2">
+                <select
+                  value={feedbackSubject}
+                  onChange={(e) => setFeedbackSubject(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="improvement">Improvement</option>
+                  <option value="bug">Found a Bug</option>
+                  <option value="suggestion">Suggestion</option>
+                  <option value="feature_request">Feature Request</option>
+                  <option value="other">Other</option>
+                </select>
+                <textarea
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  placeholder="Tell us more..."
+                  rows={3}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 resize-none"
+                />
+                <button
+                  onClick={async () => {
+                    if (!feedbackMessage.trim()) return;
+                    setFeedbackLoading(true);
+                    try {
+                      await api.post('/feedback', { subject: feedbackSubject, message: feedbackMessage.trim() });
+                      toast.success('Feedback sent! Thank you.');
+                      setFeedbackMessage('');
+                      setFeedbackOpen(false);
+                    } catch (err: any) {
+                      toast.error(err.response?.data?.error || 'Failed to send feedback');
+                    } finally {
+                      setFeedbackLoading(false);
+                    }
+                  }}
+                  disabled={feedbackLoading || !feedbackMessage.trim()}
+                  className="w-full flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                >
+                  {feedbackLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                  Send
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={logout}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"

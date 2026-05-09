@@ -39,6 +39,7 @@ model User {
   emailLogs           EmailLog[]
   notifications       Notification[]
   notificationPrefs   NotificationPreference[]
+  feedback            Feedback[]
 
   @@map("users")
 }
@@ -322,6 +323,21 @@ model StripeEvent {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("stripe_events")
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  subject   String
+  message   String
+  status    String   @default("open") @map("status")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("feedback")
 }
 
 model AdminAlertConfig {

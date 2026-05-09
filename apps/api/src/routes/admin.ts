@@ -527,4 +527,42 @@ router.post('/alerts/:id/test', async (req: AuthRequest, res) => {
   }
 });
 
+// ── Feedback Management ──
+router.get('/feedback', async (_req: AuthRequest, res) => {
+  const feedback = await prisma.feedback.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: { select: { id: true, name: true, email: true, plan: true } },
+    },
+  });
+  res.json({ feedback });
+});
+
+router.patch('/feedback/:id/status', async (req: AuthRequest, res) => {
+  const schema = z.object({
+    status: z.enum(['open', 'in_progress', 'resolved', 'closed']),
+  });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+
+  const feedback = await prisma.feedback.update({
+    where: { id: req.params.id },
+    data: { status: result.data.status },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  res.json({ feedback });
+});
+
+router.delete('/feedback/:id', async (req: AuthRequest, res) => {
+  await prisma.feedback.delete({
+    where: { id: req.params.id },
+  });
+  res.json({ success: true });
+});
+
 export default router;
