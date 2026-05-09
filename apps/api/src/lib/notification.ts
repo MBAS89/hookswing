@@ -50,6 +50,7 @@ const defaultEnabledTypes: NotificationType[] = [
   'ownership_transferred',
   'comment_added',
   'comment_replied',
+  'webhook_received',
   'plan_changed',
   'project_created',
   'project_deleted',

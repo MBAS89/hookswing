@@ -188,6 +188,15 @@ router.patch('/users/:id/plan', async (req: AuthRequest, res) => {
       previousPlan: previous.plan,
       adminEmail: req.user!.email,
     }).catch(() => {});
+
+    const { createNotification } = await import('../lib/notification');
+    createNotification({
+      userId: updated.id,
+      type: 'plan_changed',
+      title: 'Plan Changed',
+      message: `Your plan has been changed from ${previous.plan} to ${updated.plan} by an admin`,
+      data: { previousPlan: previous.plan, newPlan: updated.plan, source: 'admin', adminEmail: req.user!.email },
+    }).catch(() => {});
   }
 
   res.json(updated);

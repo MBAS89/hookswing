@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 import { fireAdminAlert } from '../lib/adminAlerts';
+import { createNotification } from '../lib/notification';
 
 const router = Router();
 
@@ -76,14 +77,24 @@ router.post('/webhook', async (req, res) => {
           const interval = getIntervalFromPrice(priceId);
           console.log(`[Stripe Webhook] New subscription: user plan=${plan} sub=${session.subscription}`);
 
+          const beforeUser = await prisma.user.findFirst({ where: { stripeCustomerId: session.customer }, select: { id: true, email: true, plan: true } });
+
           await prisma.user.updateMany({
             where: { stripeCustomerId: session.customer },
             data: { plan, stripeSubscriptionId: session.subscription },
           });
 
-          const user = await prisma.user.findFirst({ where: { stripeCustomerId: session.customer }, select: { email: true } });
-          if (user) {
-            fireAdminAlert('subscription_created', { email: user.email, plan, interval }).catch(() => {});
+          if (beforeUser) {
+            fireAdminAlert('subscription_created', { email: beforeUser.email, plan, interval }).catch(() => {});
+            if (beforeUser.plan !== plan) {
+              createNotification({
+                userId: beforeUser.id,
+                type: 'plan_changed',
+                title: 'Plan Changed',
+                message: `Your plan has been upgraded to ${plan}`,
+                data: { previousPlan: beforeUser.plan, newPlan: plan, source: 'stripe' },
+              }).catch(() => {});
+            }
           }
         }
         break;
@@ -121,6 +132,7 @@ router.post('/webhook', async (req, res) => {
         console.log(`[Stripe Webhook] invoice.payment_failed customer=${customerId}`);
 
         let userPlan = 'FREE';
+        const beforeUser = await prisma.user.findFirst({ where: { stripeCustomerId: customerId }, select: { id: true, email: true, plan: true } });
         // Only downgrade if this is a final payment failure (subscription becomes past_due)
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -134,9 +146,17 @@ router.post('/webhook', async (req, res) => {
           }
         }
 
-        const user = await prisma.user.findFirst({ where: { stripeCustomerId: customerId }, select: { email: true } });
-        if (user) {
-          fireAdminAlert('payment_failed', { email: user.email, plan: userPlan, amount: invoice.amount_due }).catch(() => {});
+        if (beforeUser) {
+          fireAdminAlert('payment_failed', { email: beforeUser.email, plan: userPlan, amount: invoice.amount_due }).catch(() => {});
+          if (beforeUser.plan !== 'FREE' && userPlan === 'FREE') {
+            createNotification({
+              userId: beforeUser.id,
+              type: 'plan_changed',
+              title: 'Plan Changed',
+              message: 'Payment failed — your plan has been downgraded to FREE',
+              data: { previousPlan: beforeUser.plan, newPlan: 'FREE', source: 'stripe', reason: 'payment_failed' },
+            }).catch(() => {});
+          }
         }
         break;
       }
@@ -154,6 +174,8 @@ router.post('/webhook', async (req, res) => {
           ? getPlanFromPrice(previousAttributes.items.data[0].price.id)
           : undefined;
 
+        const beforeUser = await prisma.user.findFirst({ where: { stripeCustomerId: customerId }, select: { id: true, email: true, plan: true } });
+
         if (status === 'past_due' || status === 'unpaid' || status === 'canceled') {
           await prisma.user.updateMany({
             where: { stripeCustomerId: customerId },
@@ -166,12 +188,27 @@ router.post('/webhook', async (req, res) => {
           });
         }
 
-        const user = await prisma.user.findFirst({ where: { stripeCustomerId: customerId }, select: { email: true } });
-        if (user) {
+        if (beforeUser) {
           if (status === 'canceled') {
-            fireAdminAlert('subscription_cancelled', { email: user.email, plan, reason: 'Stripe subscription cancelled' }).catch(() => {});
+            fireAdminAlert('subscription_cancelled', { email: beforeUser.email, plan, reason: 'Stripe subscription cancelled' }).catch(() => {});
+            if (beforeUser.plan !== 'FREE') {
+              createNotification({
+                userId: beforeUser.id,
+                type: 'plan_changed',
+                title: 'Plan Changed',
+                message: 'Your subscription has been cancelled and your plan is now FREE',
+                data: { previousPlan: beforeUser.plan, newPlan: 'FREE', source: 'stripe', reason: 'cancelled' },
+              }).catch(() => {});
+            }
           } else if (previousPlan && previousPlan !== plan) {
-            fireAdminAlert('subscription_updated', { email: user.email, plan, previousPlan }).catch(() => {});
+            fireAdminAlert('subscription_updated', { email: beforeUser.email, plan, previousPlan }).catch(() => {});
+            createNotification({
+              userId: beforeUser.id,
+              type: 'plan_changed',
+              title: 'Plan Changed',
+              message: `Your plan has been changed from ${previousPlan} to ${plan}`,
+              data: { previousPlan, newPlan: plan, source: 'stripe' },
+            }).catch(() => {});
           }
         }
         break;
@@ -184,14 +221,24 @@ router.post('/webhook', async (req, res) => {
         const plan = getPlanFromPrice(priceId);
         console.log(`[Stripe Webhook] customer.subscription.deleted customer=${customerId} — downgrading to FREE`);
 
+        const beforeUser = await prisma.user.findFirst({ where: { stripeCustomerId: customerId }, select: { id: true, email: true, plan: true } });
+
         await prisma.user.updateMany({
           where: { stripeCustomerId: customerId },
           data: { plan: 'FREE', stripeSubscriptionId: null },
         });
 
-        const user = await prisma.user.findFirst({ where: { stripeCustomerId: customerId }, select: { email: true } });
-        if (user) {
-          fireAdminAlert('subscription_cancelled', { email: user.email, plan, reason: 'Stripe subscription deleted' }).catch(() => {});
+        if (beforeUser) {
+          fireAdminAlert('subscription_cancelled', { email: beforeUser.email, plan, reason: 'Stripe subscription deleted' }).catch(() => {});
+          if (beforeUser.plan !== 'FREE') {
+            createNotification({
+              userId: beforeUser.id,
+              type: 'plan_changed',
+              title: 'Plan Changed',
+              message: 'Your subscription has ended and your plan is now FREE',
+              data: { previousPlan: beforeUser.plan, newPlan: 'FREE', source: 'stripe', reason: 'deleted' },
+            }).catch(() => {});
+          }
         }
         break;
       }

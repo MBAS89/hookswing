@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { logActivity } from '../lib/activity';
+import { createNotification, notifyTeamMembers } from '../lib/notification';
 import { getEffectivePlan } from '../lib/permissions';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
@@ -120,6 +121,15 @@ router.post('/', async (req: AuthRequest, res) => {
       targetId: project.id,
       metadata: { name: project.name },
     });
+
+    notifyTeamMembers({
+      teamId,
+      excludeUserId: userId,
+      type: 'project_created',
+      title: 'New Project Created',
+      message: `${project.name} was created in your team`,
+      data: { projectId: project.id, projectName: project.name },
+    }).catch(() => {});
   }
 
   res.status(201).json({

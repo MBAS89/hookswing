@@ -20,6 +20,7 @@ import testerRoutes from './routes/tester';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { setIO } from './lib/socketio';
+import { createNotification } from './lib/notification';
 
 const app = express();
 const server = createServer(app);
@@ -152,6 +153,18 @@ async function handleHook(req: express.Request, res: express.Response) {
 
     // Fire alerts (async, don't block response)
     fireAlerts(project.id, webhook, req.headers['host'] as string);
+
+    // In-app notification for project owner
+    const notifyUserId = project.userId || project.team?.ownerId;
+    if (notifyUserId) {
+      createNotification({
+        userId: notifyUserId,
+        type: 'webhook_received',
+        title: 'Webhook Received',
+        message: `New ${webhook.method} webhook received in ${project.name}`,
+        data: { projectId: project.id, projectName: project.name, webhookId: webhook.id, method: webhook.method },
+      }).catch(() => {});
+    }
   }
 
   res.status(200).json({ ok: true, dropped: isDropped });
