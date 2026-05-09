@@ -238,7 +238,7 @@ router.get('/:id/discussion', async (req: AuthRequest, res) => {
       members: { some: { userId: req.user!.id } },
     },
     include: {
-      projects: { select: { id: true } },
+      projects: { select: { id: true, name: true } },
     },
   });
 
@@ -247,6 +247,10 @@ router.get('/:id/discussion', async (req: AuthRequest, res) => {
   }
 
   const projectIds = team.projects.map((p) => p.id);
+
+  if (projectIds.length === 0) {
+    return res.json({ comments: [] });
+  }
 
   const comments = await prisma.webhookComment.findMany({
     where: {
@@ -265,6 +269,10 @@ router.get('/:id/discussion', async (req: AuthRequest, res) => {
         include: {
           user: { select: { id: true, name: true, email: true } },
           reactions: true,
+          webhook: {
+            select: { id: true, method: true, source: true, projectId: true },
+          },
+          _count: { select: { replies: true } },
         },
       },
       _count: { select: { replies: true } },
@@ -273,26 +281,25 @@ router.get('/:id/discussion', async (req: AuthRequest, res) => {
     take: 200,
   });
 
-  // Fetch project names for the webhooks
   const projectMap = new Map<string, string>();
   for (const p of team.projects) {
-    const proj = await prisma.project.findUnique({ where: { id: p.id }, select: { id: true, name: true } });
-    if (proj) projectMap.set(proj.id, proj.name);
+    projectMap.set(p.id, p.name);
   }
 
   const userId = req.user!.id;
-  const enrich = (c: any) => {
-    const likes = c.reactions.filter((r: any) => r.type === 'like').length;
-    const dislikes = c.reactions.filter((r: any) => r.type === 'dislike').length;
-    const userReaction = c.reactions.find((r: any) => r.userId === userId)?.type || null;
-    const { reactions, ...rest } = c;
+  const enrich = (c: any): any => {
+    const likes = c.reactions?.filter((r: any) => r.type === 'like').length ?? 0;
+    const dislikes = c.reactions?.filter((r: any) => r.type === 'dislike').length ?? 0;
+    const userReaction = c.reactions?.find((r: any) => r.userId === userId)?.type || null;
+    const projectName = c.webhook?.projectId ? (projectMap.get(c.webhook.projectId) || 'Unknown') : 'Unknown';
+    const { reactions, webhook, ...rest } = c;
     return {
       ...rest,
       likes,
       dislikes,
       userReaction,
-      projectName: projectMap.get(c.webhook.projectId) || 'Unknown',
-      replies: c.replies?.map(enrich) || [],
+      projectName,
+      replies: c.replies?.map(enrich) ?? [],
     };
   };
 
