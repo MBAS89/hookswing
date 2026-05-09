@@ -258,6 +258,11 @@ function SolutionSection() {
       body: 'Get notified in Slack, Discord, or Telegram the instant a webhook hits — or when your server responds with a 500. Set it and forget it.',
     },
     {
+      icon: <Users className="w-10 h-10 text-rose-400" />,
+      title: 'Team Workspaces',
+      body: 'Share projects with your team in real time. Comment on webhooks, tag teammates, and track every action in the activity log. Free users on team projects get full TEAM privileges.',
+    },
+    {
       icon: <Zap className="w-10 h-10 text-yellow-400" />,
       title: 'Webhook Tester',
       body: 'Send realistic test payloads from Stripe, GitHub, Shopify, Twilio, Slack, Discord, and 10+ more providers to any URL. No setup required.',
