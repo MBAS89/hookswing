@@ -20,6 +20,7 @@ import testerRoutes from './routes/tester';
 import feedbackRoutes from './routes/feedback';
 import supportRoutes from './routes/support';
 import securityScanRoutes from './routes/securityScans';
+import badgeRoutes from './routes/badge';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { setIO, getIO } from './lib/socketio';
@@ -303,6 +304,7 @@ app.use('/api/tester', testerRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/security-scans', securityScanRoutes);
+app.use('/shield', badgeRoutes);
 
 // Serve frontend static files (production only)
 const webDistPath = path.resolve(__dirname, '../../web/dist');

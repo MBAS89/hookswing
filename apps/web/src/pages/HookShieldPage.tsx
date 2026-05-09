@@ -435,6 +435,46 @@ export default function HookShieldPage() {
                   />
                 )}
 
+                {/* Badge — shown for secure scans */}
+                {currentScan.status === 'COMPLETED' && !currentScan.isVulnerable && currentScan.securityScore !== null && currentScan.securityScore >= 90 && (
+                  <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
+                    <div className="flex items-start gap-3">
+                      <ShieldCheck className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-white mb-1">Your Endpoint is HookShield Verified</h4>
+                        <p className="text-xs text-slate-400 mb-3">
+                          Add this badge to your README to show the world your webhook security is solid.
+                        </p>
+                        <div className="mb-3">
+                          <img
+                            src={`/shield/${currentScan.id}.svg`}
+                            alt="HookShield Verified"
+                            className="h-5"
+                          />
+                        </div>
+                        <div className="bg-slate-950 rounded-lg p-3 border border-slate-800">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Markdown</span>
+                            <button
+                              onClick={() => {
+                                const md = `[![HookShield Verified](https://hookswing.com/shield/${currentScan.id}.svg)](https://hookswing.com)`;
+                                navigator.clipboard.writeText(md);
+                                toast.success('Badge markdown copied!');
+                              }}
+                              className="text-[10px] text-emerald-400 hover:text-emerald-300"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <code className="text-[10px] text-slate-400 break-all">
+                            {`[![HookShield Verified](https://hookswing.com/shield/${currentScan.id}.svg)](https://hookswing.com)`}
+                          </code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {currentScan.status === 'COMPLETED' && isPaid && (
                   <div className="mt-4 flex gap-2">
                     <button
