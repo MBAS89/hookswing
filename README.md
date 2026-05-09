@@ -188,25 +188,18 @@ hookswing forward my-company localhost:3000
 **Path preservation:** A webhook sent to `/hook/abc123/api/webhook` is forwarded to `http://localhost:3000/api/webhook` automatically. The path after the slug is kept intact.
 
 Output:
-```
-  _    _               ____                  _     
- | |  | |             / ___| _   _ ___  __ _| |    
- | |__| | _____      _\___ \| | | / __|/ _` | |    
- |  __  |/ _ \ \ /\ / /___) | |_| \__ \ (_| | |    
- | |  | | (_) \ V  V //___ \>  _ <| |_) \__,_| |    
- |_|  |_|\___/ \_/\_/ \____/_| \_\ .__/ \__, |_|    
-                                 |_|    |___/      
+🪝 HookSwing Forwarder
 
-  Target: http://localhost:3000
+  Target:  http://localhost:3000
   Project: My SaaS (abc123def456)
 
   Session: 00:12:34  |  Requests: 8 / 100 ████████░░
 
   [Press Ctrl+C to stop]
 
-[14:32:10] POST   /api/webhook       200   (stripe)
-[14:35:22] POST   /api/webhook       500   (github)  ⚠️ Server Error
-[14:37:01] GET    /health            200   (custom)
+[14:32:10] POST   /api/stripe/webhook    200   (stripe)
+[14:35:22] POST   /api/paypal/webhook    200   (paypal)
+[14:37:01] GET    /health                200   (custom)
 ```
 
 ### Replay a Webhook
