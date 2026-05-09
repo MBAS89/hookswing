@@ -305,7 +305,7 @@ function DeepDiveSection() {
               </div>
               <div className="p-4 space-y-1 text-slate-300">
                 <div><span className="text-emerald-400">$</span> npm install -g hookswing</div>
-                <div className="text-slate-500">+ hookswing@1.0.17</div>
+                <div className="text-slate-500">+ hookswing@1.0.18</div>
                 <div className="pt-2"><span className="text-emerald-400">$</span> hookswing test stripe invoice.payment_succeeded 3000</div>
                 <div className="text-slate-500 pt-1">→ 200 OK in 245ms — source: stripe (normalized from "3000")</div>
                 <div className="pt-2"><span className="text-emerald-400">$</span> hookswing forward abc123 3000</div>
