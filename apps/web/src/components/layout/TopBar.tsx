@@ -73,7 +73,9 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownPanelRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const notifPanelRef = useRef<HTMLDivElement>(null);
   const {
     notifications,
     unreadCount,
@@ -86,10 +88,17 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      // Avatar dropdown
+      const insideAvatarTrigger = dropdownRef.current?.contains(target);
+      const insideAvatarPanel = dropdownPanelRef.current?.contains(target);
+      if (!insideAvatarTrigger && !insideAvatarPanel) {
         setDropdownOpen(false);
       }
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+      // Notification dropdown
+      const insideNotifTrigger = notifRef.current?.contains(target);
+      const insideNotifPanel = notifPanelRef.current?.contains(target);
+      if (!insideNotifTrigger && !insideNotifPanel) {
         setNotifOpen(false);
       }
     }
@@ -177,7 +186,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
           </button>
 
           {notifOpen && createPortal(
-            <div className="fixed right-4 top-16 w-[360px] max-h-[480px] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[9999] flex flex-col">
+            <div ref={notifPanelRef} className="fixed right-4 top-16 w-[360px] max-h-[480px] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[9999] flex flex-col">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
                 <h3 className="text-sm font-semibold text-white">Notifications</h3>
                 {unreadCount > 0 && (
@@ -310,7 +319,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
           </button>
 
           {dropdownOpen && createPortal(
-            <div className="fixed right-4 top-16 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden z-[9999]">
+            <div ref={dropdownPanelRef} className="fixed right-4 top-16 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden z-[9999]">
               <button
                 onClick={() => { setDropdownOpen(false); navigate('/dashboard/account'); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
