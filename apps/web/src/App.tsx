@@ -22,6 +22,12 @@ import CookiePolicyPage from './pages/CookiePolicyPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import CareersPage from './pages/CareersPage';
+import BlogIndexPage from './pages/BlogIndexPage';
+import BlogPostPage from './pages/BlogPostPage';
+import NgrokAlternativePage from './pages/alternatives/NgrokAlternativePage';
+import WebhookSiteAlternativePage from './pages/alternatives/WebhookSiteAlternativePage';
+import RequestBinAlternativePage from './pages/alternatives/RequestBinAlternativePage';
+import BeeceptorAlternativePage from './pages/alternatives/BeeceptorAlternativePage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DeleteAccountPage from './pages/DeleteAccountPage';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -57,6 +63,12 @@ function AppRoutes() {
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/careers" element={<CareersPage />} />
+      <Route path="/blog" element={<BlogIndexPage />} />
+      <Route path="/blog/:slug" element={<BlogPostPage />} />
+      <Route path="/alternatives/ngrok" element={<NgrokAlternativePage />} />
+      <Route path="/alternatives/webhook-site" element={<WebhookSiteAlternativePage />} />
+      <Route path="/alternatives/requestbin" element={<RequestBinAlternativePage />} />
+      <Route path="/alternatives/beeceptor" element={<BeeceptorAlternativePage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/delete-account" element={<DeleteAccountPage />} />
     </Routes>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Copy, Check } from 'lucide-react';
 import Logo from '../components/Logo';
+import SEO from '../components/seo/SEO';
 import { useTranslation } from '../i18n';
 
 function CodeBlock({ code, lang = 'bash' }: { code: string; lang?: string }) {
@@ -108,6 +109,12 @@ export default function DocsPage() {
 
   return (
     <div className="min-h-screen bg-slate-950">
+      <SEO
+        title="HookSwing Documentation — Webhook Testing & Debugging Guide"
+        description="Complete documentation for HookSwing. Learn how to catch, inspect, replay, and forward webhooks. Covers Stripe, GitHub, PayPal, Twilio, and more."
+        keywords="webhook documentation, how to debug webhooks, webhook testing guide, HookSwing docs"
+        canonical="https://hookswing.com/docs"
+      />
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

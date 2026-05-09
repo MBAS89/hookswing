@@ -2,11 +2,18 @@ import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { Mail, Phone, MapPin } from 'lucide-react';
 import { useTranslation } from '../i18n';
+import SEO from '../components/seo/SEO';
 
 export default function ContactPage() {
   const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-slate-950 text-slate-300">
+      <SEO
+        title="Contact HookSwing — Webhook Support & Sales"
+        description="Get in touch with HookSwing for support, sales, partnerships, or enterprise inquiries. Email, phone, and address."
+        keywords="contact HookSwing, webhook support, sales, enterprise, Nuyvo LLC"
+        canonical="https://hookswing.com/contact"
+      />
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

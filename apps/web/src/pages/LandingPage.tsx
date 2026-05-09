@@ -10,6 +10,9 @@ import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../i18n';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
+import SEO from '../components/seo/SEO';
+import JsonLd from '../components/seo/JsonLd';
+import { softwareApplicationSchema, organizationSchema, faqPageSchema } from '../components/seo/schemas';
 
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -897,6 +900,7 @@ function Footer() {
             <h4 className="text-white font-semibold mb-4">{t('landing.footer.resources')}</h4>
             <ul className="space-y-2 text-sm text-slate-400">
               <li><Link to="/docs" className="hover:text-white transition-colors">{t('landing.footer.docs')}</Link></li>
+              <li><Link to="/blog" className="hover:text-white transition-colors">Blog</Link></li>
               <li><a href="https://github.com/MBAS89/hookswing-cli" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">{t('landing.footer.cliRepo')}</a></li>
               <li><Link to="/docs" className="hover:text-white transition-colors">{t('landing.footer.apiRef')}</Link></li>
             </ul>
@@ -938,8 +942,26 @@ function Footer() {
 }
 
 export default function LandingPage() {
+  const { t } = useTranslation();
+  const faqQuestions = [
+    { question: t('landing.faq.q1'), answer: t('landing.faq.a1') },
+    { question: t('landing.faq.q2'), answer: t('landing.faq.a2') },
+    { question: t('landing.faq.q3'), answer: t('landing.faq.a3') },
+    { question: t('landing.faq.q4'), answer: t('landing.faq.a4') },
+    { question: t('landing.faq.q5'), answer: t('landing.faq.a5') },
+    { question: t('landing.faq.q6'), answer: t('landing.faq.a6') },
+    { question: t('landing.faq.q7'), answer: t('landing.faq.a7') },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-950">
+      <SEO
+        title="HookSwing — The Best Webhook Debugger & ngrok Alternative (2025)"
+        description="The permanent webhook inbox for developers. Catch any HTTP payload, inspect JSON in real time, replay against localhost, and share with your team. Free plan available."
+        keywords="webhook debugger, ngrok alternative, webhook tester, webhook.site alternative, webhook testing, Stripe webhooks, GitHub webhooks"
+        canonical="https://hookswing.com"
+      />
+      <JsonLd data={[organizationSchema, softwareApplicationSchema, faqPageSchema(faqQuestions)]} />
       <Navbar />
       <Hero />
       <LogoBar />

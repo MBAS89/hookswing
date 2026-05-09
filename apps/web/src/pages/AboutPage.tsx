@@ -1,11 +1,18 @@
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { useTranslation } from '../i18n';
+import SEO from '../components/seo/SEO';
 
 export default function AboutPage() {
   const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-slate-950 text-slate-300">
+      <SEO
+        title="About HookSwing — Webhook Debugging Platform by Nuyvo LLC"
+        description="HookSwing is the permanent webhook inbox for developers. Built by Nuyvo LLC to solve webhook debugging, replay, and team collaboration."
+        keywords="about HookSwing, webhook company, Nuyvo LLC, webhook debugging platform"
+        canonical="https://hookswing.com/about"
+      />
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
