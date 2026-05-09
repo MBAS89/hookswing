@@ -21,25 +21,49 @@ export interface DiscussionComment {
 export function useDiscussion(teamId: string | null) {
   const [comments, setComments] = useState<DiscussionComment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const lastFetchedRef = useRef<string | null>(null);
 
-  const fetchComments = useCallback(async () => {
-    if (!teamId) return;
-    setLoading(true);
-    try {
-      const res = await api.get(`/teams/${teamId}/discussion`);
-      setComments(res.data.comments);
-    } catch {
+  // Fetch comments on mount / teamId change
+  useEffect(() => {
+    if (!teamId) {
       setComments([]);
-    } finally {
-      setLoading(false);
+      setError(null);
+      lastFetchedRef.current = null;
+      return;
     }
+
+    // Prevent double-fetch in React Strict Mode for the same teamId
+    if (lastFetchedRef.current === teamId) return;
+    lastFetchedRef.current = teamId;
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    api.get(`/teams/${teamId}/discussion`)
+      .then((res) => {
+        if (!cancelled) setComments(res.data.comments ?? []);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setComments([]);
+          setError(err.response?.data?.error || 'Failed to load discussions');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [teamId]);
 
+  // Socket.IO for real-time updates
   useEffect(() => {
     if (!teamId) return;
-
-    fetchComments();
 
     const token = localStorage.getItem('accessToken');
     if (!token) return;
@@ -55,7 +79,11 @@ export function useDiscussion(teamId: string | null) {
     });
 
     socket.on('comment:new', (comment: DiscussionComment) => {
-      setComments((prev) => [comment, ...prev]);
+      setComments((prev) => {
+        // Prevent duplicates
+        if (prev.some((c) => c.id === comment.id)) return prev;
+        return [comment, ...prev];
+      });
     });
 
     socket.on('comment:deleted', ({ commentId }: { commentId: string }) => {
@@ -80,24 +108,37 @@ export function useDiscussion(teamId: string | null) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [teamId, fetchComments]);
+  }, [teamId]);
+
+  const fetchComments = useCallback(async () => {
+    if (!teamId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/teams/${teamId}/discussion`);
+      setComments(res.data.comments ?? []);
+      lastFetchedRef.current = teamId;
+    } catch (err: any) {
+      setComments([]);
+      setError(err.response?.data?.error || 'Failed to load discussions');
+    } finally {
+      setLoading(false);
+    }
+  }, [teamId]);
 
   const addReply = useCallback(async (webhookId: string, content: string, parentId?: string) => {
     if (!content.trim()) return;
     const res = await api.post(`/webhooks/${webhookId}/comments`, { content: content.trim(), parentId });
-    // The socket event 'comment:new' will add it to the list
     return res.data;
   }, []);
 
   const react = useCallback(async (commentId: string, type: 'like' | 'dislike') => {
     await api.post(`/webhooks/comments/${commentId}/react`, { type });
-    // The socket event 'comment:reacted' will update the list
   }, []);
 
   const deleteComment = useCallback(async (webhookId: string, commentId: string) => {
     await api.delete(`/webhooks/${webhookId}/comments/${commentId}`);
-    // The socket event 'comment:deleted' will remove it
   }, []);
 
-  return { comments, loading, fetchComments, addReply, react, deleteComment };
+  return { comments, loading, error, fetchComments, addReply, react, deleteComment };
 }

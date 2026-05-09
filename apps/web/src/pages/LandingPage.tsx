@@ -116,9 +116,6 @@ function Hero() {
       <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight mb-6 animate-fade-in">
-          The Webhook Inbox That<br className="hidden sm:block" /> Doesn't Delete Your Evidence
-        </h1>
         {/* What's New Banner */}
         <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 rounded-full px-4 py-1.5 mb-6">
           <Sparkles className="w-3.5 h-3.5 text-sky-400" />

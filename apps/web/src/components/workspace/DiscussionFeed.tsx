@@ -84,7 +84,7 @@ function CommentItem({
   };
 
   const viewWebhook = () => {
-    navigate(`/dashboard/project/${comment.webhook.projectId}?webhook=${comment.webhook.id}&tab=comments`);
+    navigate(`/dashboard/projects/${comment.webhook.projectId}?webhook=${comment.webhook.id}&tab=comments`);
   };
 
   return (
@@ -189,7 +189,7 @@ function CommentItem({
 }
 
 export function DiscussionFeed({ teamId }: { teamId: string }) {
-  const { comments, loading, fetchComments, addReply, react, deleteComment } = useDiscussion(teamId);
+  const { comments, loading, error, fetchComments, addReply, react, deleteComment } = useDiscussion(teamId);
   const { user } = useAuth();
   const toast = useToast();
 
@@ -232,6 +232,21 @@ export function DiscussionFeed({ teamId }: { teamId: string }) {
     return (
       <div className="flex items-center justify-center h-64 text-slate-500">
         <Loader2 className="w-5 h-5 animate-spin mr-2" />Loading discussions...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+        <MessageSquare className="w-10 h-10 mb-3 opacity-20" />
+        <p className="text-sm">{error}</p>
+        <button
+          onClick={fetchComments}
+          className="mt-3 text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1"
+        >
+          <Loader2 className="w-3 h-3" />Retry
+        </button>
       </div>
     );
   }
