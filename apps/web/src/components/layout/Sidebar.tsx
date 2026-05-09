@@ -39,9 +39,12 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
     messages: supportMessages,
     unreadCount: supportUnread,
     loading: supportLoading,
+    isTyping: supportTyping,
+    adminJoined: supportAdminJoined,
     fetchMessages: fetchSupportMessages,
     sendMessage: sendSupportMessage,
     markRead: markSupportRead,
+    emitTyping: emitSupportTyping,
   } = useSupport();
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportExpanded, setSupportExpanded] = useState(false);
@@ -394,11 +397,24 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                       </>
                     )}
                   </div>
+                  {supportAdminJoined && (
+                    <div className="flex justify-center mb-1">
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-1">
+                        <p className="text-[10px] text-emerald-400 font-medium">👋 An admin has joined the chat</p>
+                      </div>
+                    </div>
+                  )}
+                  {supportTyping && (
+                    <div className="flex items-center gap-1 text-[10px] text-slate-500 px-1">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                      Support is typing…
+                    </div>
+                  )}
                   <div className="flex gap-1.5">
                     <input
                       type="text"
                       value={supportText}
-                      onChange={(e) => setSupportText(e.target.value)}
+                      onChange={(e) => { setSupportText(e.target.value); emitSupportTyping(); }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && supportText.trim() && !supportSending) {
                           handleSendSupport();
@@ -550,19 +566,33 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 </>
               )}
             </div>
-            <div className="p-3 border-t border-slate-800 flex gap-2">
-              <input
-                type="text"
-                value={supportText}
-                onChange={(e) => setSupportText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && supportText.trim() && !supportSending) {
-                    handleSendSupport();
-                  }
-                }}
-                placeholder="Type a message..."
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-              />
+            <div className="p-3 border-t border-slate-800 flex flex-col gap-2">
+              {supportAdminJoined && (
+                <div className="flex justify-center">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-1.5">
+                    <p className="text-xs text-emerald-400 font-medium">👋 An admin has joined the chat</p>
+                  </div>
+                </div>
+              )}
+              {supportTyping && (
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 px-1">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  Support is typing…
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={supportText}
+                  onChange={(e) => { setSupportText(e.target.value); emitSupportTyping(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && supportText.trim() && !supportSending) {
+                      handleSendSupport();
+                    }
+                  }}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                />
               <button
                 onClick={handleSendSupport}
                 disabled={supportSending || !supportText.trim()}
@@ -570,6 +600,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               >
                 {supportSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
+              </div>
             </div>
           </div>
         </div>

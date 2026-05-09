@@ -21,7 +21,7 @@ import feedbackRoutes from './routes/feedback';
 import supportRoutes from './routes/support';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
-import { setIO } from './lib/socketio';
+import { setIO, getIO } from './lib/socketio';
 import { createNotification } from './lib/notification';
 
 // Request timeout middleware — prevents hanging requests from consuming connections
@@ -360,6 +360,17 @@ io.on('connection', (socket) => {
     socket.join('support:admin');
   });
 
+  // Admin joins a specific user's support room (for typing + admin-joined notify)
+  socket.on('support:join_user', (targetUserId: string) => {
+    socket.join(`support:${targetUserId}`);
+    const io = getIO();
+    if (io) {
+      io.to(`support:${targetUserId}`).emit('support:admin_joined', {
+        joinedAt: new Date().toISOString(),
+      });
+    }
+  });
+
   socket.on('support:leave', () => {
     if (userId) {
       socket.leave(`support:${userId}`);
@@ -368,6 +379,25 @@ io.on('connection', (socket) => {
 
   socket.on('support:leave_admin', () => {
     socket.leave('support:admin');
+  });
+
+  // Typing indicators for support chat
+  socket.on('support:typing', ({ to, isAdmin }: { to?: string; isAdmin?: boolean }) => {
+    if (isAdmin && to) {
+      // Admin typing → notify user
+      io.to(`support:${to}`).emit('support:typing', { isAdmin: true });
+    } else if (userId) {
+      // User typing → notify admins
+      io.to('support:admin').emit('support:typing', { userId, isAdmin: false });
+    }
+  });
+
+  socket.on('support:stop_typing', ({ to, isAdmin }: { to?: string; isAdmin?: boolean }) => {
+    if (isAdmin && to) {
+      io.to(`support:${to}`).emit('support:stop_typing', { isAdmin: true });
+    } else if (userId) {
+      io.to('support:admin').emit('support:stop_typing', { userId, isAdmin: false });
+    }
   });
 
   socket.on('team:join', (teamId: string) => {

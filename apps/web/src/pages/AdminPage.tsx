@@ -1257,12 +1257,14 @@ function SupportTab() {
     activeUserId,
     messages,
     loading,
+    typingUsers,
     setActiveUserId,
     fetchConversations,
     fetchMessages,
     sendReply,
     markRead,
     clearChat,
+    emitTyping,
   } = useSupportAdmin();
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
@@ -1403,27 +1405,35 @@ function SupportTab() {
               )}
             </div>
 
-            <div className="px-4 py-3 border-t border-slate-800 flex gap-2">
-              <input
-                type="text"
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && replyText.trim() && !sending) {
-                    handleSend();
-                  }
-                }}
-                placeholder="Type your reply..."
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
-              />
-              <button
-                onClick={handleSend}
-                disabled={sending || !replyText.trim()}
-                className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
-              >
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Send
-              </button>
+            <div className="px-4 py-3 border-t border-slate-800 flex flex-col gap-2">
+              {activeUserId && typingUsers.has(activeUserId) && (
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 px-1">
+                  <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  User is typing…
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={(e) => { setReplyText(e.target.value); if (activeUserId) emitTyping(activeUserId); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && replyText.trim() && !sending) {
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Type your reply..."
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={sending || !replyText.trim()}
+                  className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                >
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Send
+                </button>
+              </div>
             </div>
           </>
         )}
