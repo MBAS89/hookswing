@@ -141,6 +141,7 @@ model Webhook {
   ip          String
   userAgent   String?  @map("user_agent")
   source      String?
+  eventType   String?  @map("event_type")
   statusCode  Int?     @map("status_code")
   responseBody String? @map("response_body")
   responseTime Int?     @map("response_time_ms")

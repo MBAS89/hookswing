@@ -197,8 +197,8 @@ Output:
 
   [Press Ctrl+C to stop]
 
-[14:32:10] POST   /api/stripe/webhook    200   (stripe)
-[14:35:22] POST   /api/paypal/webhook    200   (paypal)
+[14:32:10] POST   /api/stripe/webhook    200   (stripe:charge.succeeded)
+[14:35:22] POST   /api/paypal/webhook    200   (paypal:PAYMENT.CAPTURE.COMPLETED)
 [14:37:01] GET    /health                200   (custom)
 ```
 

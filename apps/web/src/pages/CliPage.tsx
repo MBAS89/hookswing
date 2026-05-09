@@ -290,7 +290,8 @@ export default function CliPage() {
           const time = new Date(webhook.createdAt).toLocaleTimeString();
           const method = webhook.method?.toUpperCase() || 'UNKNOWN';
           const path = webhook.path || '/';
-          const source = webhook.source || webhook.ip || 'custom';
+          const rawSource = webhook.source || webhook.ip || 'custom';
+          const source = webhook.eventType ? `${rawSource}:${webhook.eventType}` : rawSource;
 
           liveRef.addLine('webhook', `[${time}]  ${method.padEnd(6)}  ${path.padEnd(18)}  ${sizeStr.padEnd(6)}  (${source})`, {
             method,

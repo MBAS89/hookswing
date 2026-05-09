@@ -146,10 +146,10 @@ function Hero() {
               <div className="text-slate-400">   Project: My SaaS (project-1)</div>
               <div className="text-slate-500 mt-4">   [Press Ctrl+C to stop]</div>
               <div className="mt-4 space-y-1">
-                <div><span className="text-slate-600">[03:17:42]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/stripe/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(stripe)</span></div>
-                <div><span className="text-slate-600">[03:18:15]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/paypal/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(paypal)</span></div>
-                <div><span className="text-slate-600">[03:18:22]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/stripe/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(stripe)</span></div>
-                <div><span className="text-slate-600">[03:19:01]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/paypal/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(paypal)</span></div>
+                <div><span className="text-slate-600">[03:17:42]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/stripe/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(stripe:charge.succeeded)</span></div>
+                <div><span className="text-slate-600">[03:18:15]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/paypal/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(paypal:PAYMENT.CAPTURE.COMPLETED)</span></div>
+                <div><span className="text-slate-600">[03:18:22]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/stripe/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(stripe:invoice.payment_succeeded)</span></div>
+                <div><span className="text-slate-600">[03:19:01]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/paypal/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(paypal:BILLING.SUBSCRIPTION.CREATED)</span></div>
               </div>
             </div>
           </div>
@@ -421,49 +421,49 @@ function PathPreservationDemo() {
                     <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
                     <span className="text-slate-400">/api/paypal/webhook</span>{' '}
                     <span className="text-emerald-400">200</span>{' '}
-                    <span className="text-slate-600">(paypal)</span>
+                    <span className="text-slate-600">(paypal:PAYMENT.CAPTURE.COMPLETED)</span>
                   </div>
                   <div>
                     <span className="text-slate-600">[14:32:15]</span>{' '}
                     <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
                     <span className="text-slate-400">/api/paypal/webhook</span>{' '}
                     <span className="text-emerald-400">200</span>{' '}
-                    <span className="text-slate-600">(paypal)</span>
+                    <span className="text-slate-600">(paypal:PAYMENT.CAPTURE.COMPLETED)</span>
                   </div>
                   <div>
                     <span className="text-slate-600">[14:32:22]</span>{' '}
                     <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
                     <span className="text-slate-400">/api/paypal/webhook</span>{' '}
                     <span className="text-emerald-400">200</span>{' '}
-                    <span className="text-slate-600">(paypal)</span>
+                    <span className="text-slate-600">(paypal:BILLING.SUBSCRIPTION.CREATED)</span>
                   </div>
                   <div>
                     <span className="text-slate-600">[14:33:01]</span>{' '}
                     <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
                     <span className="text-slate-400">/api/stripe/webhook</span>{' '}
                     <span className="text-emerald-400">200</span>{' '}
-                    <span className="text-slate-600">(stripe)</span>
+                    <span className="text-slate-600">(stripe:charge.succeeded)</span>
                   </div>
                   <div>
                     <span className="text-slate-600">[14:33:08]</span>{' '}
                     <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
                     <span className="text-slate-400">/api/stripe/webhook</span>{' '}
                     <span className="text-emerald-400">200</span>{' '}
-                    <span className="text-slate-600">(stripe)</span>
+                    <span className="text-slate-600">(stripe:invoice.payment_succeeded)</span>
                   </div>
                   <div>
                     <span className="text-slate-600">[14:33:15]</span>{' '}
                     <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
                     <span className="text-slate-400">/api/stripe/webhook</span>{' '}
                     <span className="text-emerald-400">200</span>{' '}
-                    <span className="text-slate-600">(stripe)</span>
+                    <span className="text-slate-600">(stripe:customer.created)</span>
                   </div>
                   <div>
                     <span className="text-slate-600">[14:34:02]</span>{' '}
                     <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
                     <span className="text-slate-400">/api/stripe/webhook</span>{' '}
                     <span className="text-emerald-400">200</span>{' '}
-                    <span className="text-slate-600">(stripe)</span>
+                    <span className="text-slate-600">(stripe:charge.succeeded)</span>
                   </div>
                 </div>
               </div>

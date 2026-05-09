@@ -111,6 +111,10 @@ async function handleHook(req: express.Request, res: express.Response) {
     }
   }
 
+  // Detect source and event type
+  const source = inferSource(req.headers);
+  const eventType = inferEventType(req.headers, body, source);
+
   // Store webhook
   const webhook = await prisma.webhook.create({
     data: {
@@ -122,7 +126,8 @@ async function handleHook(req: express.Request, res: express.Response) {
       query: req.query as any,
       ip: req.ip || 'unknown',
       userAgent: req.headers['user-agent'] || null,
-      source: inferSource(req.headers),
+      source,
+      eventType,
     },
   });
 
@@ -353,6 +358,75 @@ function inferSource(headers: any): string | null {
   if (h['x-webhook-source']) return String(h['x-webhook-source']);
 
   return null;
+}
+
+function inferEventType(headers: any, body: any, source: string | null): string | null {
+  if (!body || typeof body !== 'object') return null;
+
+  const h = Object.fromEntries(
+    Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])
+  );
+
+  switch (source) {
+    case 'stripe':
+      return body.type || null;
+
+    case 'github': {
+      const event = h['x-github-event'];
+      const action = body.action;
+      if (event && action) return `${event}.${action}`;
+      return event || action || null;
+    }
+
+    case 'paypal':
+      return body.event_type || null;
+
+    case 'shopify':
+      return h['x-shopify-topic'] || null;
+
+    case 'twilio': {
+      if (body.MessageStatus) return `sms.${body.MessageStatus}`;
+      if (body.CallStatus) return `call.${body.CallStatus}`;
+      if (body.Direction) return `incoming.${body.Direction}`;
+      return null;
+    }
+
+    case 'slack':
+      return body.command || body.type || body.callback_id || null;
+
+    case 'discord':
+      return body.type !== undefined ? `interaction.${body.type}` : null;
+
+    case 'microsoft_teams':
+      return body.type || null;
+
+    case 'sendgrid':
+      if (Array.isArray(body) && body[0]?.event) return body[0].event;
+      return body.event || null;
+
+    case 'mailgun':
+      return body.event || null;
+
+    case 'zoom':
+      return body.event || null;
+
+    case 'calendly':
+      return body.event || null;
+
+    case 'typeform':
+      return body.event_type || null;
+
+    case 'google': {
+      if (body.message?.attributes?.eventType) return body.message.attributes.eventType;
+      return body.type || null;
+    }
+
+    case 'square':
+      return body.type || null;
+
+    default:
+      return body.event || body.type || body.event_type || null;
+  }
 }
 
 // WebSocket handling
