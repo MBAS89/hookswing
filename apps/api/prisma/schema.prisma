@@ -31,6 +31,7 @@ model User {
   projects      Project[]
   teams         TeamMember[]
   teamsOwned    Team[]
+  sentInvites   TeamInvite[] @relation("InvitedBy")
   sessions      Session[]
   comments      WebhookComment[]
   reactions     CommentReaction[]
@@ -71,6 +72,7 @@ model Team {
 
   owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members     TeamMember[]
+  invites     TeamInvite[]
   projects    Project[]
   activityLogs ActivityLog[]
 
@@ -88,6 +90,34 @@ model TeamMember {
 
   @@unique([teamId, userId])
   @@map("team_members")
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+model TeamInvite {
+  id          String   @id @default(cuid())
+  teamId      String   @map("team_id")
+  email       String
+  role        TeamRole @default(MEMBER)
+  status      InviteStatus @default(PENDING)
+  token       String   @unique
+  invitedById String   @map("invited_by_id")
+  acceptedAt  DateTime? @map("accepted_at")
+  declinedAt  DateTime? @map("declined_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  expiresAt   DateTime @map("expires_at")
+
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy   User     @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([email, status])
+  @@index([teamId, status])
+  @@map("team_invites")
 }
 
 enum TeamRole {

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, Plus, Trash2, Crown, User, Check, Loader2, X,
   Edit3, LogOut, Shield, FolderGit2, AlertTriangle, ChevronDown,
+  Mail, UserCheck, UserX as UserXIcon,
 } from 'lucide-react';
 
 interface Team {
@@ -26,6 +27,19 @@ interface Team {
   _count?: { projects: number };
 }
 
+interface TeamInvite {
+  id: string;
+  teamId: string;
+  email: string;
+  role: string;
+  status: string;
+  token: string;
+  createdAt: string;
+  expiresAt: string;
+  team?: { id: string; name: string };
+  invitedBy?: { id: string; name: string | null; email: string };
+}
+
 export default function TeamPage() {
   const { user, updateUser } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -37,6 +51,10 @@ export default function TeamPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'MEMBER' | 'ADMIN'>('MEMBER');
   const [activeInviteTeam, setActiveInviteTeam] = useState<string | null>(null);
+
+  // Pending invites
+  const [myInvites, setMyInvites] = useState<TeamInvite[]>([]);
+  const [teamInvites, setTeamInvites] = useState<Record<string, TeamInvite[]>>({});
 
   // Rename
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
@@ -61,8 +79,27 @@ export default function TeamPage() {
     }
   };
 
+  const fetchMyInvites = async () => {
+    try {
+      const res = await api.get('/teams/invites/me');
+      setMyInvites(res.data);
+    } catch {
+      setMyInvites([]);
+    }
+  };
+
+  const fetchTeamInvites = async (teamId: string) => {
+    try {
+      const res = await api.get(`/teams/${teamId}/invites`);
+      setTeamInvites((prev) => ({ ...prev, [teamId]: res.data }));
+    } catch {
+      setTeamInvites((prev) => ({ ...prev, [teamId]: [] }));
+    }
+  };
+
   useEffect(() => {
     fetchTeams();
+    fetchMyInvites();
   }, []);
 
   const createTeam = async () => {
@@ -153,9 +190,37 @@ export default function TeamPage() {
       setInviteEmail('');
       setInviteRole('MEMBER');
       setActiveInviteTeam(null);
-      fetchTeams();
+      fetchTeamInvites(teamId);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to invite member');
+    }
+  };
+
+  const acceptInvite = async (token: string) => {
+    try {
+      await api.post(`/teams/invites/${token}/accept`);
+      setMyInvites((prev) => prev.filter((i) => i.token !== token));
+      fetchTeams();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to accept invite');
+    }
+  };
+
+  const declineInvite = async (token: string) => {
+    try {
+      await api.post(`/teams/invites/${token}/decline`);
+      setMyInvites((prev) => prev.filter((i) => i.token !== token));
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to decline invite');
+    }
+  };
+
+  const cancelInvite = async (teamId: string, inviteId: string) => {
+    try {
+      await api.delete(`/teams/${teamId}/invites/${inviteId}`);
+      fetchTeamInvites(teamId);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to cancel invite');
     }
   };
 
@@ -222,11 +287,49 @@ export default function TeamPage() {
         </div>
       )}
 
+      {/* My Pending Invites */}
+      {myInvites.length > 0 && (
+        <div className="mb-8 bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            You have {myInvites.length} pending team invitation{myInvites.length > 1 ? 's' : ''}
+          </h2>
+          <div className="space-y-3">
+            {myInvites.map((invite) => (
+              <div key={invite.id} className="flex items-center justify-between bg-slate-900 rounded-lg px-4 py-3">
+                <div>
+                  <p className="text-sm text-white">
+                    <strong>{invite.invitedBy?.name || invite.invitedBy?.email}</strong> invited you to <strong>{invite.team?.name}</strong>
+                  </p>
+                  <p className="text-xs text-slate-500">As {invite.role} • Expires {new Date(invite.expiresAt).toLocaleDateString()}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => acceptInvite(invite.token)}
+                    className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-xs font-medium"
+                  >
+                    <UserCheck className="w-3 h-3" />
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => declineInvite(invite.token)}
+                    className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium"
+                  >
+                    <UserXIcon className="w-3 h-3" />
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
         </div>
-      ) : teams.length === 0 ? (
+      ) : teams.length === 0 && myInvites.length === 0 ? (
         <div className="text-center py-12 text-slate-500">
           <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
           <p>No teams yet. Create one above.</p>
@@ -441,11 +544,41 @@ export default function TeamPage() {
                     ))}
                   </div>
 
+                  {/* Pending Invites (admin view) */}
+                  {isAdmin && (teamInvites[team.id] || []).length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-800">
+                      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Pending Invites</h4>
+                      <div className="space-y-2">
+                        {teamInvites[team.id].map((invite) => (
+                          <div key={invite.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-3.5 h-3.5 text-slate-500" />
+                              <span className="text-sm text-slate-300">{invite.email}</span>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">{invite.role}</span>
+                              <span className="text-xs text-slate-600">expires {new Date(invite.expiresAt).toLocaleDateString()}</span>
+                            </div>
+                            <button
+                              onClick={() => cancelInvite(team.id, invite.id)}
+                              className="text-slate-500 hover:text-red-400 transition-colors"
+                              title="Cancel invite"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Invite */}
                   {isAdmin && (
                     <div className="mt-4 pt-4 border-t border-slate-800">
                       <button
-                        onClick={() => setActiveInviteTeam(activeInviteTeam === team.id ? null : team.id)}
+                        onClick={() => {
+                          const opening = activeInviteTeam !== team.id;
+                          setActiveInviteTeam(opening ? team.id : null);
+                          if (opening) fetchTeamInvites(team.id);
+                        }}
                         className="flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 font-medium"
                       >
                         <Plus className="w-4 h-4" />

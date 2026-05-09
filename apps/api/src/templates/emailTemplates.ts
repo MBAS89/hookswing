@@ -106,3 +106,24 @@ export function welcomeTemplate(name: string) {
   const text = `Welcome to HookSwing, ${name || 'there'}!\n\nYour email is verified and your account is ready.\n\n- Create your first project and get a unique webhook URL\n- Install the CLI: npm install -g hookswing\n- Forward webhooks to your local machine\n- Replay, inspect, and compare payloads\n\nGo to Dashboard: https://hookswing.com/dashboard\n\nNeed help? Contact support@hookswing.com`;
   return baseTemplate(title, content, text);
 }
+
+export function teamInviteTemplate(inviterName: string, teamName: string, acceptUrl: string, role: string) {
+  const title = `You've been invited to ${teamName}`;
+  const content = `
+    <div class="title">Team Invitation</div>
+    <div class="body">
+      <p><strong>${inviterName || 'Someone'}</strong> has invited you to join <strong>${teamName}</strong> on HookSwing as a <strong>${role}</strong>.</p>
+      <p>HookSwing is a webhook debugging platform. Join the team to share projects, inspect webhooks together, and collaborate in real time.</p>
+    </div>
+    <div style="text-align:center;">
+      <a href="${acceptUrl}" class="button">Accept Invitation</a>
+    </div>
+    <div class="body" style="text-align:center;">
+      <p>Or copy and paste this link:</p>
+      <p style="word-break:break-all; color:${mutedColor};">${acceptUrl}</p>
+      <p style="margin-top:16px;">This invitation expires in 7 days. If you don't have a HookSwing account yet, sign up with this email address and the invite will be waiting for you.</p>
+    </div>
+  `;
+  const text = `Team Invitation - HookSwing\n\n${inviterName || 'Someone'} has invited you to join ${teamName} as a ${role}.\n\nAccept your invitation:\n${acceptUrl}\n\nThis invitation expires in 7 days. If you don't have a HookSwing account yet, sign up with this email address and the invite will be waiting for you.\n\nNeed help? Contact support@hookswing.com`;
+  return baseTemplate(title, content, text);
+}

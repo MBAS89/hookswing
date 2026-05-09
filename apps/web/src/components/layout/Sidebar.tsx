@@ -12,12 +12,12 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const location = useLocation();
   const navigate = useNavigate();
   const { projects, createProject, deleteProject } = useProjects();
-  const { user, logout } = useAuth();
+  const { user, pendingInvites, logout } = useAuth();
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
     { icon: Zap, label: 'Tester', href: '/dashboard/tester' },
-    { icon: Users, label: 'Team', href: '/dashboard/team' },
+    { icon: Users, label: 'Team', href: '/dashboard/team', badge: pendingInvites > 0 ? pendingInvites : undefined },
     { icon: Terminal, label: 'CLI', href: '/dashboard/cli' },
     ...(user?.role === 'ADMIN' ? [{ icon: Shield, label: 'Admin', href: '/dashboard/admin' }] : []),
   ];
@@ -94,7 +94,12 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge ? (
+                    <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                      {item.badge}
+                    </span>
+                  ) : null}
                 </Link>
               ))}
             </nav>

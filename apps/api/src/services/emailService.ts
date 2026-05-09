@@ -190,3 +190,25 @@ export async function sendWelcomeEmail(
     { userId, to, subject: 'Welcome to HookSwing', type: 'welcome' }
   );
 }
+
+export async function sendTeamInviteEmail(
+  to: string,
+  inviterName: string,
+  teamName: string,
+  acceptUrl: string,
+  role: string,
+  invitedById?: string
+): Promise<{ success: boolean; error?: string }> {
+  const { html, text } = templates.teamInviteTemplate(inviterName, teamName, acceptUrl, role);
+  return sendWithRetry(
+    {
+      from: getFrom(),
+      replyTo: FROM_EMAIL,
+      to,
+      subject: `You've been invited to ${teamName} on HookSwing`,
+      html,
+      text,
+    },
+    { userId: invitedById, to, subject: `You've been invited to ${teamName} on HookSwing`, type: 'team_invite' }
+  );
+}

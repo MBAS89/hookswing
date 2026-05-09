@@ -19,6 +19,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  pendingInvites: number;
   loading: boolean;
   login: (email: string, password: string) => Promise<any>;
   verify2FA: (tempToken: string, code: string) => Promise<void>;
@@ -33,13 +34,17 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [pendingInvites, setPendingInvites] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       api.get('/auth/me')
-        .then((res) => setUser(res.data.user))
+        .then((res) => {
+          setUser(res.data.user);
+          setPendingInvites(res.data.pendingInvites || 0);
+        })
         .catch(() => {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
@@ -61,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('accessToken', res.data.accessToken);
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
+    setPendingInvites(res.data.pendingInvites || 0);
     return res.data;
   }, []);
 
@@ -69,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('accessToken', res.data.accessToken);
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
+    setPendingInvites(res.data.pendingInvites || 0);
   }, []);
 
   const verifyEmail = useCallback(async (email: string, code: string) => {
@@ -76,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('accessToken', res.data.accessToken);
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
+    setPendingInvites(res.data.pendingInvites || 0);
     return res.data;
   }, []);
 
@@ -95,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setUser(null);
+    setPendingInvites(0);
   }, []);
 
   const updateUser = useCallback((updatedUser: User) => {
@@ -102,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, verify2FA, verifyEmail, resendVerification, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, pendingInvites, loading, login, verify2FA, verifyEmail, resendVerification, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

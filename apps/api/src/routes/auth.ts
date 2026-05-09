@@ -704,7 +704,16 @@ router.get('/me', async (req: AuthRequest, res) => {
     });
     const limit = user.plan === 'FREE' ? 500 : 10000;
 
-    res.json({ user, usage: { used: usage?.count || 0, limit } });
+    // Get pending team invites
+    const pendingInvites = await prisma.teamInvite.count({
+      where: {
+        email: user.email,
+        status: 'PENDING',
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    res.json({ user, usage: { used: usage?.count || 0, limit }, pendingInvites });
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }

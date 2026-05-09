@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Loader2, Clock, FolderPlus, FolderPen, FolderX, Play, Trash2, UserPlus, UserCog, UserX, PenLine, ArrowRightLeft, BellPlus, BellOff, ToggleLeft, Globe, FileDown, MessageSquare, MessageSquareOff } from 'lucide-react';
+import { Loader2, Clock, FolderPlus, FolderPen, FolderX, Play, Trash2, UserPlus, UserCheck, UserCog, UserX, PenLine, ArrowRightLeft, BellPlus, BellOff, ToggleLeft, Globe, FileDown, MessageSquare, MessageSquareOff } from 'lucide-react';
 
 interface Activity {
   id: string;
@@ -19,6 +19,7 @@ const actionIcons: Record<string, React.ElementType> = {
   webhook_replayed: Play,
   webhook_deleted: Trash2,
   member_invited: UserPlus,
+  member_joined: UserCheck,
   member_role_changed: UserCog,
   member_removed: UserX,
   team_renamed: PenLine,
@@ -39,6 +40,7 @@ const actionLabels: Record<string, string> = {
   webhook_replayed: 'replayed a webhook',
   webhook_deleted: 'deleted a webhook',
   member_invited: 'invited a member',
+  member_joined: 'joined the team',
   member_role_changed: "changed a member's role",
   member_removed: 'removed a member',
   team_renamed: 'renamed the team',

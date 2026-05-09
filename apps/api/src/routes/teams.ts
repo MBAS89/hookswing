@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { prisma } from '../lib/prisma';
 import { logActivity } from '../lib/activity';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
+import { sendTeamInviteEmail } from '../services/emailService';
 
 const router = Router();
 
@@ -309,7 +311,7 @@ router.post('/:id/transfer', async (req: AuthRequest, res) => {
   res.json({ success: true });
 });
 
-// --- Invite member ---
+// --- Invite member (creates pending invite) ---
 router.post('/:id/members', async (req: AuthRequest, res) => {
   const schema = z.object({
     email: z.string().email(),
@@ -332,41 +334,236 @@ router.post('/:id/members', async (req: AuthRequest, res) => {
     return res.status(403).json({ error: 'Not authorized' });
   }
 
-  const invitedUser = await prisma.user.findUnique({
-    where: { email: result.data.email },
-  });
+  const email = result.data.email.toLowerCase().trim();
 
-  if (!invitedUser) {
-    return res.status(404).json({ error: 'User not found' });
+  // Check if already a member
+  const invitedUser = await prisma.user.findUnique({ where: { email } });
+  if (invitedUser) {
+    const existing = await prisma.teamMember.findUnique({
+      where: { teamId_userId: { teamId: req.params.id, userId: invitedUser.id } },
+    });
+    if (existing) {
+      return res.status(409).json({ error: 'User is already a team member' });
+    }
   }
 
-  const existing = await prisma.teamMember.findUnique({
-    where: { teamId_userId: { teamId: req.params.id, userId: invitedUser.id } },
+  // Check for existing pending invite to same email
+  const existingInvite = await prisma.teamInvite.findFirst({
+    where: {
+      teamId: req.params.id,
+      email,
+      status: 'PENDING',
+      expiresAt: { gt: new Date() },
+    },
   });
-
-  if (existing) {
-    return res.status(409).json({ error: 'User is already a team member' });
+  if (existingInvite) {
+    return res.status(409).json({ error: 'An invite is already pending for this email' });
   }
 
-  const member = await prisma.teamMember.create({
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  const invite = await prisma.teamInvite.create({
     data: {
       teamId: req.params.id,
-      userId: invitedUser.id,
+      email,
       role: result.data.role || 'MEMBER',
+      token,
+      invitedById: req.user!.id,
+      expiresAt,
     },
-    include: { user: { select: { id: true, email: true, name: true } } },
+    include: {
+      team: { select: { id: true, name: true } },
+      invitedBy: { select: { id: true, name: true, email: true } },
+    },
   });
+
+  // Send invite email
+  const acceptUrl = `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/team?invite=${token}`;
+  try {
+    await sendTeamInviteEmail(
+      email,
+      invite.invitedBy.name || invite.invitedBy.email,
+      team.name,
+      acceptUrl,
+      result.data.role || 'MEMBER',
+      req.user!.id
+    );
+  } catch (err) {
+    console.error('[Team Invite] Failed to send email:', err);
+    // Non-critical: invite is still created
+  }
 
   await logActivity({
     teamId: req.params.id,
     userId: req.user!.id,
     action: 'member_invited',
     targetType: 'member',
-    targetId: invitedUser.id,
-    metadata: { email: invitedUser.email, role: result.data.role || 'MEMBER' },
+    targetId: invitedUser?.id || email,
+    metadata: { email, role: result.data.role || 'MEMBER' },
   });
 
-  res.status(201).json(member);
+  res.status(201).json(invite);
+});
+
+// --- List pending invites for a team ---
+router.get('/:id/invites', async (req: AuthRequest, res) => {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: req.params.id,
+      members: { some: { userId: req.user!.id, role: 'ADMIN' } },
+    },
+  });
+
+  if (!team) {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
+
+  const invites = await prisma.teamInvite.findMany({
+    where: {
+      teamId: req.params.id,
+      status: 'PENDING',
+      expiresAt: { gt: new Date() },
+    },
+    include: {
+      invitedBy: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json(invites);
+});
+
+// --- Cancel an invite ---
+router.delete('/:id/invites/:inviteId', async (req: AuthRequest, res) => {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: req.params.id,
+      members: { some: { userId: req.user!.id, role: 'ADMIN' } },
+    },
+  });
+
+  if (!team) {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
+
+  await prisma.teamInvite.updateMany({
+    where: {
+      id: req.params.inviteId,
+      teamId: req.params.id,
+      status: 'PENDING',
+    },
+    data: { status: 'CANCELLED' },
+  });
+
+  res.json({ success: true });
+});
+
+// --- Get my pending invites ---
+router.get('/invites/me', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.id },
+    select: { email: true },
+  });
+
+  if (!user) {
+    return res.status(401).json({ error: 'User not found' });
+  }
+
+  const invites = await prisma.teamInvite.findMany({
+    where: {
+      email: user.email,
+      status: 'PENDING',
+      expiresAt: { gt: new Date() },
+    },
+    include: {
+      team: { select: { id: true, name: true } },
+      invitedBy: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json(invites);
+});
+
+// --- Accept invite ---
+router.post('/invites/:token/accept', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.id },
+    select: { email: true },
+  });
+
+  if (!user) {
+    return res.status(401).json({ error: 'User not found' });
+  }
+
+  const invite = await prisma.teamInvite.findFirst({
+    where: {
+      token: req.params.token,
+      email: user.email,
+      status: 'PENDING',
+      expiresAt: { gt: new Date() },
+    },
+    include: { team: true },
+  });
+
+  if (!invite) {
+    return res.status(404).json({ error: 'Invite not found or expired' });
+  }
+
+  // Check not already a member
+  const existing = await prisma.teamMember.findUnique({
+    where: { teamId_userId: { teamId: invite.teamId, userId: req.user!.id } },
+  });
+
+  if (!existing) {
+    await prisma.teamMember.create({
+      data: {
+        teamId: invite.teamId,
+        userId: req.user!.id,
+        role: invite.role,
+      },
+    });
+  }
+
+  await prisma.teamInvite.update({
+    where: { id: invite.id },
+    data: { status: 'ACCEPTED', acceptedAt: new Date() },
+  });
+
+  await logActivity({
+    teamId: invite.teamId,
+    userId: req.user!.id,
+    action: 'member_joined',
+    targetType: 'member',
+    targetId: req.user!.id,
+    metadata: { email: user.email, role: invite.role },
+  });
+
+  res.json({ success: true, teamId: invite.teamId });
+});
+
+// --- Decline invite ---
+router.post('/invites/:token/decline', async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.id },
+    select: { email: true },
+  });
+
+  if (!user) {
+    return res.status(401).json({ error: 'User not found' });
+  }
+
+  await prisma.teamInvite.updateMany({
+    where: {
+      token: req.params.token,
+      email: user.email,
+      status: 'PENDING',
+    },
+    data: { status: 'DECLINED', declinedAt: new Date() },
+  });
+
+  res.json({ success: true });
 });
 
 // --- Update member role ---
