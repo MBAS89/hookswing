@@ -84,20 +84,20 @@ router.get('/preferences', async (req: AuthRequest, res) => {
 
 // --- Update preferences ---
 router.patch('/preferences', async (req: AuthRequest, res) => {
-  const schema = z.record(z.boolean());
+  const schema = z.object({
+    type: z.string().min(1),
+    enabled: z.boolean(),
+  });
   const result = schema.safeParse(req.body);
   if (!result.success) {
     return res.status(400).json({ error: 'Invalid input' });
   }
 
-  const updates = Object.entries(result.data);
-  for (const [type, enabled] of updates) {
-    await prisma.notificationPreference.upsert({
-      where: { userId_type: { userId: req.user!.id, type } },
-      update: { enabled },
-      create: { userId: req.user!.id, type, enabled },
-    });
-  }
+  await prisma.notificationPreference.upsert({
+    where: { userId_type: { userId: req.user!.id, type: result.data.type } },
+    update: { enabled: result.data.enabled },
+    create: { userId: req.user!.id, type: result.data.type, enabled: result.data.enabled },
+  });
 
   res.json({ success: true });
 });

@@ -230,6 +230,26 @@ router.get('/:id/activity', async (req: AuthRequest, res) => {
   res.json(logs);
 });
 
+// --- Clear activity log (owner only) ---
+router.delete('/:id/activity', async (req: AuthRequest, res) => {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: req.params.id,
+      ownerId: req.user!.id,
+    },
+  });
+
+  if (!team) {
+    return res.status(403).json({ error: 'Only team owner can clear activity log' });
+  }
+
+  await prisma.activityLog.deleteMany({
+    where: { teamId: req.params.id },
+  });
+
+  res.json({ success: true });
+});
+
 // --- Leave team (non-owner) ---
 router.post('/:id/leave', async (req: AuthRequest, res) => {
   const team = await prisma.team.findFirst({

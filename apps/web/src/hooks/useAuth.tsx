@@ -14,6 +14,7 @@ interface User {
   plan: string;
   twoFactorEnabled: boolean;
   emailVerified: boolean;
+  githubId?: string | null;
   teams?: TeamMembership[];
 }
 

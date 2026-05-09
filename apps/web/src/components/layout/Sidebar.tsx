@@ -8,6 +8,7 @@ import { useProjects } from '../../hooks/useProjects';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import CreateProjectModal from '../project/CreateProjectModal';
+import ConfirmModal from '../ui/ConfirmModal';
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const location = useLocation();
@@ -25,21 +26,24 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   ];
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
   const handleCreate = async (name: string, description?: string, teamId?: string) => {
     const project = await createProject(name, description, teamId);
     navigate(`/dashboard/projects/${project.id}`);
   };
 
-  const handleDelete = async (projectId: string, projectName: string) => {
-    if (!confirm(`Delete project "${projectName}"? This cannot be undone.`)) return;
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
     try {
-      await deleteProject(projectId);
-      if (location.pathname === `/dashboard/projects/${projectId}`) {
+      await deleteProject(deleteConfirm.id);
+      if (location.pathname === `/dashboard/projects/${deleteConfirm.id}`) {
         navigate('/dashboard');
       }
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to delete project');
+    } finally {
+      setDeleteConfirm(null);
     }
   };
 
@@ -62,6 +66,17 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
 
   return (
     <>
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title="Delete Project"
+        message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
+
       {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
@@ -131,7 +146,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   </Link>
                   {canDeleteProject(project) && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(project.id, project.name); }}
+                      onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: project.id, name: project.name }); }}
                       className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
                       title="Delete project"
                     >
@@ -193,7 +208,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                     </Link>
                     {canDeleteProject(project) && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(project.id, project.name); }}
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: project.id, name: project.name }); }}
                         className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
                         title="Delete project"
                       >

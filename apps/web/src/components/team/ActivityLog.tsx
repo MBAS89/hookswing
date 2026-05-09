@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { Loader2, Clock, FolderPlus, FolderPen, FolderX, Play, Trash2, UserPlus, UserCheck, UserCog, UserX, PenLine, ArrowRightLeft, BellPlus, BellOff, ToggleLeft, Globe, FileDown, MessageSquare, MessageSquareOff } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
+import ConfirmModal from '../ui/ConfirmModal';
+import { Loader2, Clock, FolderPlus, FolderPen, FolderX, Play, Trash2, UserPlus, UserCheck, UserCog, UserX, PenLine, ArrowRightLeft, BellPlus, BellOff, ToggleLeft, Globe, FileDown, MessageSquare, MessageSquareOff, MessageSquareReply, Trash } from 'lucide-react';
 
 interface Activity {
   id: string;
@@ -30,6 +32,7 @@ const actionIcons: Record<string, React.ElementType> = {
   custom_slug_changed: Globe,
   export_downloaded: FileDown,
   comment_added: MessageSquare,
+  comment_replied: MessageSquareReply,
   comment_deleted: MessageSquareOff,
 };
 
@@ -51,6 +54,7 @@ const actionLabels: Record<string, string> = {
   custom_slug_changed: 'changed custom slug',
   export_downloaded: 'downloaded export',
   comment_added: 'added a comment',
+  comment_replied: 'replied to a comment',
   comment_deleted: 'deleted a comment',
 };
 
@@ -65,17 +69,34 @@ function formatTimeAgo(date: string): string {
   return then.toLocaleDateString();
 }
 
-export default function ActivityLog({ teamId }: { teamId: string }) {
+export default function ActivityLog({ teamId, isOwner }: { teamId: string; isOwner: boolean }) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearConfirm, setClearConfirm] = useState(false);
+  const toast = useToast();
 
-  useEffect(() => {
+  const fetchActivities = () => {
     setLoading(true);
     api.get(`/teams/${teamId}/activity`)
       .then((res) => setActivities(res.data))
       .catch(() => setActivities([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchActivities();
   }, [teamId]);
+
+  const handleClear = async () => {
+    try {
+      await api.delete(`/teams/${teamId}/activity`);
+      setActivities([]);
+      setClearConfirm(false);
+      toast.success('Activity log cleared');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to clear activity log');
+    }
+  };
 
   if (loading) {
     return (
@@ -91,12 +112,42 @@ export default function ActivityLog({ teamId }: { teamId: string }) {
         <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
         <p className="text-sm">No activity yet</p>
         <p className="text-xs mt-1">Team actions will appear here</p>
+        {isOwner && (
+          <button
+            onClick={() => setClearConfirm(true)}
+            className="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center gap-1 mx-auto"
+          >
+            <Trash className="w-3 h-3" />
+            Clear Activity Log
+          </button>
+        )}
+        <ConfirmModal
+          open={clearConfirm}
+          title="Clear Activity Log"
+          message="Are you sure you want to clear all activity log entries? This cannot be undone."
+          confirmLabel="Clear"
+          cancelLabel="Cancel"
+          danger
+          onConfirm={handleClear}
+          onCancel={() => setClearConfirm(false)}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
+      {isOwner && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setClearConfirm(true)}
+            className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+          >
+            <Trash className="w-3 h-3" />
+            Clear Activity Log
+          </button>
+        </div>
+      )}
       {activities.map((act) => {
         const Icon = actionIcons[act.action] || Clock;
         const label = actionLabels[act.action] || act.action;
@@ -109,7 +160,10 @@ export default function ActivityLog({ teamId }: { teamId: string }) {
               <p className="text-sm text-slate-200">
                 <span className="font-medium text-white">{act.user.name || act.user.email}</span>{' '}
                 {label}
-                {act.metadata?.name && (
+                {act.metadata?.projectName && (
+                  <span className="text-slate-400"> in {act.metadata.projectName}</span>
+                )}
+                {act.metadata?.name && !act.metadata?.projectName && (
                   <span className="text-slate-400"> — {act.metadata.name}</span>
                 )}
                 {act.metadata?.email && (
@@ -121,6 +175,16 @@ export default function ActivityLog({ teamId }: { teamId: string }) {
           </div>
         );
       })}
+      <ConfirmModal
+        open={clearConfirm}
+        title="Clear Activity Log"
+        message="Are you sure you want to clear all activity log entries? This cannot be undone."
+        confirmLabel="Clear"
+        cancelLabel="Cancel"
+        danger
+        onConfirm={handleClear}
+        onCancel={() => setClearConfirm(false)}
+      />
     </div>
   );
 }

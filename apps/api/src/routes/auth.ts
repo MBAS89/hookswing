@@ -459,7 +459,7 @@ router.post('/register', authRateLimit, async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: { email, passwordHash, name },
-    select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true },
+    select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, githubId: true },
   });
 
   // Send verification email (await with 12s timeout so user knows if it fails)
@@ -709,7 +709,7 @@ router.get('/me', async (req: AuthRequest, res) => {
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
-        id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, emailVerified: true,
+        id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, emailVerified: true, githubId: true,
         teams: {
           select: { team: { select: { id: true, name: true } }, role: true },
         },
@@ -785,7 +785,7 @@ router.patch('/me', async (req: AuthRequest, res) => {
     where: { id: userId },
     data,
     select: {
-      id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true,
+      id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, githubId: true,
       teams: { include: { team: { select: { id: true, name: true } } } },
     },
   });

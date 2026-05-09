@@ -27,13 +27,19 @@ import {
   Bell,
 } from 'lucide-react';
 
-const tabs = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'password', label: 'Password', icon: Lock },
-  { id: 'security', label: 'Security', icon: Shield },
-  { id: 'billing', label: 'Billing', icon: CreditCard },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-];
+function getTabs(isGitHubUser: boolean) {
+  const all = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'password', label: 'Password', icon: Lock },
+    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'billing', label: 'Billing', icon: CreditCard },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+  ];
+  if (isGitHubUser) {
+    return all.filter((t) => t.id !== 'password');
+  }
+  return all;
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
@@ -49,6 +55,8 @@ function formatCurrency(amount: number, currency: string) {
 export default function AccountPage() {
   const { user, updateUser, logout } = useAuth();
   const [searchParams] = useSearchParams();
+  const isGitHubUser = !!user?.githubId;
+  const tabs = getTabs(isGitHubUser);
   const [activeTab, setActiveTab] = useState(() => {
     const tab = searchParams.get('tab');
     if (tab && tabs.some((t) => t.id === tab)) return tab;
@@ -87,7 +95,7 @@ export default function AccountPage() {
         {/* Content */}
         <div className="flex-1 min-w-0">
           {activeTab === 'profile' && <ProfileTab user={user} updateUser={updateUser} />}
-          {activeTab === 'password' && <PasswordTab />}
+          {activeTab === 'password' && !isGitHubUser && <PasswordTab />}
           {activeTab === 'security' && <SecurityTab user={user} updateUser={updateUser} logout={logout} />}
           {activeTab === 'billing' && <BillingTab />}
           {activeTab === 'notifications' && <NotificationsTab />}

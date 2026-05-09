@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { Link } from 'react-router-dom';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import {
   Users, Plus, Trash2, Crown, User, Check, Loader2, X,
   Edit3, LogOut, Shield, FolderGit2, AlertTriangle, ChevronDown,
@@ -68,6 +69,7 @@ export default function TeamPage() {
 
   // Confirm delete
   const [deleteTeam, setDeleteTeam] = useState<string | null>(null);
+  const [leaveConfirm, setLeaveConfirm] = useState<string | null>(null);
 
   const fetchTeams = async () => {
     setLoading(true);
@@ -102,6 +104,15 @@ export default function TeamPage() {
   useEffect(() => {
     fetchTeams();
     fetchMyInvites();
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      fetchTeams();
+      fetchMyInvites();
+    };
+    window.addEventListener('refresh-teams', handler);
+    return () => window.removeEventListener('refresh-teams', handler);
   }, []);
 
   const createTeam = async () => {
@@ -143,10 +154,10 @@ export default function TeamPage() {
   };
 
   const leaveTeam = async (teamId: string) => {
-    if (!confirm('Are you sure you want to leave this team?')) return;
     try {
       await api.post(`/teams/${teamId}/leave`);
       setTeams(teams.filter((t) => t.id !== teamId));
+      setLeaveConfirm(null);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to leave team');
       return;
@@ -392,7 +403,7 @@ export default function TeamPage() {
                       </>
                     ) : (
                       <button
-                        onClick={() => leaveTeam(team.id)}
+                        onClick={() => setLeaveConfirm(team.id)}
                         className="text-xs flex items-center gap-1 text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1 rounded-md transition-colors"
                       >
                         <LogOut className="w-3 h-3" />
@@ -605,6 +616,17 @@ export default function TeamPage() {
           })}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!leaveConfirm}
+        title="Leave Team"
+        message="Are you sure you want to leave this team? You will lose access to all team projects."
+        confirmLabel="Leave"
+        cancelLabel="Cancel"
+        danger
+        onConfirm={() => leaveConfirm && leaveTeam(leaveConfirm)}
+        onCancel={() => setLeaveConfirm(null)}
+      />
     </div>
   );
 }

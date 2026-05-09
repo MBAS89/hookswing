@@ -16,6 +16,7 @@ export interface Webhook {
   responseBody: string | null;
   isReplay: boolean;
   originalId: string | null;
+  eventType: string | null;
   createdAt: string;
   _count?: { comments: number };
 }
@@ -32,11 +33,13 @@ export function useWebhooks(projectId: string | null) {
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 50, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(false);
 
-  const fetchWebhooks = useCallback(async (page = 1, append = false) => {
+  const fetchWebhooks = useCallback(async (page = 1, append = false, eventType?: string) => {
     if (!projectId) return;
     if (!append) setLoading(true);
     try {
-      const res = await api.get(`/projects/${projectId}/webhooks?page=${page}&limit=200`);
+      let url = `/projects/${projectId}/webhooks?page=${page}&limit=200`;
+      if (eventType) url += `&eventType=${encodeURIComponent(eventType)}`;
+      const res = await api.get(url);
       setWebhooks((prev) => append ? [...prev, ...res.data.webhooks] : res.data.webhooks);
       setPagination(res.data.pagination);
     } catch {

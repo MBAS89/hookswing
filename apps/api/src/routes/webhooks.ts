@@ -46,12 +46,14 @@ router.get('/projects/:projectId/webhooks', async (req: AuthRequest, res) => {
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 200));
   const method = req.query.method as string | undefined;
+  const eventType = req.query.eventType as string | undefined;
   const search = req.query.search as string | undefined;
   const effectivePlan = project.teamId ? 'TEAM' : req.user!.plan;
   const cutoff = getHistoryCutoff(effectivePlan);
 
   const where: any = { projectId: req.params.projectId };
   if (method) where.method = method.toUpperCase();
+  if (eventType) where.eventType = eventType;
   if (search) {
     where.OR = [
       { body: { path: [], string_contains: search } },
@@ -533,7 +535,7 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
         ],
       },
     },
-    include: { project: { select: { teamId: true } } },
+    include: { project: { select: { id: true, name: true, teamId: true } } },
   });
 
   if (!webhook) {
@@ -571,6 +573,7 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
       action: result.data.parentId ? 'comment_replied' : 'comment_added',
       targetType: 'webhook',
       targetId: req.params.id,
+      metadata: { projectName: webhook.project.name },
     });
   }
 
@@ -585,9 +588,9 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
       await createNotification({
         userId: parent.userId,
         type: 'comment_replied',
-        title: 'New reply to your comment',
-        message: `${comment.user.name || comment.user.email} replied to your comment on a webhook.`,
-        data: { webhookId: req.params.id, commentId: comment.id },
+        title: `New reply in ${webhook.project?.name || 'project'}`,
+        message: `${comment.user.name || comment.user.email} replied to your comment on a webhook in ${webhook.project?.name || 'project'}.`,
+        data: { webhookId: req.params.id, commentId: comment.id, projectId: webhook.project?.id, projectName: webhook.project?.name },
       });
     }
   } else if (webhook.project?.teamId) {
@@ -596,9 +599,9 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
       teamId: webhook.project.teamId,
       excludeUserId: req.user!.id,
       type: 'comment_added',
-      title: 'New comment on webhook',
-      message: `${comment.user.name || comment.user.email} commented on a webhook in your team.`,
-      data: { webhookId: req.params.id, commentId: comment.id },
+      title: `New comment in ${webhook.project?.name || 'project'}`,
+      message: `${comment.user.name || comment.user.email} commented on a webhook in ${webhook.project?.name || 'project'}.`,
+      data: { webhookId: req.params.id, commentId: comment.id, projectId: webhook.project?.id, projectName: webhook.project?.name },
     });
   }
 

@@ -7,10 +7,11 @@ import { useToast } from '../hooks/useToast';
 import WebhookCard from '../components/webhook/WebhookCard';
 import WebhookDetail from '../components/webhook/WebhookDetail';
 import WebhookCompare from '../components/webhook/WebhookCompare';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import {
   Loader2, RefreshCw, Filter, Trash2, Copy, Check, SatelliteDish,
   Edit3, X, Globe, Crown, Bell, MessageSquare, ToggleLeft, ToggleRight, Send,
-  GitCompare, FileDown, ChevronDown, ChevronUp, Shield,
+  GitCompare, FileDown, ChevronDown, ChevronUp, Shield, Zap,
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -37,6 +38,7 @@ export default function ProjectPage() {
   const { webhooks, pagination, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook } = useWebhooks(id || null);
   const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
   const [filterMethod, setFilterMethod] = useState('');
+  const [filterEventType, setFilterEventType] = useState('');
 
   // Compare mode
   const [compareMode, setCompareMode] = useState(false);
@@ -62,6 +64,8 @@ export default function ProjectPage() {
   const [showAlertForm, setShowAlertForm] = useState(false);
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [alertType, setAlertType] = useState<'slack' | 'discord' | 'telegram'>('slack');
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [deleteAlertId, setDeleteAlertId] = useState<string | null>(null);
   const [alertUrl, setAlertUrl] = useState('');
   const [alertBotToken, setAlertBotToken] = useState('');
   const [alertChatId, setAlertChatId] = useState('');
@@ -100,10 +104,10 @@ export default function ProjectPage() {
   }, [addWebhook]));
 
   const handleBulkDelete = async () => {
-    if (!confirm('Delete all webhooks in this project?')) return;
     await api.post(`/webhooks/projects/${id}/webhooks/bulk-delete`);
     fetchWebhooks();
     setSelectedWebhook(null);
+    setBulkDeleteConfirm(false);
   };
 
   const copyUrl = () => {
@@ -137,6 +141,12 @@ export default function ProjectPage() {
       }
     }
   }, [compareSelection, webhooks]);
+
+  useEffect(() => {
+    const handler = () => fetchWebhooks();
+    window.addEventListener('refresh-webhooks', handler);
+    return () => window.removeEventListener('refresh-webhooks', handler);
+  }, [fetchWebhooks]);
 
   const saveCustomSlug = async () => {
     if (!project) return;
@@ -235,18 +245,21 @@ export default function ProjectPage() {
   };
 
   const deleteAlert = async (alertId: string) => {
-    if (!confirm('Delete this alert?')) return;
     try {
       await api.delete(`/projects/${id}/alerts/${alertId}`);
       fetchAlerts();
+      setDeleteAlertId(null);
     } catch {
       toast.error('Failed to delete alert');
     }
   };
 
-  const filtered = filterMethod
-    ? webhooks.filter((w) => w.method.toUpperCase() === filterMethod)
-    : webhooks;
+  const eventTypes = Array.from(new Set(webhooks.map((w) => w.eventType).filter((et): et is string => !!et))).sort();
+  const filtered = webhooks.filter((w) => {
+    if (filterMethod && w.method.toUpperCase() !== filterMethod) return false;
+    if (filterEventType && w.eventType !== filterEventType) return false;
+    return true;
+  });
 
   if (projectLoading) {
     return (
@@ -473,7 +486,7 @@ export default function ProjectPage() {
                         {alert.enabled ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-5 h-5" />}
                       </button>
                       <button
-                        onClick={() => deleteAlert(alert.id)}
+                        onClick={() => setDeleteAlertId(alert.id)}
                         className="text-slate-500 hover:text-red-400 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -640,6 +653,21 @@ export default function ProjectPage() {
               <option value="DELETE">DELETE</option>
             </select>
           </div>
+          {eventTypes.length > 0 && (
+            <div className="relative">
+              <Zap className="w-4 h-4 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <select
+                value={filterEventType || ''}
+                onChange={(e) => setFilterEventType(e.target.value || '')}
+                className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-4 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                <option value="">All events</option>
+                {eventTypes.map((et) => (
+                  <option key={et} value={et}>{et}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <button
             onClick={() => fetchWebhooks()}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
@@ -647,7 +675,7 @@ export default function ProjectPage() {
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
-            onClick={handleBulkDelete}
+            onClick={() => setBulkDeleteConfirm(true)}
             className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
           >
             <Trash2 className="w-4 h-4" />
@@ -724,6 +752,28 @@ export default function ProjectPage() {
           onClose={() => setCompareWebhooks(null)}
         />
       )}
+
+      <ConfirmModal
+        open={bulkDeleteConfirm}
+        title="Delete All Webhooks"
+        message="Are you sure you want to delete all webhooks in this project? This cannot be undone."
+        confirmLabel="Delete All"
+        cancelLabel="Cancel"
+        danger
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkDeleteConfirm(false)}
+      />
+
+      <ConfirmModal
+        open={!!deleteAlertId}
+        title="Delete Alert"
+        message="Are you sure you want to delete this alert?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+        onConfirm={() => deleteAlertId && deleteAlert(deleteAlertId)}
+        onCancel={() => setDeleteAlertId(null)}
+      />
     </div>
   );
 }

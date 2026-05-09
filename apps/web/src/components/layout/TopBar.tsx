@@ -113,6 +113,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
       await markRead(notifId);
       await refreshUser();
       window.dispatchEvent(new CustomEvent('refresh-projects'));
+      window.dispatchEvent(new CustomEvent('refresh-teams'));
       refresh();
     } catch (e) {
       // silent

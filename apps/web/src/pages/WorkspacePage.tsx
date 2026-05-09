@@ -221,7 +221,7 @@ export default function WorkspacePage() {
 
       {activeTab === 'activity' && (
         <div className="flex-1 overflow-auto">
-          <ActivityLog teamId={team.id} />
+          <ActivityLog teamId={team.id} isOwner={team.ownerId === user?.id} />
         </div>
       )}
     </div>

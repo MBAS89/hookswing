@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import JsonViewer from './JsonViewer';
 import WebhookModal from './WebhookModal';
+import ConfirmModal from '../ui/ConfirmModal';
 import type { Webhook } from '../../hooks/useWebhooks';
 
 function formatReplayBody(rawBody: string | null | undefined, body: any): string {
@@ -50,6 +51,7 @@ export default function WebhookDetail({
   const [replayLoading, setReplayLoading] = useState(false);
   const [replayResult, setReplayResult] = useState<{status: number; responseTime: number} | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
 
   // Editable replay fields
   const [replayHeaders, setReplayHeaders] = useState('');
@@ -133,10 +135,11 @@ export default function WebhookDetail({
   };
 
   const deleteComment = async (commentId: string) => {
-    if (!confirm('Delete this comment?')) return;
     try {
       await api.delete(`/webhooks/${webhook.id}/comments/${commentId}`);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
+      setDeleteCommentId(null);
+      window.dispatchEvent(new CustomEvent('refresh-webhooks'));
     } catch {
       toast.error('Failed to delete comment');
     }
@@ -579,7 +582,7 @@ export default function WebhookDetail({
                           </div>
                           {comment.user.id === user?.id && (
                             <button
-                              onClick={() => deleteComment(comment.id)}
+                              onClick={() => setDeleteCommentId(comment.id)}
                               className="text-slate-600 hover:text-red-400 transition-colors"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -656,7 +659,7 @@ export default function WebhookDetail({
                                   </div>
                                   {reply.user.id === user?.id && (
                                     <button
-                                      onClick={() => deleteComment(reply.id)}
+                                      onClick={() => setDeleteCommentId(reply.id)}
                                       className="text-slate-600 hover:text-red-400 transition-colors"
                                     >
                                       <Trash2 className="w-3 h-3" />
@@ -697,6 +700,17 @@ export default function WebhookDetail({
       {showModal && (
         <WebhookModal webhook={webhook} onClose={() => setShowModal(false)} canReplay={canReplay} />
       )}
+
+      <ConfirmModal
+        open={!!deleteCommentId}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+        onConfirm={() => deleteCommentId && deleteComment(deleteCommentId)}
+        onCancel={() => setDeleteCommentId(null)}
+      />
     </div>
   );
 }
