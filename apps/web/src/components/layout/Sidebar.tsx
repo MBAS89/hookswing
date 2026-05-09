@@ -6,6 +6,7 @@ import {
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../hooks/useToast';
 import CreateProjectModal from '../project/CreateProjectModal';
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -13,6 +14,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const navigate = useNavigate();
   const { projects, createProject, deleteProject } = useProjects();
   const { user, pendingInvites, logout } = useAuth();
+  const toast = useToast();
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -37,7 +39,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         navigate('/dashboard');
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to delete project');
+      toast.error(err.response?.data?.error || 'Failed to delete project');
     }
   };
 

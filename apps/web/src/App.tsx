@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { ToastProvider } from './hooks/useToast';
+import ToastContainer from './components/ui/ToastContainer';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import GitHubCallback from './pages/GitHubCallback';
@@ -60,7 +62,10 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ToastProvider>
+        <AppRoutes />
+        <ToastContainer />
+      </ToastProvider>
     </AuthProvider>
   );
 }

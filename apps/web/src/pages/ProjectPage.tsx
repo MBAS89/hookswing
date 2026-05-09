@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useWebhooks } from '../hooks/useWebhooks';
 import { useSocket } from '../hooks/useSocket';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import WebhookCard from '../components/webhook/WebhookCard';
 import WebhookDetail from '../components/webhook/WebhookDetail';
 import WebhookCompare from '../components/webhook/WebhookCompare';
@@ -29,6 +30,7 @@ interface Project {
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const toast = useToast();
   const [project, setProject] = useState<Project | null>(null);
   const [projectLoading, setProjectLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -195,7 +197,7 @@ export default function ProjectPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Export failed');
+      toast.error(err.response?.data?.error || 'Export failed');
     }
   };
 
@@ -217,7 +219,7 @@ export default function ProjectPage() {
       setShowAlertForm(false);
       fetchAlerts();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to add alert');
+      toast.error(err.response?.data?.error || 'Failed to add alert');
     } finally {
       setAlertLoading(false);
     }
@@ -228,7 +230,7 @@ export default function ProjectPage() {
       await api.patch(`/projects/${id}/alerts/${alertId}`, { enabled: !enabled });
       fetchAlerts();
     } catch {
-      alert('Failed to toggle alert');
+      toast.error('Failed to toggle alert');
     }
   };
 
@@ -238,7 +240,7 @@ export default function ProjectPage() {
       await api.delete(`/projects/${id}/alerts/${alertId}`);
       fetchAlerts();
     } catch {
-      alert('Failed to delete alert');
+      toast.error('Failed to delete alert');
     }
   };
 
@@ -706,7 +708,7 @@ export default function ProjectPage() {
               try {
                 await replayWebhook(id, url);
               } catch (err: any) {
-                alert(err.message || 'Replay failed');
+                toast.error(err.message || 'Replay failed');
               }
             }}
             canReplay={canReplay}

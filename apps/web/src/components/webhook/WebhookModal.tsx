@@ -4,6 +4,7 @@ import { methodColor, statusColor, formatBytes, formatDate } from '../../lib/uti
 import JsonViewer from './JsonViewer';
 import JsonEditor from './JsonEditor';
 import { api } from '../../lib/api';
+import { useToast } from '../../hooks/useToast';
 import type { Webhook } from '../../hooks/useWebhooks';
 
 function formatReplayBody(rawBody: string | null | undefined, body: any): string {
@@ -20,6 +21,7 @@ interface WebhookModalProps {
 }
 
 export default function WebhookModal({ webhook, onClose, canReplay }: WebhookModalProps) {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'query' | 'response' | 'replay'>('overview');
   const [copied, setCopied] = useState(false);
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
@@ -79,7 +81,7 @@ export default function WebhookModal({ webhook, onClose, canReplay }: WebhookMod
     } catch (err: any) {
       setReplayResult({ status: 0, responseTime: 0 });
       const msg = err.name === 'TypeError' && err.message?.includes('Failed to fetch') ? 'Could not reach target URL. Check CORS on your server.' : (err.response?.data?.error || err.message || 'Replay failed');
-      alert(msg);
+      toast.error(msg);
     } finally { setReplayLoading(false); }
   };
 

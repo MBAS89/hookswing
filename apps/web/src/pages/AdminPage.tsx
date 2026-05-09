@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import { api } from '../lib/api';
 import {
   LayoutDashboard, Users, CreditCard, FolderGit2, Radio, Users2,
@@ -26,6 +27,7 @@ const STATUS_BADGES: Record<string, string> = {
 
 export default function AdminPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'subscriptions' | 'projects' | 'webhooks' | 'teams'>('overview');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
@@ -239,6 +241,7 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: any; label: string;
 
 // ── Users Tab ──
 function UsersTab() {
+  const toast = useToast();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -275,7 +278,7 @@ function UsersTab() {
       await api.patch(`/admin/users/${userId}/plan`, { plan });
       fetchUsers();
     } catch {
-      alert('Failed to update plan');
+      toast.error('Failed to update plan');
     } finally {
       setChangingPlan(null);
     }

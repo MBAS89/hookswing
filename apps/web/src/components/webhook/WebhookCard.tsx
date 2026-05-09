@@ -4,6 +4,7 @@ import { GitCompare, ChevronDown, ChevronUp, Copy, Play, RotateCcw, Globe, Hash,
 import JsonViewer from './JsonViewer';
 import JsonEditor from './JsonEditor';
 import { api } from '../../lib/api';
+import { useToast } from '../../hooks/useToast';
 
 function formatReplayBody(rawBody: string | null | undefined, body: any): string {
   if (rawBody) {
@@ -53,6 +54,7 @@ export default function WebhookCard({
   const [cardCommentsLoading, setCardCommentsLoading] = useState(false);
   const [commentCount, setCommentCount] = useState(webhook._count?.comments ?? 0);
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
+  const toast = useToast();
 
   // Fallback: fetch comment count client-side when backend _count isn't available yet
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function WebhookCard({
     } catch (err: any) {
       setReplayResult({ status: 0, responseTime: 0 });
       const msg = err.name === 'TypeError' && err.message?.includes('Failed to fetch') ? 'Could not reach target URL. Check CORS on your server.' : (err.response?.data?.error || err.message || 'Replay failed');
-      alert(msg);
+      toast.error(msg);
     } finally { setReplayLoading(false); }
   };
 

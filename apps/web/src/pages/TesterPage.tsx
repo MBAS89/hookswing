@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../lib/api';
+import { useToast } from '../hooks/useToast';
 import {
   Send, Loader2, CheckCircle, AlertCircle, Clock,
   Globe, Code2, FileJson, ChevronDown, Zap, RefreshCw,
@@ -33,6 +34,7 @@ interface TestResponse {
 }
 
 export default function TesterPage() {
+  const toast = useToast();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState('');
@@ -68,11 +70,11 @@ export default function TesterPage() {
 
   const handleSend = useCallback(async () => {
     if (!targetUrl.trim()) {
-      alert('Please enter a target URL');
+      toast.error('Please enter a target URL');
       return;
     }
     if (!selectedProvider || !selectedEvent) {
-      alert('Please select a provider and event type');
+      toast.error('Please select a provider and event type');
       return;
     }
 
@@ -85,7 +87,7 @@ export default function TesterPage() {
         try {
           body.customPayload = JSON.parse(customPayload);
         } catch {
-          alert('Custom payload is not valid JSON');
+          toast.error('Custom payload is not valid JSON');
           setSending(false);
           return;
         }

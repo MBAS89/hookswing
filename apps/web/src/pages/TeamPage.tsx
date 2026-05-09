@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 import { Link } from 'react-router-dom';
 import {
   Users, Plus, Trash2, Crown, User, Check, Loader2, X,
@@ -42,6 +43,7 @@ interface TeamInvite {
 
 export default function TeamPage() {
   const { user, refreshUser } = useAuth();
+  const toast = useToast();
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTeamName, setNewTeamName] = useState('');
@@ -110,7 +112,7 @@ export default function TeamPage() {
       setTeams([res.data, ...teams]);
       setNewTeamName('');
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to create team');
+      toast.error(err.response?.data?.error || 'Failed to create team');
       setCreating(false);
       return;
     }
@@ -125,7 +127,7 @@ export default function TeamPage() {
       setTeams(teams.map((t) => (t.id === teamId ? res.data : t)));
       setEditingTeam(null);
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to rename team');
+      toast.error(err.response?.data?.error || 'Failed to rename team');
     }
   };
 
@@ -135,7 +137,7 @@ export default function TeamPage() {
       setTeams(teams.filter((t) => t.id !== teamId));
       setDeleteTeam(null);
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to delete team');
+      toast.error(err.response?.data?.error || 'Failed to delete team');
       return;
     }
   };
@@ -146,7 +148,7 @@ export default function TeamPage() {
       await api.post(`/teams/${teamId}/leave`);
       setTeams(teams.filter((t) => t.id !== teamId));
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to leave team');
+      toast.error(err.response?.data?.error || 'Failed to leave team');
       return;
     }
     await refreshUser();
@@ -161,7 +163,7 @@ export default function TeamPage() {
       fetchTeams();
       await refreshUser();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to transfer ownership');
+      toast.error(err.response?.data?.error || 'Failed to transfer ownership');
     }
   };
 
@@ -174,7 +176,7 @@ export default function TeamPage() {
       setActiveInviteTeam(null);
       fetchTeamInvites(teamId);
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to invite member');
+      toast.error(err.response?.data?.error || 'Failed to invite member');
     }
   };
 
@@ -186,7 +188,7 @@ export default function TeamPage() {
       await refreshUser();
       window.dispatchEvent(new CustomEvent('refresh-projects'));
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to accept invite');
+      toast.error(err.response?.data?.error || 'Failed to accept invite');
     }
   };
 
@@ -196,7 +198,7 @@ export default function TeamPage() {
       setMyInvites((prev) => prev.filter((i) => i.token !== token));
       await refreshUser();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to decline invite');
+      toast.error(err.response?.data?.error || 'Failed to decline invite');
     }
   };
 
@@ -205,7 +207,7 @@ export default function TeamPage() {
       await api.delete(`/teams/${teamId}/invites/${inviteId}`);
       fetchTeamInvites(teamId);
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to cancel invite');
+      toast.error(err.response?.data?.error || 'Failed to cancel invite');
     }
   };
 
@@ -214,7 +216,7 @@ export default function TeamPage() {
       await api.delete(`/teams/${teamId}/members/${userId}`);
       fetchTeams();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to remove member');
+      toast.error(err.response?.data?.error || 'Failed to remove member');
     }
   };
 
@@ -223,7 +225,7 @@ export default function TeamPage() {
       await api.patch(`/teams/${teamId}/members/${userId}`, { role });
       fetchTeams();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to update role');
+      toast.error(err.response?.data?.error || 'Failed to update role');
     }
   };
 

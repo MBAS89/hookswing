@@ -3,6 +3,7 @@ import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2, Check, AlertCircle
 import { methodColor, formatDate, formatBytes } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../hooks/useToast';
 import JsonViewer from './JsonViewer';
 import WebhookModal from './WebhookModal';
 import type { Webhook } from '../../hooks/useWebhooks';
@@ -42,6 +43,7 @@ export default function WebhookDetail({
   isTeamProject?: boolean;
 }) {
   const { user } = useAuth();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'comments'>('overview');
   const [replayUrl, setReplayUrl] = useState(() => localStorage.getItem('lastReplayUrl') || 'http://localhost:3000/webhook');
   const [showReplay, setShowReplay] = useState(false);
@@ -106,7 +108,7 @@ export default function WebhookDetail({
         setCommentText('');
       }
     } catch {
-      alert('Failed to add comment');
+      toast.error('Failed to add comment');
     } finally {
       if (parentId) setReplyLoading(false); else setCommentLoading(false);
     }
@@ -126,7 +128,7 @@ export default function WebhookDetail({
         )};
       }));
     } catch {
-      alert('Failed to react');
+      toast.error('Failed to react');
     }
   };
 
@@ -136,7 +138,7 @@ export default function WebhookDetail({
       await api.delete(`/webhooks/${webhook.id}/comments/${commentId}`);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch {
-      alert('Failed to delete comment');
+      toast.error('Failed to delete comment');
     }
   };
 
@@ -391,7 +393,7 @@ export default function WebhookDetail({
                   const msg = err.name === 'TypeError' && err.message?.includes('Failed to fetch')
                     ? 'Could not reach target URL. Check CORS settings on your local server (e.g. app.use(cors()) in Express).'
                     : (err.response?.data?.error || err.message || 'Replay failed');
-                  alert(msg);
+                  toast.error(msg);
                 } finally {
                   setReplayLoading(false);
                 }
