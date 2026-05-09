@@ -230,6 +230,75 @@ router.get('/:id/activity', async (req: AuthRequest, res) => {
   res.json(logs);
 });
 
+// --- Discussion feed: all comments across team webhooks ---
+router.get('/:id/discussion', async (req: AuthRequest, res) => {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: req.params.id,
+      members: { some: { userId: req.user!.id } },
+    },
+    include: {
+      projects: { select: { id: true } },
+    },
+  });
+
+  if (!team) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  const projectIds = team.projects.map((p) => p.id);
+
+  const comments = await prisma.webhookComment.findMany({
+    where: {
+      webhook: { projectId: { in: projectIds } },
+      parentId: null,
+    },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+      reactions: true,
+      webhook: {
+        select: { id: true, method: true, source: true, projectId: true },
+      },
+      replies: {
+        take: 3,
+        orderBy: { createdAt: 'asc' },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          reactions: true,
+        },
+      },
+      _count: { select: { replies: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 200,
+  });
+
+  // Fetch project names for the webhooks
+  const projectMap = new Map<string, string>();
+  for (const p of team.projects) {
+    const proj = await prisma.project.findUnique({ where: { id: p.id }, select: { id: true, name: true } });
+    if (proj) projectMap.set(proj.id, proj.name);
+  }
+
+  const userId = req.user!.id;
+  const enrich = (c: any) => {
+    const likes = c.reactions.filter((r: any) => r.type === 'like').length;
+    const dislikes = c.reactions.filter((r: any) => r.type === 'dislike').length;
+    const userReaction = c.reactions.find((r: any) => r.userId === userId)?.type || null;
+    const { reactions, ...rest } = c;
+    return {
+      ...rest,
+      likes,
+      dislikes,
+      userReaction,
+      projectName: projectMap.get(c.webhook.projectId) || 'Unknown',
+      replies: c.replies?.map(enrich) || [],
+    };
+  };
+
+  res.json({ comments: comments.map(enrich) });
+});
+
 // --- Clear activity log (owner only) ---
 router.delete('/:id/activity', async (req: AuthRequest, res) => {
   const team = await prisma.team.findFirst({

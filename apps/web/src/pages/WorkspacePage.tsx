@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import ActivityLog from '../components/team/ActivityLog';
+import { DiscussionFeed } from '../components/workspace/DiscussionFeed';
 import { api } from '../lib/api';
 import {
   Loader2, Users2, FolderGit2, Radio, ArrowRight, Activity,
@@ -33,7 +34,7 @@ export default function WorkspacePage() {
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'activity'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'activity' | 'discussion'>('overview');
 
   const isTeamMember = user?.teams?.some((t) => t.team.id === teamId) || false;
 
@@ -121,6 +122,7 @@ export default function WorkspacePage() {
       <div className="flex border-b border-slate-800 mb-4">
         {([
           { key: 'overview', label: 'Overview', icon: Globe },
+          { key: 'discussion', label: 'Discussion', icon: MessageSquare },
           { key: 'activity', label: 'Activity Log', icon: Activity },
         ] as const).map((tab) => (
           <button
@@ -222,6 +224,12 @@ export default function WorkspacePage() {
       {activeTab === 'activity' && (
         <div className="flex-1 overflow-auto">
           <ActivityLog teamId={team.id} isOwner={team.ownerId === user?.id} />
+        </div>
+      )}
+
+      {activeTab === 'discussion' && (
+        <div className="flex-1 overflow-auto pr-2">
+          <DiscussionFeed teamId={team.id} />
         </div>
       )}
     </div>

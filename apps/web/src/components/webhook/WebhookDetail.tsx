@@ -25,6 +25,7 @@ export default function WebhookDetail({
   onCommentChange,
   canReplay,
   isTeamProject,
+  initialTab,
 }: {
   webhook: Webhook;
   onClose: () => void;
@@ -33,10 +34,17 @@ export default function WebhookDetail({
   onCommentChange?: (webhookId: string, delta: number) => void;
   canReplay?: boolean;
   isTeamProject?: boolean;
+  initialTab?: 'overview' | 'headers' | 'body' | 'comments';
 }) {
   const { user } = useAuth();
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'comments'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'comments'>(initialTab || 'overview');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [replayUrl, setReplayUrl] = useState(() => localStorage.getItem('lastReplayUrl') || 'http://localhost:3000/webhook');
   const [showReplay, setShowReplay] = useState(false);
   const [replayLoading, setReplayLoading] = useState(false);

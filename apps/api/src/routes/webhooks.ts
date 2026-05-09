@@ -577,6 +577,24 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
     });
   }
 
+  // Broadcast to team room for real-time discussion feed
+  const io = getIO();
+  if (io && webhook.project?.teamId) {
+    io.to(`team:${webhook.project.teamId}`).emit('comment:new', {
+      ...comment,
+      likes: 0,
+      dislikes: 0,
+      userReaction: null,
+      replies: [],
+      webhook: {
+        id: webhook.id,
+        method: webhook.method,
+        source: webhook.source,
+      },
+      project: webhook.project,
+    });
+  }
+
   // Send notifications
   if (result.data.parentId) {
     // Reply: notify parent comment author
@@ -641,6 +659,14 @@ router.delete('/:id/comments/:commentId', async (req: AuthRequest, res) => {
       targetType: 'webhook',
       targetId: req.params.id,
     });
+
+    const io = getIO();
+    if (io) {
+      io.to(`team:${comment.webhook.project.teamId}`).emit('comment:deleted', {
+        commentId: req.params.commentId,
+        webhookId: req.params.id,
+      });
+    }
   }
 
   res.json({ success: true });
@@ -712,6 +738,21 @@ router.post('/comments/:commentId/react', async (req: AuthRequest, res) => {
 
   const likes = counts.find((c: any) => c.type === 'like')?._count?.type || 0;
   const dislikes = counts.find((c: any) => c.type === 'dislike')?._count?.type || 0;
+
+  const io = getIO();
+  const commentWithProject = await prisma.webhookComment.findUnique({
+    where: { id: req.params.commentId },
+    include: {
+      webhook: { include: { project: { select: { teamId: true } } } },
+    },
+  });
+  if (io && commentWithProject?.webhook.project?.teamId) {
+    io.to(`team:${commentWithProject.webhook.project.teamId}`).emit('comment:reacted', {
+      commentId: req.params.commentId,
+      likes,
+      dislikes,
+    });
+  }
 
   res.json({
     action,

@@ -369,6 +369,14 @@ io.on('connection', (socket) => {
   socket.on('support:leave_admin', () => {
     socket.leave('support:admin');
   });
+
+  socket.on('team:join', (teamId: string) => {
+    socket.join(`team:${teamId}`);
+  });
+
+  socket.on('team:leave', (teamId: string) => {
+    socket.leave(`team:${teamId}`);
+  });
 });
 
 function inferSource(headers: any): string | null {

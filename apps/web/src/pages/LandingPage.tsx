@@ -4,7 +4,7 @@ import {
   Trash2, Laptop, GitCompare, SatelliteDish, Search, Repeat,
   Terminal, Users, MessageSquare, Check, ChevronDown, ChevronUp,
   Menu, X, Github, Globe, LayoutDashboard, LogOut, User, Zap,
-  ArrowRight, Copy
+  ArrowRight, Copy, MessagesSquare, Sparkles, Heart, ShieldCheck
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
@@ -116,6 +116,15 @@ function Hero() {
       <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight mb-6 animate-fade-in">
+          The Webhook Inbox That<br className="hidden sm:block" /> Doesn't Delete Your Evidence
+        </h1>
+        {/* What's New Banner */}
+        <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 rounded-full px-4 py-1.5 mb-6">
+          <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+          <span className="text-xs text-sky-300 font-medium">New: Team Discussion Feed — real-time comments across all webhooks</span>
+        </div>
+
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight mb-6 animate-fade-in">
           The Webhook Inbox That<br className="hidden sm:block" /> Doesn't Delete Your Evidence
         </h1>
@@ -261,6 +270,11 @@ function SolutionSection() {
       icon: <Users className="w-10 h-10 text-rose-400" />,
       title: 'Team Workspaces',
       body: 'Share projects with your team in real time. Comment on webhooks, tag teammates, and track every action in the activity log. Free users on team projects get full TEAM privileges.',
+    },
+    {
+      icon: <MessagesSquare className="w-10 h-10 text-sky-400" />,
+      title: 'Discussion Feed',
+      body: 'A centralized, real-time comment stream across all your team\'s webhooks. Reply inline, react with likes, and jump directly to any webhook — all without leaving the workspace.',
     },
     {
       icon: <Zap className="w-10 h-10 text-yellow-400" />,
@@ -487,6 +501,36 @@ function DeepDiveSection() {
         <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">Built for Developers, Not Committees</h2>
 
         {/* CLI Section — npm + web CLI */}
+        {/* What's New Section */}
+        <div className="bg-slate-900/50 rounded-xl border border-slate-700 p-6 mb-20">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-sky-400" />
+            <h3 className="text-lg font-bold text-white">What's New</h3>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+              <MessagesSquare className="w-5 h-5 text-sky-400 mb-2" />
+              <h4 className="text-sm font-semibold text-white mb-1">Team Discussion Feed</h4>
+              <p className="text-xs text-slate-400">Real-time comment stream across all team webhooks with inline replies and reactions.</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+              <Heart className="w-5 h-5 text-rose-400 mb-2" />
+              <h4 className="text-sm font-semibold text-white mb-1">Live Support & Feedback</h4>
+              <p className="text-xs text-slate-400">Expandable sidebar chat with 5-min reply promise and built-in feedback forms.</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+              <ShieldCheck className="w-5 h-5 text-emerald-400 mb-2" />
+              <h4 className="text-sm font-semibold text-white mb-1">Bulletproof Stability</h4>
+              <p className="text-xs text-slate-400">Safe routers, graceful shutdowns, and connection pooling that won't let you down.</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
+              <Zap className="w-5 h-5 text-amber-400 mb-2" />
+              <h4 className="text-sm font-semibold text-white mb-1">Smarter Comments</h4>
+              <p className="text-xs text-slate-400">Shared comment cache eliminates request floods. One fetch per webhook, period.</p>
+            </div>
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-12 items-center mb-20" id="cli">
           <div className="order-2 lg:order-1">
             <div className="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden font-mono text-sm">
@@ -642,7 +686,7 @@ function PricingSection() {
       badge: 'For engineering teams',
       price: yearly ? '$490' : '$49',
       period: yearly ? '/year' : '/month',
-      features: ['Everything in Pro', 'Unlimited team members', 'Shared workspaces', 'Team activity log', 'Annotate & comment', 'Priority support'],
+      features: ['Everything in Pro', 'Unlimited team members', 'Shared workspaces', 'Team activity log', 'Real-time discussion feed', 'Annotate & comment', 'Priority support'],
       cta: 'Start Team Trial',
       planKey: 'TEAM',
       featured: false,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useWebhooks } from '../hooks/useWebhooks';
 import { useSocket } from '../hooks/useSocket';
 import { useAuth } from '../hooks/useAuth';
@@ -30,6 +30,7 @@ interface Project {
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const toast = useToast();
   const [project, setProject] = useState<Project | null>(null);
@@ -37,6 +38,9 @@ export default function ProjectPage() {
   const [copied, setCopied] = useState(false);
   const { webhooks, setWebhooks, pagination, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook } = useWebhooks(id || null);
   const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
+
+  const initialWebhookId = searchParams.get('webhook');
+  const initialTab = searchParams.get('tab') as 'overview' | 'headers' | 'body' | 'comments' | null;
   const [filterMethod, setFilterMethod] = useState('');
   const [filterEventType, setFilterEventType] = useState('');
 
@@ -98,6 +102,18 @@ export default function ProjectPage() {
       .finally(() => setProjectLoading(false));
     fetchAlerts();
   }, [id, fetchAlerts]);
+
+  // Auto-select webhook from URL query param
+  useEffect(() => {
+    if (initialWebhookId && webhooks.length > 0) {
+      const wh = webhooks.find((w) => w.id === initialWebhookId);
+      if (wh) {
+        setSelectedWebhook(wh);
+        // Clear query params so it doesn't re-trigger
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [initialWebhookId, webhooks, setSearchParams]);
 
   useSocket(id || null, useCallback((webhook) => {
     addWebhook(webhook);
@@ -756,6 +772,7 @@ export default function ProjectPage() {
               }}
               canReplay={canReplay}
               isTeamProject={isTeamProject}
+              initialTab={initialTab || undefined}
             />
           </div>
         )}
