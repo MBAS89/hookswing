@@ -8,7 +8,7 @@ import { useLocation } from 'react-router-dom';
  * Replace GA_MEASUREMENT_ID in index.html with your actual GA4 ID.
  * Get yours at: https://analytics.google.com/analytics/web/
  */
-const GA_ID = 'G-XXXXXXXXXX'; // ← Replace with your GA4 Measurement ID
+const GA_ID = 'G-0LXJFG9ZW7'; // HookSwing GA4 Measurement ID
 
 declare global {
   interface Window {
