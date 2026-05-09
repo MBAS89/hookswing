@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useWebhooks } from '../hooks/useWebhooks';
 import { useSocket } from '../hooks/useSocket';
@@ -30,7 +30,7 @@ interface Project {
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const toast = useToast();
   const [project, setProject] = useState<Project | null>(null);
@@ -39,8 +39,10 @@ export default function ProjectPage() {
   const { webhooks, setWebhooks, pagination, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook } = useWebhooks(id || null);
   const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
 
-  const initialWebhookId = searchParams.get('webhook');
-  const initialTab = searchParams.get('tab') as 'overview' | 'headers' | 'body' | 'comments' | null;
+  // Capture initial URL params in refs so they survive after re-renders
+  const initialWebhookIdRef = useRef(searchParams.get('webhook'));
+  const initialTabRef = useRef(searchParams.get('tab') as 'overview' | 'headers' | 'body' | 'comments' | null);
+  const [pendingWebhookId, setPendingWebhookId] = useState<string | null>(initialWebhookIdRef.current);
   const [filterMethod, setFilterMethod] = useState('');
   const [filterEventType, setFilterEventType] = useState('');
 
@@ -103,17 +105,37 @@ export default function ProjectPage() {
     fetchAlerts();
   }, [id, fetchAlerts]);
 
-  // Auto-select webhook from URL query param
+  // Auto-select webhook from URL query param — tries loaded list first,
+  // then fetches directly via API if not found (e.g. paginated away)
   useEffect(() => {
-    if (initialWebhookId && webhooks.length > 0) {
-      const wh = webhooks.find((w) => w.id === initialWebhookId);
-      if (wh) {
-        setSelectedWebhook(wh);
-        // Clear query params so it doesn't re-trigger
-        setSearchParams({}, { replace: true });
-      }
+    if (!pendingWebhookId) return;
+    if (webhooks.length === 0 && !loading) return; // wait for initial load
+
+    const wh = webhooks.find((w) => w.id === pendingWebhookId);
+    if (wh) {
+      setSelectedWebhook(wh);
+      setPendingWebhookId(null);
+      return;
     }
-  }, [initialWebhookId, webhooks, setSearchParams]);
+
+    // Not in loaded list — fetch directly
+    let cancelled = false;
+    api.get(`/webhooks/${pendingWebhookId}`)
+      .then((res) => {
+        if (cancelled) return;
+        setWebhooks((prev: any) => {
+          if (prev.some((w: any) => w.id === res.data.id)) return prev;
+          return [res.data, ...prev];
+        });
+        setSelectedWebhook(res.data);
+        setPendingWebhookId(null);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingWebhookId(null);
+      });
+
+    return () => { cancelled = true; };
+  }, [pendingWebhookId, webhooks, loading, setWebhooks]);
 
   useSocket(id || null, useCallback((webhook) => {
     addWebhook(webhook);
@@ -772,7 +794,7 @@ export default function ProjectPage() {
               }}
               canReplay={canReplay}
               isTeamProject={isTeamProject}
-              initialTab={initialTab || undefined}
+              initialTab={initialTabRef.current || undefined}
             />
           </div>
         )}
