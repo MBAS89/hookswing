@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { createSafeRouter } from '../middleware/safeRouter';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 import { seedDefaultPreferences, notificationTypeLabels } from '../lib/notification';
 
-const router = Router();
+const router = createSafeRouter();
 
 router.use(authMiddleware);
 router.use(apiRateLimit);

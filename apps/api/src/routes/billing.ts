@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { createSafeRouter } from '../middleware/safeRouter';
 import { stripe } from '../lib/stripe';
 import { prisma } from '../lib/prisma';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
@@ -6,7 +6,7 @@ import { apiRateLimit } from '../middleware/rateLimit';
 import { fireAdminAlert } from '../lib/adminAlerts';
 import { createNotification } from '../lib/notification';
 
-const router = Router();
+const router = createSafeRouter();
 
 // Price ID helpers
 const getPriceId = (plan: 'pro' | 'team', interval: 'month' | 'year') => {

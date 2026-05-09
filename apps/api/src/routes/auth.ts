@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { createSafeRouter } from '../middleware/safeRouter';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
@@ -21,7 +21,7 @@ import {
 import { seedDefaultPreferences } from '../lib/notification';
 import { fireAdminAlert } from '../lib/adminAlerts';
 
-const router = Router();
+const router = createSafeRouter();
 
 function cliSuccessPage(accessToken: string, refreshToken: string): string {
   return `<!DOCTYPE html>

@@ -5,11 +5,13 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Railway PostgreSQL has aggressive idle timeouts and low connection limits.
-// We append connection_limit to prevent pool exhaustion and SSL EOF errors.
+// We use a conservative pool size that balances concurrent load against
+// Railway's connection limits. With connection_limit=10, we can handle
+// rapid tab switching without exhausting the pool.
 const baseUrl = process.env.DATABASE_URL || '';
 const separator = baseUrl.includes('?') ? '&' : '?';
 const dbUrl = baseUrl
-  ? `${baseUrl}${separator}connection_limit=5&pool_timeout=10`
+  ? `${baseUrl}${separator}connection_limit=10&pool_timeout=20`
   : baseUrl;
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({

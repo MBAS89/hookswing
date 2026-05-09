@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { createSafeRouter } from '../middleware/safeRouter';
 import { z } from 'zod';
 import axios from 'axios';
 import { prisma } from '../lib/prisma';
@@ -8,7 +8,7 @@ import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import { apiRateLimit } from '../middleware/rateLimit';
 
-const router = Router();
+const router = createSafeRouter();
 
 router.use(authMiddleware);
 router.use(adminMiddleware);

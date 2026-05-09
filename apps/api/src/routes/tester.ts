@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { createSafeRouter } from '../middleware/safeRouter';
 import axios from 'axios';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 import { testerProviders } from '../lib/tester-payloads';
 
-const router = Router();
+const router = createSafeRouter();
 
 router.use(authMiddleware);
 router.use(apiRateLimit);

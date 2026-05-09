@@ -24,6 +24,15 @@ import axios from 'axios';
 import { setIO } from './lib/socketio';
 import { createNotification } from './lib/notification';
 
+// Request timeout middleware — prevents hanging requests from consuming connections
+const REQUEST_TIMEOUT_MS = 30000;
+function timeoutMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+    res.status(504).json({ error: 'Request timeout' });
+  });
+  next();
+}
+
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
@@ -58,118 +67,126 @@ app.use(cors({
   credentials: true,
 }));
 
+// Request timeout for all routes
+app.use(timeoutMiddleware);
+
 // Stripe webhook needs raw body
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 
 // Public Hook Receiver — raw body BEFORE json parser
 // Handles /hook/:slug and /hook/:slug/any/extra/paths (some services append paths)
-async function handleHook(req: express.Request, res: express.Response) {
-  const slug = req.params.slug;
+async function handleHook(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    const slug = req.params.slug;
 
-  // Try customSlug first, then fall back to auto-generated slug
-  let project = await prisma.project.findUnique({
-    where: { customSlug: slug },
-    include: { user: true, team: { include: { members: true } } },
-  });
-
-  if (!project) {
-    project = await prisma.project.findUnique({
-      where: { slug },
+    // Try customSlug first, then fall back to auto-generated slug
+    let project = await prisma.project.findUnique({
+      where: { customSlug: slug },
       include: { user: true, team: { include: { members: true } } },
     });
-  }
 
-  if (!project) {
-    return res.status(404).json({ error: 'Hook not found' });
-  }
-
-  // Check plan limits using immutable global usage counter per owner
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-
-  // The owner is the user who pays for this project
-  const ownerId = project.userId || project.team?.ownerId;
-  const ownerUser = await prisma.user.findUnique({ where: { id: ownerId || '' } });
-  const plan = ownerUser?.plan || 'FREE';
-  const limit = plan === 'FREE' ? 500 : 10000;
-
-  const usage = await prisma.webhookUsage.upsert({
-    where: { userId_year_month: { userId: ownerId || '', year, month } },
-    update: { count: { increment: 1 } },
-    create: { userId: ownerId || '', year, month, count: 1 },
-  });
-
-  const isDropped = usage.count > limit;
-
-  // Parse body — keep raw for signature verification, parsed for UI
-  let body = null;
-  let rawBody = null;
-  const contentType = req.headers['content-type'] || '';
-  if (req.body && req.body.length > 0) {
-    rawBody = req.body.toString('utf-8');
-    if (contentType.includes('application/json')) {
-      try { body = JSON.parse(rawBody); } catch { body = rawBody; }
-    } else {
-      body = rawBody;
+    if (!project) {
+      project = await prisma.project.findUnique({
+        where: { slug },
+        include: { user: true, team: { include: { members: true } } },
+      });
     }
-  }
 
-  // Detect source and event type
-  const source = inferSource(req.headers);
-  const eventType = inferEventType(req.headers, body, source);
+    if (!project) {
+      return res.status(404).json({ error: 'Hook not found' });
+    }
 
-  // Store webhook
-  const webhook = await prisma.webhook.create({
-    data: {
-      projectId: project.id,
-      method: req.method,
-      headers: req.headers as any,
-      body,
-      rawBody,
-      query: req.query as any,
-      ip: req.ip || 'unknown',
-      userAgent: req.headers['user-agent'] || null,
-      source,
-      eventType,
-    },
-  });
+    // Check plan limits using immutable global usage counter per owner
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
 
-  // Compute original request path (after the slug) for CLI forwarding
-  const webhookPath = req.params[0] ? `/${req.params[0]}` : '/';
+    // The owner is the user who pays for this project
+    const ownerId = project.userId || project.team?.ownerId;
+    const ownerUser = await prisma.user.findUnique({ where: { id: ownerId || '' } });
+    const plan = ownerUser?.plan || 'FREE';
+    const limit = plan === 'FREE' ? 500 : 10000;
 
-  if (!isDropped) {
-    // Socket.IO broadcast to project room
-    io.to(project.id).emit('webhook', { ...webhook, path: webhookPath });
+    const usage = await prisma.webhookUsage.upsert({
+      where: { userId_year_month: { userId: ownerId || '', year, month } },
+      update: { count: { increment: 1 } },
+      create: { userId: ownerId || '', year, month, count: 1 },
+    });
 
-    // Broadcast to WebSocket clients (CLI)
-    const connections = wsConnections.get(slug);
-    if (connections) {
-      const active = Array.from(connections).filter((ws) => ws.readyState === 1);
-      if (active.length > 1) {
-        console.log(`[WS] Broadcasting webhook to ${active.length} connections for slug: ${slug}`);
+    const isDropped = usage.count > limit;
+
+    // Parse body — keep raw for signature verification, parsed for UI
+    let body = null;
+    let rawBody = null;
+    const contentType = req.headers['content-type'] || '';
+    if (req.body && req.body.length > 0) {
+      rawBody = req.body.toString('utf-8');
+      if (contentType.includes('application/json')) {
+        try { body = JSON.parse(rawBody); } catch { body = rawBody; }
+      } else {
+        body = rawBody;
       }
-      const payload = JSON.stringify({ type: 'webhook', data: { ...webhook, path: webhookPath } });
-      active.forEach((ws) => ws.send(payload));
     }
 
-    // Fire alerts (async, don't block response)
-    fireAlerts(project.id, webhook, req.headers['host'] as string);
+    // Detect source and event type
+    const source = inferSource(req.headers);
+    const eventType = inferEventType(req.headers, body, source);
 
-    // In-app notification for project owner
-    const notifyUserId = project.userId || project.team?.ownerId;
-    if (notifyUserId) {
-      createNotification({
-        userId: notifyUserId,
-        type: 'webhook_received',
-        title: 'Webhook Received',
-        message: `New ${webhook.method} webhook received in ${project.name}`,
-        data: { projectId: project.id, projectName: project.name, webhookId: webhook.id, method: webhook.method },
-      }).catch(() => {});
+    // Store webhook
+    const webhook = await prisma.webhook.create({
+      data: {
+        projectId: project.id,
+        method: req.method,
+        headers: req.headers as any,
+        body,
+        rawBody,
+        query: req.query as any,
+        ip: req.ip || 'unknown',
+        userAgent: req.headers['user-agent'] || null,
+        source,
+        eventType,
+      },
+    });
+
+    // Compute original request path (after the slug) for CLI forwarding
+    const webhookPath = req.params[0] ? `/${req.params[0]}` : '/';
+
+    if (!isDropped) {
+      // Socket.IO broadcast to project room
+      io.to(project.id).emit('webhook', { ...webhook, path: webhookPath });
+
+      // Broadcast to WebSocket clients (CLI)
+      const connections = wsConnections.get(slug);
+      if (connections) {
+        const active = Array.from(connections).filter((ws) => ws.readyState === 1);
+        if (active.length > 1) {
+          console.log(`[WS] Broadcasting webhook to ${active.length} connections for slug: ${slug}`);
+        }
+        const payload = JSON.stringify({ type: 'webhook', data: { ...webhook, path: webhookPath } });
+        active.forEach((ws) => ws.send(payload));
+      }
+
+      // Fire alerts (async, don't block response)
+      fireAlerts(project.id, webhook, req.headers['host'] as string);
+
+      // In-app notification for project owner
+      const notifyUserId = project.userId || project.team?.ownerId;
+      if (notifyUserId) {
+        createNotification({
+          userId: notifyUserId,
+          type: 'webhook_received',
+          title: 'Webhook Received',
+          message: `New ${webhook.method} webhook received in ${project.name}`,
+          data: { projectId: project.id, projectName: project.name, webhookId: webhook.id, method: webhook.method },
+        }).catch(() => {});
+      }
     }
+
+    res.status(200).json({ ok: true, dropped: isDropped });
+  } catch (err: any) {
+    console.error('[handleHook] Error:', err.message);
+    next(err);
   }
-
-  res.status(200).json({ ok: true, dropped: isDropped });
 }
 
 async function fireAlerts(projectId: string, webhook: any, host: string) {

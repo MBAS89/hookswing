@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { createSafeRouter } from '../middleware/safeRouter';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { logActivity } from '../lib/activity';
@@ -6,7 +6,7 @@ import { getEffectivePlan } from '../lib/permissions';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 
-const router = Router({ mergeParams: true });
+const router = createSafeRouter({ mergeParams: true });
 
 router.use(authMiddleware);
 router.use(apiRateLimit);

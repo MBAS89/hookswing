@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { createSafeRouter } from '../middleware/safeRouter';
 import axios from 'axios';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
@@ -23,7 +23,7 @@ function getHistoryCutoff(plan: string): Date | null {
   }
 }
 
-const router = Router();
+const router = createSafeRouter();
 
 router.use(authMiddleware);
 router.use(apiRateLimit);
