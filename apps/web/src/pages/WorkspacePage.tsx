@@ -9,6 +9,7 @@ import {
   Crown, Globe, MessageSquare
 } from 'lucide-react';
 import { methodColor, formatDate } from '../lib/utils';
+import { useTranslation } from '../i18n';
 
 interface WorkspaceData {
   team: {
@@ -29,6 +30,7 @@ interface WorkspaceData {
 }
 
 export default function WorkspacePage() {
+  const { t } = useTranslation();
   const { teamId } = useParams<{ teamId: string }>();
   const { user } = useAuth();
   const [data, setData] = useState<WorkspaceData | null>(null);
@@ -54,8 +56,8 @@ export default function WorkspacePage() {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500">
         <Crown className="w-12 h-12 text-amber-400 mb-4" />
-        <h2 className="text-lg font-bold text-white mb-1">Team Workspaces</h2>
-        <p className="text-sm">You do not have access to this workspace.</p>
+        <h2 className="text-lg font-bold text-white mb-1">{t('workspace.sharedWorkspace')}</h2>
+        <p className="text-sm">{t('workspace.noAccess')}</p>
       </div>
     );
   }
@@ -71,7 +73,7 @@ export default function WorkspacePage() {
   if (error || !data) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500">
-        <p>{error || 'Workspace not found'}</p>
+        <p>{error || t('workspace.notFound')}</p>
       </div>
     );
   }
@@ -88,7 +90,7 @@ export default function WorkspacePage() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">{team.name}</h1>
-            <p className="text-xs text-slate-500">Shared Workspace</p>
+            <p className="text-xs text-slate-500">{t('workspace.sharedWorkspace')}</p>
           </div>
         </div>
 
@@ -97,21 +99,21 @@ export default function WorkspacePage() {
           <div className="bg-slate-800/50 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <FolderGit2 className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs text-slate-500 uppercase tracking-wider">Projects</span>
+              <span className="text-xs text-slate-500 uppercase tracking-wider">{t('layout.projects')}</span>
             </div>
             <p className="text-xl font-bold text-white">{aggregate.totalProjects}</p>
           </div>
           <div className="bg-slate-800/50 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <Radio className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs text-slate-500 uppercase tracking-wider">Webhooks</span>
+              <span className="text-xs text-slate-500 uppercase tracking-wider">{t('project.webhooks')}</span>
             </div>
             <p className="text-xl font-bold text-white">{aggregate.totalWebhooks}</p>
           </div>
           <div className="bg-slate-800/50 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <Users2 className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs text-slate-500 uppercase tracking-wider">Members</span>
+              <span className="text-xs text-slate-500 uppercase tracking-wider">{t('team.members')}</span>
             </div>
             <p className="text-xl font-bold text-white">{team.members.length}</p>
           </div>
@@ -121,9 +123,9 @@ export default function WorkspacePage() {
       {/* Tabs */}
       <div className="flex border-b border-slate-800 mb-4">
         {([
-          { key: 'overview', label: 'Overview', icon: Globe },
-          { key: 'discussion', label: 'Discussion', icon: MessageSquare },
-          { key: 'activity', label: 'Activity Log', icon: Activity },
+          { key: 'overview', label: t('workspace.overview'), icon: Globe },
+          { key: 'discussion', label: t('workspace.discussion'), icon: MessageSquare },
+          { key: 'activity', label: t('workspace.activity'), icon: Activity },
         ] as const).map((tab) => (
           <button
             key={tab.key}
@@ -146,7 +148,7 @@ export default function WorkspacePage() {
           <div>
             <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
               <FolderGit2 className="w-4 h-4 text-slate-500" />
-              Projects
+              {t('layout.projects')}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {team.projects.map((project) => (
@@ -173,7 +175,7 @@ export default function WorkspacePage() {
           <div>
             <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
               <Users2 className="w-4 h-4 text-slate-500" />
-              Members
+              {t('team.members')}
             </h3>
             <div className="flex flex-wrap gap-2">
               {team.members.map((member) => (
@@ -198,7 +200,7 @@ export default function WorkspacePage() {
             <div>
               <h3 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
                 <Radio className="w-4 h-4 text-slate-500" />
-                Recent Webhooks
+                {t('workspace.recentWebhooks')}
               </h3>
               <div className="space-y-1.5">
                 {aggregate.recentWebhooks.map((wh) => (

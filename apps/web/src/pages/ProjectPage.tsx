@@ -14,6 +14,7 @@ import {
   GitCompare, FileDown, ChevronDown, ChevronUp, Shield, Zap,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { useTranslation } from '../i18n';
 
 interface Project {
   id: string;
@@ -29,6 +30,7 @@ interface Project {
 }
 
 export default function ProjectPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -370,13 +372,13 @@ export default function ProjectPage() {
           </div>
           <div className="flex items-start gap-3 w-full sm:w-auto">
             <div className="text-left sm:text-right shrink-0 ml-auto sm:ml-0">
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Webhooks this month</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">{t('project.webhooksCount')}</p>
               <p className="text-xl font-bold text-white">{project?.webhookCount || 0}</p>
               {project?.historyLimitDays && (
                 <p className="text-xs text-amber-400 mt-0.5">{project.historyLimitDays}-day history</p>
               )}
               {project?.historyLimitDays === null && (
-                <p className="text-xs text-emerald-400 mt-0.5">Unlimited history</p>
+                <p className="text-xs text-emerald-400 mt-0.5">{t('project.unlimitedHistory')}</p>
               )}
             </div>
             <button
@@ -418,7 +420,7 @@ export default function ProjectPage() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-slate-500" />
-              <span className="text-sm font-medium text-white">Alerts</span>
+              <span className="text-sm font-medium text-white">{t('project.alerts')}</span>
               {alerts.length > 0 && (
                 <span className="text-xs bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full">{alerts.length}</span>
               )}
@@ -499,7 +501,7 @@ export default function ProjectPage() {
           )}
 
           {alerts.length === 0 && !showAlertForm && (
-            <p className="text-xs text-slate-600">No alerts configured. Add one to get notified on every webhook.</p>
+            <p className="text-xs text-slate-600">{t('project.noAlerts')}</p>
           )}
 
           <div className="space-y-1.5">
@@ -579,11 +581,11 @@ export default function ProjectPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-400">Custom subdomain:</span>
+                <span className="text-sm text-slate-400">{t('project.customSlug')}:</span>
                 {project?.customSlug ? (
                   <code className="text-sm text-emerald-400 font-mono">{project.customSlug}</code>
                 ) : (
-                  <span className="text-sm text-slate-600">Not set</span>
+                  <span className="text-sm text-slate-600">{t('project.notSet')}</span>
                 )}
               </div>
               {canEditProject ? (
@@ -615,7 +617,7 @@ export default function ProjectPage() {
       {/* Webhook Feed */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-xl font-bold text-white">Webhook Feed</h2>
+          <h2 className="text-xl font-bold text-white">{t('project.webhookFeed')}</h2>
           {project?.historyLimitDays && (
             <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
               {project.historyLimitDays}-day history
@@ -684,7 +686,7 @@ export default function ProjectPage() {
               onChange={(e) => setFilterMethod(e.target.value)}
               className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-4 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
-              <option value="">All methods</option>
+              <option value="">{t('project.allMethods')}</option>
               <option value="GET">GET</option>
               <option value="POST">POST</option>
               <option value="PUT">PUT</option>
@@ -700,7 +702,7 @@ export default function ProjectPage() {
                 onChange={(e) => setFilterEventType(e.target.value || '')}
                 className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-4 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
-                <option value="">All events</option>
+                <option value="">{t('project.allEvents')}</option>
                 {eventTypes.map((et) => (
                   <option key={et} value={et}>{et}</option>
                 ))}
@@ -730,8 +732,8 @@ export default function ProjectPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-              <p>No webhooks yet</p>
-              <p className="text-sm mt-1">Send a test request to your URL above</p>
+              <p>{t('project.noWebhooks')}</p>
+              <p className="text-sm mt-1">{t('project.sendTest')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -806,10 +808,10 @@ export default function ProjectPage() {
 
       <ConfirmModal
         open={bulkDeleteConfirm}
-        title="Delete All Webhooks"
-        message="Are you sure you want to delete all webhooks in this project? This cannot be undone."
-        confirmLabel="Delete All"
-        cancelLabel="Cancel"
+        title={t('project.deleteAll')}
+        message={t('project.deleteAllConfirm')}
+        confirmLabel={t('project.deleteAll')}
+        cancelLabel={t('common.cancel')}
         danger
         onConfirm={handleBulkDelete}
         onCancel={() => setBulkDeleteConfirm(false)}
@@ -819,8 +821,8 @@ export default function ProjectPage() {
         open={!!deleteAlertId}
         title="Delete Alert"
         message="Are you sure you want to delete this alert?"
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
         danger
         onConfirm={() => deleteAlertId && deleteAlert(deleteAlertId)}
         onCancel={() => setDeleteAlertId(null)}

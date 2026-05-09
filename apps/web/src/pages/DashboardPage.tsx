@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import { useTranslation } from '../i18n';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -32,6 +33,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -57,7 +59,7 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500">
         <Activity className="w-12 h-12 mb-4 opacity-30" />
-        <p>Failed to load dashboard</p>
+        <p>{t('common.error')}</p>
       </div>
     );
   }
@@ -78,7 +80,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white">{t('layout.dashboard')}</h1>
           <p className="text-sm text-slate-400 mt-0.5">
             Welcome back{user?.name ? `, ${user.name}` : ''} — here's what's happening
           </p>
@@ -94,7 +96,7 @@ export default function DashboardPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Today"
+          label={t('dashboard.recentWebhooks')}
           value={stats.totalWebhooksToday}
           icon={<Webhook className="w-5 h-5" />}
           trend={weekChange}
@@ -105,12 +107,12 @@ export default function DashboardPage() {
           icon={<Activity className="w-5 h-5" />}
         />
         <StatCard
-          label="This Month"
+          label={t('dashboard.thisMonth')}
           value={stats.totalWebhooksMonth}
           icon={<Zap className="w-5 h-5" />}
         />
         <StatCard
-          label="Active Projects"
+          label={t('dashboard.projects')}
           value={stats.activeProjects}
           icon={<FolderGit2 className="w-5 h-5" />}
         />
@@ -121,7 +123,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Crown className="w-4 h-4 text-amber-400" />
-            <h3 className="text-sm font-semibold text-white">Plan Usage</h3>
+            <h3 className="text-sm font-semibold text-white">{t('account.plan')}</h3>
             <span className="text-xs text-slate-500">{user?.plan || 'FREE'}</span>
           </div>
           <span className={`text-sm font-bold ${planColor}`}>
@@ -193,7 +195,7 @@ export default function DashboardPage() {
             Methods
           </h3>
           {methodData.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-8">No data yet</p>
+            <p className="text-xs text-slate-500 text-center py-8">{t('common.loading')}</p>
           ) : (
             <>
               <ResponsiveContainer width="100%" height={180}>
@@ -226,7 +228,7 @@ export default function DashboardPage() {
             Sources
           </h3>
           {sourceData.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-8">No data yet</p>
+            <p className="text-xs text-slate-500 text-center py-8">{t('common.loading')}</p>
           ) : (
             <div className="space-y-3">
               {sourceData.map((entry, i) => {
@@ -252,10 +254,10 @@ export default function DashboardPage() {
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-5">
           <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
             <FolderGit2 className="w-4 h-4 text-emerald-400" />
-            Top Projects
+            {t('layout.projects')}
           </h3>
           {stats.topProjects.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-8">No projects yet</p>
+            <p className="text-xs text-slate-500 text-center py-8">{t('layout.noProjects')}</p>
           ) : (
             <div className="space-y-2.5">
               {stats.topProjects.map((proj, i) => (
@@ -286,10 +288,10 @@ export default function DashboardPage() {
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-5">
         <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
           <Clock className="w-4 h-4 text-sky-400" />
-          Recent Webhooks
+          {t('dashboard.recentWebhooks')}
         </h3>
         {stats.recentWebhooks.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-8">No webhooks yet — send one to get started</p>
+          <p className="text-xs text-slate-500 text-center py-8">{t('dashboard.noWebhooks')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

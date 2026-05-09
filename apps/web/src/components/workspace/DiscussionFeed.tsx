@@ -15,6 +15,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
+import { useTranslation } from '../../i18n';
 
 function relativeTime(date: string) {
   const diff = Date.now() - new Date(date).getTime();
@@ -68,6 +69,7 @@ function CommentItem({
   teamId: string;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [showAllReplies, setShowAllReplies] = useState(false);
@@ -102,7 +104,7 @@ function CommentItem({
                 onClick={viewWebhook}
                 className="ml-auto text-[10px] text-sky-400 hover:text-sky-300 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                View webhook <ArrowRight className="w-3 h-3" />
+                {t('workspace.viewWebhook')} <ArrowRight className="w-3 h-3" />
               </button>
             )}
           </div>
@@ -126,14 +128,14 @@ function CommentItem({
               onClick={() => setShowReply((s) => !s)}
               className="flex items-center gap-1 text-xs text-slate-500 hover:text-sky-400 transition-colors"
             >
-              <CornerDownRight className="w-3.5 h-3.5" />Reply
+              <CornerDownRight className="w-3.5 h-3.5" />{t('workspace.reply')}
             </button>
             {isMine && (
               <button
                 onClick={() => onDelete(comment.webhook.id, comment.id)}
                 className="flex items-center gap-1 text-xs text-slate-500 hover:text-rose-400 transition-colors"
               >
-                <Trash2 className="w-3.5 h-3.5" />Delete
+                <Trash2 className="w-3.5 h-3.5" />{t('workspace.delete')}
               </button>
             )}
           </div>
@@ -144,7 +146,7 @@ function CommentItem({
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleReply()}
-                placeholder="Write a reply..."
+                placeholder={t('workspace.reply')}
                 className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
               />
               <button
@@ -179,7 +181,7 @@ function CommentItem({
               className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 ml-10"
             >
               <ChevronDown className="w-3 h-3" />
-              Show {totalReplies - visibleReplies.length} more {totalReplies - visibleReplies.length === 1 ? 'reply' : 'replies'}
+              Show {totalReplies - visibleReplies.length} more {totalReplies - visibleReplies.length === 1 ? t('workspace.reply') : t('workspace.reply')}
             </button>
           )}
         </div>
@@ -189,6 +191,7 @@ function CommentItem({
 }
 
 export function DiscussionFeed({ teamId }: { teamId: string }) {
+  const { t } = useTranslation();
   const { comments, loading, error, fetchComments, addReply, react, deleteComment } = useDiscussion(teamId);
   const { user } = useAuth();
   const toast = useToast();
@@ -207,7 +210,7 @@ export function DiscussionFeed({ teamId }: { teamId: string }) {
     try {
       await addReply(webhookId, content, parentId);
     } catch {
-      toast.error('Failed to post reply');
+      toast.error(t('common.error'));
     }
   };
 
@@ -215,23 +218,23 @@ export function DiscussionFeed({ teamId }: { teamId: string }) {
     try {
       await react(commentId, type);
     } catch {
-      toast.error('Failed to react');
+      toast.error(t('common.error'));
     }
   };
 
   const handleDelete = async (webhookId: string, commentId: string) => {
     try {
       await deleteComment(webhookId, commentId);
-      toast.success('Comment deleted');
+      toast.success(t('common.success'));
     } catch {
-      toast.error('Failed to delete comment');
+      toast.error(t('common.error'));
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-slate-500">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" />Loading discussions...
+        <Loader2 className="w-5 h-5 animate-spin mr-2" />{t('workspace.loadingDiscussions')}
       </div>
     );
   }
@@ -245,7 +248,7 @@ export function DiscussionFeed({ teamId }: { teamId: string }) {
           onClick={fetchComments}
           className="mt-3 text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1"
         >
-          <Loader2 className="w-3 h-3" />Retry
+          <Loader2 className="w-3 h-3" />{t('common.retry')}
         </button>
       </div>
     );
@@ -255,8 +258,8 @@ export function DiscussionFeed({ teamId }: { teamId: string }) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-slate-500">
         <MessageSquare className="w-10 h-10 mb-3 opacity-20" />
-        <p className="text-sm">No discussions yet</p>
-        <p className="text-xs mt-1 opacity-60">Comments on webhooks will appear here</p>
+        <p className="text-sm">{t('workspace.noDiscussions')}</p>
+        <p className="text-xs mt-1 opacity-60">{t('workspace.discussionsHint')}</p>
       </div>
     );
   }

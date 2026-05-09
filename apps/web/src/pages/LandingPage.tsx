@@ -8,12 +8,15 @@ import {
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from '../i18n';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 
 function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -31,35 +34,36 @@ function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-slate-400 hover:text-white transition-colors text-sm font-medium">Features</a>
-            <a href="#pricing" className="text-slate-400 hover:text-white transition-colors text-sm font-medium">Pricing</a>
-            <Link to="/docs" className="text-slate-400 hover:text-white transition-colors text-sm font-medium">Docs</Link>
-            <a href="#cli" className="text-slate-400 hover:text-white transition-colors text-sm font-medium">CLI</a>
+            <a href="#features" className="text-slate-400 hover:text-white transition-colors text-sm font-medium">{t('landing.nav.features')}</a>
+            <a href="#pricing" className="text-slate-400 hover:text-white transition-colors text-sm font-medium">{t('landing.nav.pricing')}</a>
+            <Link to="/docs" className="text-slate-400 hover:text-white transition-colors text-sm font-medium">{t('landing.nav.docs')}</Link>
+            <a href="#cli" className="text-slate-400 hover:text-white transition-colors text-sm font-medium">{t('landing.nav.cli')}</a>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
+            <LanguageSwitcher />
             {user ? (
               <>
                 <Link to="/dashboard" className="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors inline-flex items-center gap-1.5">
                   <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
+                  {t('landing.nav.dashboard')}
                 </Link>
                 <Link to="/dashboard/account" className="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors inline-flex items-center gap-1.5">
                   <User className="w-4 h-4" />
-                  Account
+                  {t('landing.nav.account')}
                 </Link>
                 <button
                   onClick={() => { logout(); navigate('/'); }}
                   className="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors inline-flex items-center gap-1.5"
                 >
                   <LogOut className="w-4 h-4" />
-                  Log Out
+                  {t('landing.nav.logout')}
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-slate-300 hover:text-white px-4 py-2 text-sm font-medium transition-colors">Log In</Link>
-                <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Sign Up Free</Link>
+                <Link to="/login" className="text-slate-300 hover:text-white px-4 py-2 text-sm font-medium transition-colors">{t('landing.nav.login')}</Link>
+                <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">{t('landing.nav.signup')}</Link>
               </>
             )}
           </div>
@@ -73,30 +77,30 @@ function Navbar() {
       {mobileOpen && (
         <div className="md:hidden bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
           <div className="px-4 py-4 space-y-3">
-            <a href="#features" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">Features</a>
-            <a href="#pricing" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">Pricing</a>
-            <Link to="/docs" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">Docs</Link>
-            <a href="#cli" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">CLI</a>
+            <a href="#features" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">{t('landing.nav.features')}</a>
+            <a href="#pricing" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">{t('landing.nav.pricing')}</a>
+            <Link to="/docs" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">{t('landing.nav.docs')}</Link>
+            <a href="#cli" onClick={() => setMobileOpen(false)} className="block text-slate-300 hover:text-white py-2">{t('landing.nav.cli')}</a>
             <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">
               {user ? (
                 <>
                   <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-slate-300 hover:text-white py-2 text-center inline-flex items-center justify-center gap-1.5">
-                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                    <LayoutDashboard className="w-4 h-4" /> {t('landing.nav.dashboard')}
                   </Link>
                   <Link to="/dashboard/account" onClick={() => setMobileOpen(false)} className="text-slate-300 hover:text-white py-2 text-center inline-flex items-center justify-center gap-1.5">
-                    <User className="w-4 h-4" /> Account
+                    <User className="w-4 h-4" /> {t('landing.nav.account')}
                   </Link>
                   <button
                     onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
                     className="text-slate-300 hover:text-white py-2 text-center inline-flex items-center justify-center gap-1.5"
                   >
-                    <LogOut className="w-4 h-4" /> Log Out
+                    <LogOut className="w-4 h-4" /> {t('landing.nav.logout')}
                   </button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="text-slate-300 hover:text-white py-2 text-center">Log In</Link>
-                  <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 rounded-lg text-center font-semibold">Sign Up Free</Link>
+                  <Link to="/login" className="text-slate-300 hover:text-white py-2 text-center">{t('landing.nav.login')}</Link>
+                  <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 rounded-lg text-center font-semibold">{t('landing.nav.signup')}</Link>
                 </>
               )}
             </div>
@@ -110,6 +114,7 @@ function Navbar() {
 function Hero() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   return (
     <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900" />
@@ -119,22 +124,21 @@ function Hero() {
         {/* What's New Banner */}
         <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 rounded-full px-4 py-1.5 mb-6">
           <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-          <span className="text-xs text-sky-300 font-medium">New: Team Discussion Feed — real-time comments across all webhooks</span>
+          <span className="text-xs text-sky-300 font-medium">{t('landing.hero.badge')}</span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight mb-6 animate-fade-in">
-          The Webhook Inbox That<br className="hidden sm:block" /> Doesn't Delete Your Evidence
+          {t('landing.hero.title')}
         </h1>
         <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Catch, inspect, and replay any HTTP webhook in real time.
-          No more lost payloads. No more ngrok nightmares. No more guessing what Stripe actually sent you.
+          {t('landing.hero.subtitle')}
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button onClick={() => navigate(user ? '/dashboard' : '/register')} className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02]">
-            {user ? 'Go to Dashboard' : 'Start Catching Free'}
+            {user ? t('landing.hero.ctaDashboard') : t('landing.hero.ctaStart')}
           </button>
           <a href="#how-it-works" className="w-full sm:w-auto border border-slate-600 text-slate-300 hover:text-white hover:border-slate-400 px-8 py-3 rounded-lg font-medium transition-all">
-            View Demo
+            {t('landing.hero.viewDemo')}
           </a>
         </div>
 
@@ -174,11 +178,12 @@ function LogoBar() {
     { name: 'Slack' },
     { name: 'Twilio' },
   ];
+  const { t } = useTranslation();
 
   return (
     <section className="py-12 border-y border-slate-800 bg-slate-900/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <p className="text-sm text-slate-500 mb-8 uppercase tracking-wider">Works with your stack</p>
+        <p className="text-sm text-slate-500 mb-8 uppercase tracking-wider">{t('landing.logos')}</p>
         <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
           {integrations.map((item) => (
             <span key={item.name} className="text-slate-500 font-semibold opacity-60 hover:opacity-100 transition-opacity">
@@ -192,28 +197,29 @@ function LogoBar() {
 }
 
 function ProblemSection() {
+  const { t } = useTranslation();
   const cards = [
     {
       icon: <Trash2 className="w-8 h-8 text-red-400" />,
-      title: 'The payload disappeared',
-      body: 'You used a free bin to test Stripe webhooks. You went to bed. You woke up. The request is gone. Now you\'re debugging blind.',
+      title: t('landing.problem.card1Title'),
+      body: t('landing.problem.card1Body'),
     },
     {
       icon: <Laptop className="w-8 h-8 text-amber-400" />,
-      title: 'ngrok + console.log = chaos',
-      body: 'You tunnel localhost, add a temporary route, paste JSON into Postman, and pray your laptop doesn\'t sleep. This is not a workflow. This is suffering.',
+      title: t('landing.problem.card2Title'),
+      body: t('landing.problem.card2Body'),
     },
     {
       icon: <GitCompare className="w-8 h-8 text-blue-400" />,
-      title: 'No history, no comparison',
-      body: 'Stripe updated their object shape last Tuesday. Your integration broke Wednesday. You have no record of what the old payload looked like. Good luck.',
+      title: t('landing.problem.card3Title'),
+      body: t('landing.problem.card3Body'),
     },
   ];
 
   return (
     <section className="py-24 bg-slate-800/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">You know the feeling.</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">{t('landing.problem.title')}</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {cards.map((card) => (
             <div key={card.title} className="bg-slate-800 rounded-xl p-8 border border-slate-700 hover:border-slate-600 transition-colors">
@@ -224,7 +230,7 @@ function ProblemSection() {
           ))}
         </div>
         <p className="text-center text-lg font-semibold text-white mt-12">
-          You need a permanent, replayable inbox for your webhooks.
+          {t('landing.problem.footer')}
         </p>
       </div>
     </section>
@@ -232,63 +238,64 @@ function ProblemSection() {
 }
 
 function SolutionSection() {
+  const { t } = useTranslation();
   const features = [
     {
       icon: <SatelliteDish className="w-10 h-10 text-emerald-400" />,
-      title: 'Catch Everything',
-      body: 'Get a unique public URL in one click. Accept any HTTP method. Store headers, body, query params, and IP. All in real time.',
+      title: t('landing.features.catch.title'),
+      body: t('landing.features.catch.body'),
     },
     {
       icon: <Search className="w-10 h-10 text-blue-400" />,
-      title: 'Inspect Like a Pro',
-      body: 'Syntax-highlighted JSON viewer. Headers table. Query param breakdown. Search by body text, filter by status, sort by time. Dark mode included — obviously.',
+      title: t('landing.features.inspect.title'),
+      body: t('landing.features.inspect.body'),
     },
     {
       icon: <Repeat className="w-10 h-10 text-purple-400" />,
-      title: 'Replay & Debug',
-      body: 'Click any past webhook. Edit the target URL. Modify the payload. Hit replay. Watch it hit your local server with the exact same data. Fix bugs without waiting for the next real event.',
+      title: t('landing.features.replay.title'),
+      body: t('landing.features.replay.body'),
     },
     {
       icon: <GitCompare className="w-10 h-10 text-amber-400" />,
-      title: 'Compare & Diff',
-      body: 'Select any two webhooks and see exactly what changed side-by-side. Perfect for debugging when Stripe updates their payload shape or tracking down regressions.',
+      title: t('landing.features.compare.title'),
+      body: t('landing.features.compare.body'),
     },
     {
       icon: <Globe className="w-10 h-10 text-indigo-400" />,
-      title: 'Custom Subdomains',
-      body: 'Pro and Team plans get clean, memorable URLs like https://hookswing.com/hook/my-company. No more random strings. Looks professional in your webhook settings.',
+      title: t('landing.features.custom.title'),
+      body: t('landing.features.custom.body'),
     },
     {
       icon: <MessageSquare className="w-10 h-10 text-pink-400" />,
-      title: 'Smart Alerts',
-      body: 'Get notified in Slack, Discord, or Telegram the instant a webhook hits — or when your server responds with a 500. Set it and forget it.',
+      title: t('landing.features.alerts.title'),
+      body: t('landing.features.alerts.body'),
     },
     {
       icon: <Users className="w-10 h-10 text-rose-400" />,
-      title: 'Team Workspaces',
-      body: 'Share projects with your team in real time. Comment on webhooks, tag teammates, and track every action in the activity log. Free users on team projects get full TEAM privileges.',
+      title: t('landing.features.team.title'),
+      body: t('landing.features.team.body'),
     },
     {
       icon: <MessagesSquare className="w-10 h-10 text-sky-400" />,
-      title: 'Discussion Feed',
-      body: 'A centralized, real-time comment stream across all your team\'s webhooks. Reply inline, react with likes, and jump directly to any webhook — all without leaving the workspace.',
+      title: t('landing.features.discussion.title'),
+      body: t('landing.features.discussion.body'),
     },
     {
       icon: <Zap className="w-10 h-10 text-yellow-400" />,
-      title: 'Webhook Tester',
-      body: 'Send realistic test payloads from Stripe, GitHub, Shopify, Twilio, Slack, Discord, and 10+ more providers to any URL. No setup required.',
+      title: t('landing.features.tester.title'),
+      body: t('landing.features.tester.body'),
     },
     {
       icon: <Terminal className="w-10 h-10 text-cyan-400" />,
-      title: 'Path Preservation',
-      body: 'Webhooks sent to /hook/abc123/api/webhook forward to localhost:3000/api/webhook automatically. Your routes stay intact.',
+      title: t('landing.features.path.title'),
+      body: t('landing.features.path.body'),
     },
   ];
 
   return (
     <section id="features" className="py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">One URL. Infinite Power.</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">{t('landing.features.title')}</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {features.map((f) => (
             <div key={f.title} className="text-center">
@@ -308,6 +315,7 @@ function SolutionSection() {
 function PathPreservationDemo() {
   const [copied, setCopied] = useState(false);
   const hookUrl = 'https://hookswing.com/hook/project-1';
+  const { t } = useTranslation();
 
   const copyUrl = () => {
     navigator.clipboard.writeText(hookUrl);
@@ -492,38 +500,38 @@ function PathPreservationDemo() {
 }
 
 function DeepDiveSection() {
+  const { t } = useTranslation();
   return (
     <section className="py-24 bg-slate-800/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">Built for Developers, Not Committees</h2>
 
-        {/* CLI Section — npm + web CLI */}
         {/* What's New Section */}
         <div className="bg-slate-900/50 rounded-xl border border-slate-700 p-6 mb-20">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-sky-400" />
-            <h3 className="text-lg font-bold text-white">What's New</h3>
+            <h3 className="text-lg font-bold text-white">{t('landing.whatsNew.title')}</h3>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
               <MessagesSquare className="w-5 h-5 text-sky-400 mb-2" />
-              <h4 className="text-sm font-semibold text-white mb-1">Team Discussion Feed</h4>
-              <p className="text-xs text-slate-400">Real-time comment stream across all team webhooks with inline replies and reactions.</p>
+              <h4 className="text-sm font-semibold text-white mb-1">{t('landing.features.discussion.title')}</h4>
+              <p className="text-xs text-slate-400">{t('landing.whatsNew.discussionFeed')}</p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
               <Heart className="w-5 h-5 text-rose-400 mb-2" />
               <h4 className="text-sm font-semibold text-white mb-1">Live Support & Feedback</h4>
-              <p className="text-xs text-slate-400">Expandable sidebar chat with 5-min reply promise and built-in feedback forms.</p>
+              <p className="text-xs text-slate-400">{t('landing.whatsNew.liveSupport')}</p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
               <ShieldCheck className="w-5 h-5 text-emerald-400 mb-2" />
               <h4 className="text-sm font-semibold text-white mb-1">Bulletproof Stability</h4>
-              <p className="text-xs text-slate-400">Safe routers, graceful shutdowns, and connection pooling that won't let you down.</p>
+              <p className="text-xs text-slate-400">{t('landing.whatsNew.stability')}</p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
               <Zap className="w-5 h-5 text-amber-400 mb-2" />
               <h4 className="text-sm font-semibold text-white mb-1">Smarter Comments</h4>
-              <p className="text-xs text-slate-400">Shared comment cache eliminates request floods. One fetch per webhook, period.</p>
+              <p className="text-xs text-slate-400">{t('landing.whatsNew.smartComments')}</p>
             </div>
           </div>
         </div>
@@ -605,31 +613,31 @@ function DeepDiveSection() {
 }
 
 function HowItWorks() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { t } = useTranslation();
   const steps = [
     {
       num: '01',
-      title: 'Create a project',
-      body: 'Sign up. Click "New Project". We give you a unique URL: https://hookswing.com/hook/abc123',
+      title: t('landing.howItWorks.step1Title'),
+      body: t('landing.howItWorks.step1Body'),
     },
     {
       num: '02',
-      title: 'Paste it anywhere',
-      body: 'Drop that URL into Stripe, GitHub, PayPal, your payment gateway, or any service that sends webhooks. They all work. We catch everything.',
+      title: t('landing.howItWorks.step2Title'),
+      body: t('landing.howItWorks.step2Body'),
     },
     {
       num: '03',
-      title: 'Debug on your terms',
-      body: 'See the payload in real time. Replay it against localhost. Fix your code. Ship. Sleep.',
+      title: t('landing.howItWorks.step3Title'),
+      body: t('landing.howItWorks.step3Body'),
     },
   ];
-
-  const navigate = useNavigate();
-  const { user } = useAuth();
 
   return (
     <section id="how-it-works" className="py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">From Zero to Debug in 30 Seconds</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">{t('landing.howItWorks.title')}</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map((step) => (
             <div key={step.num} className="relative">
@@ -643,7 +651,7 @@ function HowItWorks() {
         </div>
         <div className="text-center mt-12">
           <button onClick={() => navigate(user ? '/dashboard' : '/register')} className="bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-3 rounded-lg font-semibold transition-all hover:scale-[1.02]">
-            {user ? 'Go to Dashboard' : 'Start Catching Free — No credit card required'}
+            {user ? t('landing.hero.ctaDashboard') : t('landing.howItWorks.cta')}
           </button>
         </div>
       </div>
@@ -656,35 +664,36 @@ function PricingSection() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const currentPlan = user?.plan || 'FREE';
+  const { t } = useTranslation();
 
   const plans = [
     {
-      name: 'Free',
-      badge: 'For side projects',
-      price: '$0',
-      period: 'forever',
-      features: ['3 projects', '500 webhooks/month', '7-day history', 'Basic inspection', 'CLI forwarding', 'Webhook Tester', 'Email support'],
-      cta: 'Sign Up Free',
+      name: t('landing.pricing.free.name'),
+      badge: t('landing.pricing.free.badge'),
+      price: t('landing.pricing.free.price'),
+      period: t('landing.pricing.free.period'),
+      features: t('landing.pricing.free.features') as unknown as string[],
+      cta: t('landing.pricing.free.cta'),
       planKey: 'FREE',
       featured: false,
     },
     {
-      name: 'Pro',
-      badge: 'For serious developers',
-      price: yearly ? '$190' : '$19',
-      period: yearly ? '/year' : '/month',
-      features: ['Unlimited projects', '10,000 webhooks/month', '90-day history', 'Replay (web + CLI)', 'Custom subdomains', 'Slack & Discord alerts', 'Webhook Tester', 'Request diff/comparison', 'Export JSON/CSV'],
-      cta: 'Start Pro Trial',
+      name: t('landing.pricing.pro.name'),
+      badge: t('landing.pricing.pro.badge'),
+      price: yearly ? t('landing.pricing.pro.priceYearly') : t('landing.pricing.pro.priceMonthly'),
+      period: yearly ? t('landing.pricing.pro.periodYearly') : t('landing.pricing.pro.periodMonthly'),
+      features: t('landing.pricing.pro.features') as unknown as string[],
+      cta: t('landing.pricing.pro.cta'),
       planKey: 'PRO',
       featured: true,
     },
     {
-      name: 'Team',
-      badge: 'For engineering teams',
-      price: yearly ? '$490' : '$49',
-      period: yearly ? '/year' : '/month',
-      features: ['Everything in Pro', 'Unlimited team members', 'Shared workspaces', 'Team activity log', 'Real-time discussion feed', 'Annotate & comment', 'Priority support'],
-      cta: 'Start Team Trial',
+      name: t('landing.pricing.team.name'),
+      badge: t('landing.pricing.team.badge'),
+      price: yearly ? t('landing.pricing.team.priceYearly') : t('landing.pricing.team.priceMonthly'),
+      period: yearly ? t('landing.pricing.team.periodYearly') : t('landing.pricing.team.periodMonthly'),
+      features: t('landing.pricing.team.features') as unknown as string[],
+      cta: t('landing.pricing.team.cta'),
       planKey: 'TEAM',
       featured: false,
     },
@@ -692,7 +701,7 @@ function PricingSection() {
 
   function getCta(plan: typeof plans[0]) {
     if (!user) return { text: plan.cta, action: () => navigate('/register') };
-    if (currentPlan === plan.planKey) return { text: 'Current Plan', action: () => navigate('/dashboard/account?tab=billing' + (yearly ? '&yearly=true' : '')), disabled: true };
+    if (currentPlan === plan.planKey) return { text: t('landing.pricing.currentPlan'), action: () => navigate('/dashboard/account?tab=billing' + (yearly ? '&yearly=true' : '')), disabled: true };
     if (plan.planKey === 'FREE') return { text: 'Downgrade', action: () => navigate('/dashboard/account?tab=billing' + (yearly ? '&yearly=true' : '')) };
     return { text: `Upgrade to ${plan.name}`, action: () => navigate('/dashboard/account?tab=billing' + (yearly ? '&yearly=true' : '')) };
   }
@@ -700,16 +709,16 @@ function PricingSection() {
   return (
     <section id="pricing" className="py-24 bg-slate-800/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-6">Simple Pricing. No Surprises.</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-6">{t('landing.pricing.title')}</h2>
         <div className="flex items-center justify-center gap-3 mb-12">
-          <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>Monthly</span>
+          <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>{t('landing.pricing.monthly')}</span>
           <button
             onClick={() => setYearly(!yearly)}
             className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors"
           >
             <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${yearly ? 'translate-x-6' : ''}`} />
           </button>
-          <span className={`text-sm ${yearly ? 'text-white' : 'text-slate-500'}`}>Yearly <span className="text-emerald-400">(save 2 months)</span></span>
+          <span className={`text-sm ${yearly ? 'text-white' : 'text-slate-500'}`}>{t('landing.pricing.yearly')} <span className="text-emerald-400">{t('landing.pricing.yearlySave')}</span></span>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
@@ -727,7 +736,7 @@ function PricingSection() {
               >
                 {plan.featured && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    Most Popular
+                    {t('landing.pricing.pro.popular')}
                   </div>
                 )}
                 {isCurrent && (
@@ -764,7 +773,7 @@ function PricingSection() {
           })}
         </div>
         <p className="text-center text-sm text-slate-500 mt-8">
-          All plans include SSL, API access, and dark mode. Upgrade or downgrade anytime.
+          {t('landing.pricing.footer')}
         </p>
       </div>
     </section>
@@ -772,25 +781,26 @@ function PricingSection() {
 }
 
 function Testimonials() {
+  const { t } = useTranslation();
   const quotes = [
     {
-      text: "I lost a critical Stripe payload during a production incident using webhook.site — it had expired. HookSwing kept it. That alone paid for the year.",
-      tag: "Saved a production deploy",
+      text: t('landing.testimonials.quote1'),
+      tag: t('landing.testimonials.tag1'),
     },
     {
-      text: "The replay feature let me take a webhook from last Tuesday, change the amount field, and re-fire it at my local server. Fixed the bug without waiting for Stripe to send another real event.",
-      tag: "3 hours saved debugging",
+      text: t('landing.testimonials.quote2'),
+      tag: t('landing.testimonials.tag2'),
     },
     {
-      text: "We stopped sharing ngrok URLs in Slack. One shared project, everyone sees the same webhook feed in real time, and the discussion feed means no context gets lost.",
-      tag: "Replaced 3 tools",
+      text: t('landing.testimonials.quote3'),
+      tag: t('landing.testimonials.tag3'),
     },
   ];
 
   return (
     <section className="py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">What Early Users Say</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">{t('landing.testimonials.title')}</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {quotes.map((q, i) => (
             <div key={i} className="bg-slate-800 rounded-xl p-8 border border-slate-700">
@@ -808,20 +818,21 @@ function Testimonials() {
 
 function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const { t } = useTranslation();
   const faqs = [
-    { q: 'Is there a free plan?', a: 'Yes. 3 projects, 500 webhooks per month, 7-day retention. No credit card required. Upgrade when you need more.' },
-    { q: 'Do you store my webhook payloads forever?', a: 'No. Free = 7 days. Pro = 90 days. After that, we delete them. If you need longer retention, contact us for Enterprise.' },
-    { q: 'Can I self-host HookSwing?', a: 'Not yet. We are a managed SaaS. Self-hosted version is on the roadmap for Enterprise customers.' },
-    { q: 'Does it work with Stripe, GitHub, PayPal, Twilio?', a: 'Yes. Any service that sends HTTP webhooks works. We are payload-agnostic. We don\'t verify signatures — that\'s your code\'s job.' },
-    { q: 'Is the CLI open source?', a: 'Yes. The npm CLI (hookswing) is MIT-licensed and on GitHub. The backend is proprietary. Both the npm CLI and the built-in Web CLI at /dashboard/cli are free forever.' },
-    { q: 'What is the Web CLI?', a: 'A browser-based terminal built into your dashboard. No install required. Run hookswing commands directly from /dashboard/cli — perfect for quick checks or locked-down machines.' },
-    { q: 'What happens if I exceed my plan\'s webhook limit?', a: 'We still catch the webhook and return 200 to the sender (so they don\'t retry and spam you). But we drop the payload storage and notify you to upgrade. No surprise charges.' },
+    { q: t('landing.faq.q1'), a: t('landing.faq.a1') },
+    { q: t('landing.faq.q2'), a: t('landing.faq.a2') },
+    { q: t('landing.faq.q3'), a: t('landing.faq.a3') },
+    { q: t('landing.faq.q4'), a: t('landing.faq.a4') },
+    { q: t('landing.faq.q5'), a: t('landing.faq.a5') },
+    { q: t('landing.faq.q6'), a: t('landing.faq.a6') },
+    { q: t('landing.faq.q7'), a: t('landing.faq.a7') },
   ];
 
   return (
     <section className="py-24 bg-slate-800/30">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">Questions? Answers.</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">{t('landing.faq.title')}</h2>
         <div className="space-y-4">
           {faqs.map((faq, i) => (
             <div key={i} className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
@@ -848,19 +859,18 @@ function FAQ() {
 function FinalCTA() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   return (
     <section className="py-24 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 className="text-3xl sm:text-5xl font-bold text-white mb-6">Stop Debugging in the Dark</h2>
+        <h2 className="text-3xl sm:text-5xl font-bold text-white mb-6">{t('landing.finalCta.title')}</h2>
         <p className="text-lg text-slate-400 mb-10 max-w-xl mx-auto">
-          {user
-            ? 'Welcome back. Your webhooks are waiting.'
-            : "Join 500+ developers who stopped losing webhooks. Start free. Upgrade when you're ready."}
+          {user ? t('landing.finalCta.subtitleLoggedIn') : t('landing.finalCta.subtitleLoggedOut')}
         </p>
         <button onClick={() => navigate(user ? '/dashboard' : '/register')} className="bg-emerald-500 hover:bg-emerald-400 text-white px-10 py-4 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02]">
-          {user ? 'Go to Dashboard' : 'Start Catching Free — No credit card required'}
+          {user ? t('landing.hero.ctaDashboard') : t('landing.finalCta.ctaStart')}
         </button>
       </div>
     </section>
@@ -868,50 +878,51 @@ function FinalCTA() {
 }
 
 function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className="bg-slate-950 border-t border-slate-800 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           <div>
-            <h4 className="text-white font-semibold mb-4">Product</h4>
+            <h4 className="text-white font-semibold mb-4">{t('landing.footer.product')}</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-              <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
-              <li><Link to="/docs" className="hover:text-white transition-colors">Documentation</Link></li>
+              <li><a href="#features" className="hover:text-white transition-colors">{t('landing.footer.features')}</a></li>
+              <li><a href="#pricing" className="hover:text-white transition-colors">{t('landing.footer.pricing')}</a></li>
+              <li><Link to="/docs" className="hover:text-white transition-colors">{t('landing.footer.documentation')}</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">Resources</h4>
+            <h4 className="text-white font-semibold mb-4">{t('landing.footer.resources')}</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><Link to="/docs" className="hover:text-white transition-colors">Docs</Link></li>
-              <li><a href="https://github.com/MBAS89/hookswing-cli" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">CLI Repo</a></li>
-              <li><Link to="/docs" className="hover:text-white transition-colors">API Reference</Link></li>
+              <li><Link to="/docs" className="hover:text-white transition-colors">{t('landing.footer.docs')}</Link></li>
+              <li><a href="https://github.com/MBAS89/hookswing-cli" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">{t('landing.footer.cliRepo')}</a></li>
+              <li><Link to="/docs" className="hover:text-white transition-colors">{t('landing.footer.apiRef')}</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">Company</h4>
+            <h4 className="text-white font-semibold mb-4">{t('landing.footer.company')}</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><Link to="/about" className="hover:text-white transition-colors">About</Link></li>
-              <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
-              <li><Link to="/careers" className="hover:text-white transition-colors">Careers</Link></li>
+              <li><Link to="/about" className="hover:text-white transition-colors">{t('landing.footer.about')}</Link></li>
+              <li><Link to="/contact" className="hover:text-white transition-colors">{t('landing.footer.contact')}</Link></li>
+              <li><Link to="/careers" className="hover:text-white transition-colors">{t('landing.footer.careers')}</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">Legal</h4>
+            <h4 className="text-white font-semibold mb-4">{t('landing.footer.legal')}</h4>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-              <li><Link to="/cookies" className="hover:text-white transition-colors">Cookie Policy</Link></li>
+              <li><Link to="/privacy" className="hover:text-white transition-colors">{t('landing.footer.privacy')}</Link></li>
+              <li><Link to="/terms" className="hover:text-white transition-colors">{t('landing.footer.terms')}</Link></li>
+              <li><Link to="/cookies" className="hover:text-white transition-colors">{t('landing.footer.cookies')}</Link></li>
             </ul>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center justify-between pt-8 border-t border-slate-800">
           <div className="flex flex-col sm:flex-row items-center gap-2 mb-4 sm:mb-0">
             <Logo className="w-6 h-6" />
-            <span className="text-sm text-slate-500">© 2026 HookSwing. All rights reserved.</span>
+            <span className="text-sm text-slate-500">{t('landing.footer.copyright')}</span>
             <span className="hidden sm:inline text-slate-700">|</span>
             <span className="text-sm text-slate-500">
-              A <a href="https://nuyvo.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">Nuyvo LLC</a> platform
+              <a href="https://nuyvo.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">{t('landing.footer.platform')}</a>
             </span>
           </div>
           <div className="flex items-center gap-4">

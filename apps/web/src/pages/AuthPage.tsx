@@ -4,6 +4,8 @@ import { Eye, EyeOff, Loader2, Shield, Mail, RotateCcw, ArrowLeft, KeyRound, Git
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import { useTranslation } from '../i18n';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 
 export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const [email, setEmail] = useState('');
@@ -52,6 +54,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
 
+  const { t } = useTranslation();
   const { login, verify2FA, verifyEmail, resendVerification, register } = useAuth();
   const navigate = useNavigate();
 
@@ -173,17 +176,17 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   };
 
   const getTitle = () => {
-    if (showForgot) return 'Reset your password';
+    if (showForgot) return t('auth.resetPassword');
     if (requires2FA) return 'Two-Factor Authentication';
-    if (requiresVerification) return 'Verify your email';
-    return mode === 'login' ? 'Welcome back' : 'Create your account';
+    if (requiresVerification) return t('auth.resetSent');
+    return mode === 'login' ? t('auth.loginTitle') : t('auth.registerTitle');
   };
 
   const getSubtitle = () => {
-    if (showForgot) return 'Enter your email and we will send you a reset link';
+    if (showForgot) return t('auth.resetSent');
     if (requires2FA) return 'Enter the 6-digit code from your authenticator app';
     if (requiresVerification) return `We sent a 6-digit code to ${verificationEmail}`;
-    return mode === 'login' ? 'Sign in to catch some webhooks' : 'Start catching webhooks for free';
+    return mode === 'login' ? t('auth.loginSubtitle') : t('auth.registerSubtitle');
   };
 
   return (
@@ -194,10 +197,13 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
-          <Link to="/" className="inline-flex flex-col items-center gap-3 mb-8 group">
+          <Link to="/" className="inline-flex flex-col items-center gap-3 mb-4 group">
             <Logo className="w-16 h-16 group-hover:scale-105 transition-transform duration-300" />
             <span className="text-3xl font-bold text-white tracking-tight">HookSwing</span>
           </Link>
+          <div className="flex justify-center mb-4">
+            <LanguageSwitcher />
+          </div>
           <h1 className="text-2xl font-bold text-white">{getTitle()}</h1>
           <p className="text-slate-400 mt-2">{getSubtitle()}</p>
         </div>
@@ -236,7 +242,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Verify
+                {t('common.confirm')}
               </button>
               <button
                 type="button"
@@ -244,7 +250,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 className="w-full text-slate-400 hover:text-white text-sm transition-colors flex items-center justify-center gap-1.5"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to login
+                {t('auth.signIn')}
               </button>
             </form>
           ) : requiresVerification ? (
@@ -274,7 +280,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Verify Email
+                {t('common.confirm')}
               </button>
               <button
                 type="button"
@@ -283,7 +289,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-sm transition-colors disabled:opacity-50"
               >
                 <RotateCcw className="w-4 h-4" />
-                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                {resendCooldown > 0 ? `${resendCooldown}s` : t('common.retry')}
               </button>
               <button
                 type="button"
@@ -291,7 +297,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 className="w-full text-slate-500 hover:text-slate-300 text-sm transition-colors flex items-center justify-center gap-1.5"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to {mode}
+                {t('auth.signIn')}
               </button>
             </form>
           ) : showForgot ? (
@@ -301,7 +307,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                   <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center ring-1 ring-emerald-500/20 mx-auto">
                     <Mail className="w-7 h-7 text-emerald-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white">Check your email</h3>
+                  <h3 className="text-lg font-semibold text-white">{t('auth.resetSent')}</h3>
                   <p className="text-slate-400 text-sm">
                     If an account exists for <strong className="text-white">{forgotEmail}</strong>, we've sent a password reset link. The link expires in 1 hour.
                   </p>
@@ -310,7 +316,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                     onClick={resetAll}
                     className="text-emerald-400 hover:text-emerald-300 font-medium text-sm"
                   >
-                    Back to login
+                    {t('auth.signIn')}
                   </button>
                 </div>
               ) : (
@@ -321,7 +327,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('auth.email')}</label>
                     <input
                       type="email"
                       value={forgotEmail}
@@ -338,7 +344,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                     className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
                   >
                     {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    Send Reset Link
+                    {t('auth.resetPassword')}
                   </button>
                   <button
                     type="button"
@@ -346,7 +352,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                     className="w-full text-slate-400 hover:text-white text-sm transition-colors flex items-center justify-center gap-1.5"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    Back to login
+                    {t('auth.signIn')}
                   </button>
                 </>
               )}
@@ -356,7 +362,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               <form onSubmit={handleSubmit} className="space-y-5">
                 {mode === 'register' && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Name</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('auth.name')}</label>
                     <input
                       type="text"
                       value={name}
@@ -368,7 +374,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                  <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('auth.email')}</label>
                   <input
                     type="email"
                     value={email}
@@ -381,14 +387,14 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-medium text-slate-300">Password</label>
+                    <label className="block text-sm font-medium text-slate-300">{t('auth.password')}</label>
                     {mode === 'login' && (
                       <button
                         type="button"
                         onClick={() => { setShowForgot(true); setError(''); }}
                         className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
                       >
-                        Forgot password?
+                        {t('auth.forgotPassword')}
                       </button>
                     )}
                   </div>
@@ -418,7 +424,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                   className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {mode === 'login' ? 'Sign In' : 'Create Account'}
+                  {mode === 'login' ? t('auth.loginBtn') : t('auth.registerBtn')}
                 </button>
               </form>
 
@@ -427,7 +433,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                   <div className="w-full border-t border-slate-800" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-slate-900 px-3 text-slate-500">or</span>
+                  <span className="bg-slate-900 px-3 text-slate-500">{t('auth.orContinueWith')}</span>
                 </div>
               </div>
 
@@ -442,19 +448,19 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2 border border-slate-700"
               >
                 <Github className="w-5 h-5" />
-                Continue with GitHub
+                {t('auth.github')}
               </button>
 
               <div className="mt-6 pt-6 border-t border-slate-800 text-center text-sm text-slate-400">
                 {mode === 'login' ? (
                   <>
-                    Don't have an account?{' '}
-                    <Link to="/register" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">Sign up free</Link>
+                    {t('auth.noAccount')}{' '}
+                    <Link to="/register" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">{t('auth.signUp')}</Link>
                   </>
                 ) : (
                   <>
-                    Already have an account?{' '}
-                    <Link to="/login" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">Sign in</Link>
+                    {t('auth.hasAccount')}{' '}
+                    <Link to="/login" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">{t('auth.signIn')}</Link>
                   </>
                 )}
               </div>

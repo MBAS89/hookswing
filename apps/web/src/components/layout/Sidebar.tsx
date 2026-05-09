@@ -9,6 +9,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { api } from '../../lib/api';
 import { useSupport } from '../../hooks/useSupport';
+import { useTranslation } from '../../i18n';
+import { LanguageSwitcher } from '../../i18n/LanguageSwitcher';
 import CreateProjectModal from '../project/CreateProjectModal';
 import ConfirmModal from '../ui/ConfirmModal';
 
@@ -19,12 +21,14 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const { user, pendingInvites, logout } = useAuth();
   const toast = useToast();
 
+  const { t } = useTranslation();
+
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-    { icon: Zap, label: 'Tester', href: '/dashboard/tester' },
-    { icon: Users, label: 'Team', href: '/dashboard/team', badge: pendingInvites > 0 ? pendingInvites : undefined },
-    { icon: Terminal, label: 'CLI', href: '/dashboard/cli' },
-    ...(user?.role === 'ADMIN' ? [{ icon: Shield, label: 'Admin', href: '/dashboard/admin' }] : []),
+    { icon: LayoutDashboard, label: t('layout.dashboard'), href: '/dashboard' },
+    { icon: Zap, label: t('layout.tester'), href: '/dashboard/tester' },
+    { icon: Users, label: t('layout.team'), href: '/dashboard/team', badge: pendingInvites > 0 ? pendingInvites : undefined },
+    { icon: Terminal, label: t('layout.cli'), href: '/dashboard/cli' },
+    ...(user?.role === 'ADMIN' ? [{ icon: Shield, label: t('layout.admin'), href: '/dashboard/admin' }] : []),
   ];
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -163,10 +167,10 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
     <>
       <ConfirmModal
         open={!!deleteConfirm}
-        title="Delete Project"
+        title={t('layout.deleteProject')}
         message={`Are you sure you want to delete "${deleteConfirm?.name}"? This action cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
         danger
         onConfirm={handleDelete}
         onCancel={() => setDeleteConfirm(null)}
@@ -183,16 +187,19 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             <Logo className="w-8 h-8" />
             <span className="text-lg font-bold text-white">HookSwing</span>
           </Link>
-          <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
+            <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto py-4 px-3 space-y-6">
           {/* Menu */}
           <div>
             <div className="flex items-center justify-between px-3 mb-2">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Menu</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('layout.menu')}</span>
             </div>
             <nav className="space-y-1">
               {navItems.map((item) => (
@@ -220,7 +227,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
           {/* Personal Projects */}
           <div>
             <div className="flex items-center justify-between px-3 mb-2">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Projects</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('layout.projects')}</span>
               <button onClick={() => setModalOpen(true)} className="text-slate-500 hover:text-emerald-400 transition-colors">
                 <Plus className="w-4 h-4" />
               </button>
@@ -243,7 +250,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: project.id, name: project.name }); }}
                       className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                      title="Delete project"
+                      title={t('layout.deleteProject')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -251,7 +258,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 </div>
               ))}
               {personalProjects.length === 0 && teamProjects.length === 0 && (
-                <p className="px-3 text-xs text-slate-600">No projects yet</p>
+                <p className="px-3 text-xs text-slate-600">{t('layout.noProjects')}</p>
               )}
             </nav>
           </div>
@@ -260,7 +267,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
           {hasAnyTeams && (
             <div>
               <div className="flex items-center justify-between px-3 mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Workspaces</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('layout.workspaces')}</span>
               </div>
               <nav className="space-y-1">
                 {user?.teams?.map((membership) => (
@@ -285,7 +292,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
           {teamProjects.length > 0 && (
             <div>
               <div className="flex items-center justify-between px-3 mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Team Projects</span>
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('layout.teamProjects')}</span>
               </div>
               <nav className="space-y-1">
                 {teamProjects.map((project) => (
@@ -326,7 +333,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
               >
                 <Headphones className="w-4 h-4" />
-                <span className="flex-1 text-left">Live Support</span>
+                <span className="flex-1 text-left">{t('layout.liveSupport')}</span>
                 {supportUnread > 0 && (
                   <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                     {supportUnread}
@@ -358,12 +365,12 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                         <div className="flex justify-center">
                           <div className="bg-slate-800/80 border border-slate-700/50 rounded-lg px-3 py-2 text-center max-w-[90%]">
                             <p className="text-[11px] text-slate-300 leading-relaxed">
-                              👋 Welcome to Live Support! Our team usually replies within <span className="text-emerald-400 font-medium">5 minutes</span>.
+                              👋 {t('layout.supportWelcome')}
                             </p>
                           </div>
                         </div>
                         {supportMessages.length === 0 ? (
-                          <p className="text-xs text-slate-500 text-center py-4">Start a conversation with our support team</p>
+                          <p className="text-xs text-slate-500 text-center py-4">{t('layout.supportPlaceholder')}</p>
                         ) : (
                               supportMessages.map((msg) => (
                             <div
@@ -389,7 +396,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                           <div className="flex justify-center">
                             <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 text-center max-w-[90%]">
                               <p className="text-[11px] text-amber-300 leading-relaxed">
-                                ⏳ Our support team is currently busy. We'll get back to you as soon as possible.
+                                ⏳ {t('layout.busyMessage')}
                               </p>
                             </div>
                           </div>
@@ -400,14 +407,14 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   {supportAdminJoined && (
                     <div className="flex justify-center mb-1">
                       <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-1">
-                        <p className="text-[10px] text-emerald-400 font-medium">👋 An admin has joined the chat</p>
+                        <p className="text-[10px] text-emerald-400 font-medium">👋 {t('layout.adminJoined')}</p>
                       </div>
                     </div>
                   )}
                   {supportTyping && (
                     <div className="flex items-center gap-1 text-[10px] text-slate-500 px-1">
                       <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                      Support is typing…
+                      {t('layout.supportTyping')}
                     </div>
                   )}
                   <div className="flex gap-1.5">
@@ -420,7 +427,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                           handleSendSupport();
                         }
                       }}
-                      placeholder="Type a message..."
+                      placeholder={t('layout.supportPlaceholder')}
                       className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
                     />
                     <button
@@ -462,16 +469,16 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   onChange={(e) => setFeedbackSubject(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
                 >
-                  <option value="improvement">Improvement</option>
-                  <option value="bug">Found a Bug</option>
-                  <option value="suggestion">Suggestion</option>
-                  <option value="feature_request">Feature Request</option>
-                  <option value="other">Other</option>
+                  <option value="improvement">{t('layout.feedbackTypes.improvement')}</option>
+                  <option value="bug">{t('layout.feedbackTypes.bug')}</option>
+                  <option value="suggestion">{t('layout.feedbackTypes.suggestion')}</option>
+                  <option value="feature_request">{t('layout.feedbackTypes.feature_request')}</option>
+                  <option value="other">{t('layout.feedbackTypes.other')}</option>
                 </select>
                 <textarea
                   value={feedbackMessage}
                   onChange={(e) => setFeedbackMessage(e.target.value)}
-                  placeholder="Tell us more..."
+                  placeholder={t('layout.feedbackMessage')}
                   rows={3}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 resize-none"
                 />
@@ -494,7 +501,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   className="w-full flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                 >
                   {feedbackLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                  Send
+                  {t('layout.feedbackSend')}
                 </button>
               </div>
             )}
@@ -505,7 +512,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <Settings className="w-4 h-4" />
-            Log Out
+            {t('layout.logout')}
           </button>
         </div>
       </aside>
@@ -517,7 +524,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Headphones className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-semibold text-white">Live Support</h3>
+                <h3 className="text-sm font-semibold text-white">{t('layout.liveSupport')}</h3>
               </div>
               <button
                 onClick={() => setSupportExpanded(false)}
@@ -536,12 +543,12 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   <div className="flex justify-center">
                     <div className="bg-slate-800/80 border border-slate-700/50 rounded-lg px-4 py-2.5 text-center max-w-[85%]">
                       <p className="text-xs text-slate-300 leading-relaxed">
-                        👋 Welcome to Live Support! Our team usually replies within <span className="text-emerald-400 font-medium">5 minutes</span>.
+                        👋 {t('layout.supportWelcome')}
                       </p>
                     </div>
                   </div>
                   {supportMessages.length === 0 ? (
-                    <p className="text-sm text-slate-500 text-center py-8">Start a conversation with our support team</p>
+                    <p className="text-sm text-slate-500 text-center py-8">{t('layout.supportPlaceholder')}</p>
                   ) : (
                     supportMessages.map((msg) => (
                       <div key={msg.id} className={`flex ${msg.isAdmin ? 'justify-start' : 'justify-end'}`}>
@@ -558,7 +565,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                     <div className="flex justify-center">
                       <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2.5 text-center max-w-[85%]">
                         <p className="text-xs text-amber-300 leading-relaxed">
-                          ⏳ Our support team is currently busy. We'll get back to you as soon as possible.
+                          ⏳ {t('layout.busyMessage')}
                         </p>
                       </div>
                     </div>
@@ -570,14 +577,14 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               {supportAdminJoined && (
                 <div className="flex justify-center">
                   <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-1.5">
-                    <p className="text-xs text-emerald-400 font-medium">👋 An admin has joined the chat</p>
+                    <p className="text-xs text-emerald-400 font-medium">👋 {t('layout.adminJoined')}</p>
                   </div>
                 </div>
               )}
               {supportTyping && (
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 px-1">
                   <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  Support is typing…
+                  {t('layout.supportTyping')}
                 </div>
               )}
               <div className="flex gap-2">
@@ -590,7 +597,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                       handleSendSupport();
                     }
                   }}
-                  placeholder="Type a message..."
+                  placeholder={t('layout.supportPlaceholder')}
                   className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
                 />
               <button
@@ -613,7 +620,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-semibold text-white">Send Feedback</h3>
+                <h3 className="text-sm font-semibold text-white">{t('layout.feedback')}</h3>
               </div>
               <button
                 onClick={() => setFeedbackExpanded(false)}
@@ -624,7 +631,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Subject</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('layout.feedbackSubject')}</label>
                 <select
                   value={feedbackSubject}
                   onChange={(e) => setFeedbackSubject(e.target.value)}
@@ -638,11 +645,11 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 </select>
               </div>
               <div className="flex-1 flex flex-col">
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Message</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('layout.feedbackMessage')}</label>
                 <textarea
                   value={feedbackMessage}
                   onChange={(e) => setFeedbackMessage(e.target.value)}
-                  placeholder="Tell us more about your feedback..."
+                  placeholder={t('layout.feedbackMessage')}
                   className="flex-1 min-h-[120px] w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 resize-none"
                 />
               </div>
@@ -668,7 +675,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
               >
                 {feedbackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Send Feedback
+                {t('layout.feedback')}
               </button>
             </div>
           </div>

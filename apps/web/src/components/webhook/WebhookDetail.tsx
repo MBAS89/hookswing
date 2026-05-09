@@ -9,6 +9,7 @@ import JsonViewer from './JsonViewer';
 import WebhookModal from './WebhookModal';
 import ConfirmModal from '../ui/ConfirmModal';
 import type { Webhook } from '../../hooks/useWebhooks';
+import { useTranslation } from '../../i18n';
 
 function formatReplayBody(rawBody: string | null | undefined, body: any): string {
   if (rawBody) {
@@ -36,6 +37,7 @@ export default function WebhookDetail({
   isTeamProject?: boolean;
   initialTab?: 'overview' | 'headers' | 'body' | 'comments';
 }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'comments'>(initialTab || 'overview');
@@ -192,7 +194,7 @@ export default function WebhookDetail({
           {/* URL tab */}
           {replayActiveTab === 'url' && (
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Target URL</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">{t('webhook.targetUrl')}</label>
               <input
                 type="text"
                 value={replayUrl}
@@ -200,7 +202,7 @@ export default function WebhookDetail({
                 placeholder="http://localhost:3000/webhook"
                 className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
               />
-              <p className="text-xs text-slate-500 mt-1">The request will be sent to this URL from your browser.</p>
+              <p className="text-xs text-slate-500 mt-1">{t('webhook.replay')}</p>
             </div>
           )}
 
@@ -208,7 +210,7 @@ export default function WebhookDetail({
           {replayActiveTab === 'headers' && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-slate-400">Headers (JSON)</label>
+                <label className="text-xs font-medium text-slate-400">{t('webhook.headers')} (JSON)</label>
                 <button
                   onClick={() => setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2))}
                   className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
@@ -230,7 +232,7 @@ export default function WebhookDetail({
           {replayActiveTab === 'body' && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-slate-400">Body</label>
+                <label className="text-xs font-medium text-slate-400">{t('webhook.body')}</label>
                 <button
                   onClick={() => setReplayBody(formatReplayBody(webhook.rawBody, webhook.body))}
                   className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
@@ -252,7 +254,7 @@ export default function WebhookDetail({
           {replayActiveTab === 'query' && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-slate-400">Query Params (JSON)</label>
+                <label className="text-xs font-medium text-slate-400">{t('webhook.query')} (JSON)</label>
                 <button
                   onClick={() => setReplayQuery(JSON.stringify(webhook.query || {}, null, 2))}
                   className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
@@ -438,7 +440,7 @@ export default function WebhookDetail({
         {activeTab === 'overview' && (
           <div className="space-y-4">
             <div>
-              <label className="text-xs text-slate-500 uppercase tracking-wider">ID</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wider">{t('webhook.id')}</label>
               <div className="flex items-center gap-2 mt-1">
                 <code className="text-sm text-slate-300 font-mono">{webhook.id}</code>
                 <button
@@ -450,15 +452,15 @@ export default function WebhookDetail({
               </div>
             </div>
             <div>
-              <label className="text-xs text-slate-500 uppercase tracking-wider">Timestamp</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wider">{t('webhook.timestamp')}</label>
               <p className="text-sm text-slate-300 mt-1">{new Date(webhook.createdAt).toLocaleString()}</p>
             </div>
             <div>
-              <label className="text-xs text-slate-500 uppercase tracking-wider">Source IP</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wider">{t('webhook.ip')}</label>
               <p className="text-sm text-slate-300 mt-1 font-mono">{webhook.ip}</p>
             </div>
             <div>
-              <label className="text-xs text-slate-500 uppercase tracking-wider">User Agent</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wider">{t('webhook.userAgent')}</label>
               <p className="text-sm text-slate-300 mt-1 break-all">{webhook.userAgent || '—'}</p>
             </div>
             <div>
@@ -467,14 +469,14 @@ export default function WebhookDetail({
             </div>
             {webhook.statusCode && (
               <div>
-                <label className="text-xs text-slate-500 uppercase tracking-wider">Response</label>
+                <label className="text-xs text-slate-500 uppercase tracking-wider">{t('webhook.response')}</label>
                 <p className="text-sm text-slate-300 mt-1">
                   {webhook.statusCode} {webhook.responseTime && `• ${webhook.responseTime}ms`}
                 </p>
               </div>
             )}
             <div>
-              <label className="text-xs text-slate-500 uppercase tracking-wider">Size</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wider">{t('webhook.size')}</label>
               <p className="text-sm text-slate-300 mt-1">{formatBytes(bodySize)}</p>
             </div>
           </div>
@@ -499,7 +501,7 @@ export default function WebhookDetail({
             {webhook.body ? (
               <JsonViewer data={webhook.body} />
             ) : (
-              <p className="text-slate-500 text-sm">No body</p>
+              <p className="text-slate-500 text-sm">{t('webhook.noBody')}</p>
             )}
           </div>
         )}
@@ -509,7 +511,7 @@ export default function WebhookDetail({
             {!isTeamPlan ? (
               <div className="text-center py-8 text-slate-500">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Comments require Team plan</p>
+                <p className="text-sm">{t('webhook.replayRequiresPro')}</p>
               </div>
             ) : (
               <>
@@ -538,7 +540,7 @@ export default function WebhookDetail({
                     <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
                   </div>
                 ) : comments.length === 0 ? (
-                  <p className="text-sm text-slate-600 text-center py-4">No comments yet</p>
+                  <p className="text-sm text-slate-600 text-center py-4">{t('workspace.noDiscussions')}</p>
                 ) : (
                   <div className="space-y-3">
                     {comments.map((comment) => (

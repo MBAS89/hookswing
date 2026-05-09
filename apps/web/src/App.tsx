@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
+import { I18nProvider } from './i18n';
 import ToastContainer from './components/ui/ToastContainer';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
@@ -63,11 +64,13 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <AppRoutes />
-        <ToastContainer />
-      </ToastProvider>
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <AppRoutes />
+          <ToastContainer />
+        </ToastProvider>
+      </AuthProvider>
+    </I18nProvider>
   );
 }
