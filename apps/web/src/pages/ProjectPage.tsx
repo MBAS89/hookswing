@@ -109,7 +109,6 @@ export default function ProjectPage() {
   // then fetches directly via API if not found (e.g. paginated away)
   useEffect(() => {
     if (!pendingWebhookId) return;
-    if (webhooks.length === 0 && !loading) return; // wait for initial load
 
     const wh = webhooks.find((w) => w.id === pendingWebhookId);
     if (wh) {
@@ -118,7 +117,7 @@ export default function ProjectPage() {
       return;
     }
 
-    // Not in loaded list — fetch directly
+    // Not in loaded list (or list hasn't loaded yet) — fetch directly
     let cancelled = false;
     api.get(`/webhooks/${pendingWebhookId}`)
       .then((res) => {
@@ -130,12 +129,15 @@ export default function ProjectPage() {
         setSelectedWebhook(res.data);
         setPendingWebhookId(null);
       })
-      .catch(() => {
-        if (!cancelled) setPendingWebhookId(null);
+      .catch((err) => {
+        if (!cancelled) {
+          toast.error(err.response?.data?.error || 'Webhook not found');
+          setPendingWebhookId(null);
+        }
       });
 
     return () => { cancelled = true; };
-  }, [pendingWebhookId, webhooks, loading, setWebhooks]);
+  }, [pendingWebhookId, webhooks, setWebhooks, toast]);
 
   useSocket(id || null, useCallback((webhook) => {
     addWebhook(webhook);
