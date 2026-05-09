@@ -117,12 +117,13 @@ export async function createNotification({
   try {
     const io = getIO();
     if (io) {
-      io.to(userId).emit('notification', notification);
+      const room = `user:${userId}`;
+      io.to(room).emit('notification', notification);
       // Also emit unread count update
       const unreadCount = await prisma.notification.count({
         where: { userId, read: false },
       });
-      io.to(userId).emit('notification_count', unreadCount);
+      io.to(room).emit('notification_count', unreadCount);
     }
   } catch {
     // Non-critical: if Socket.IO fails, the notif is still in DB
