@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, Trash2,
@@ -13,10 +13,6 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
   const navigate = useNavigate();
   const { projects, createProject, deleteProject } = useProjects();
   const { user, logout } = useAuth();
-
-  useEffect(() => {
-    onClose();
-  }, [location.pathname, onClose]);
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -68,7 +64,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
       )}
 
-      <aside className={`fixed lg:relative inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform lg:translate-x-0 lg:h-full ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed lg:relative inset-y-0 left-0 z-50 w-64 h-screen lg:h-full bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200 ease-out lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between h-16 px-4 border-b border-slate-800">
           <Link to="/" className="flex items-center gap-2">
             <Logo className="w-8 h-8" />
