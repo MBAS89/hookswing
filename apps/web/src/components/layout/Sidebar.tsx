@@ -450,7 +450,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             >
               <MessageSquare className="w-4 h-4" />
-              <span className="flex-1 text-left">Send Feedback</span>
+              <span className="flex-1 text-left">{t('layout.feedback')}</span>
               {feedbackOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
             {feedbackOpen && (
@@ -637,11 +637,11 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   onChange={(e) => setFeedbackSubject(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
                 >
-                  <option value="improvement">Improvement</option>
-                  <option value="bug">Found a Bug</option>
-                  <option value="suggestion">Suggestion</option>
-                  <option value="feature_request">Feature Request</option>
-                  <option value="other">Other</option>
+                  <option value="improvement">{t('layout.feedbackTypes.improvement')}</option>
+                  <option value="bug">{t('layout.feedbackTypes.bug')}</option>
+                  <option value="suggestion">{t('layout.feedbackTypes.suggestion')}</option>
+                  <option value="feature_request">{t('layout.feedbackTypes.feature_request')}</option>
+                  <option value="other">{t('layout.feedbackTypes.other')}</option>
                 </select>
               </div>
               <div className="flex-1 flex flex-col">

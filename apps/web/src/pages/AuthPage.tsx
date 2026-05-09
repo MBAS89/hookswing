@@ -224,7 +224,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Authentication Code</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('auth.authCode')}</label>
                 <input
                   type="text"
                   value={code}
@@ -261,7 +261,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">6-Digit Code</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('auth.sixDigitCode')}</label>
                 <input
                   type="text"
                   value={otp}
@@ -289,7 +289,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-sm transition-colors disabled:opacity-50"
               >
                 <RotateCcw className="w-4 h-4" />
-                {resendCooldown > 0 ? `${resendCooldown}s` : t('common.retry')}
+                {resendCooldown > 0 ? `${resendCooldown}s` : t('auth.resendCode')}
               </button>
               <button
                 type="button"
@@ -307,9 +307,9 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                   <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center ring-1 ring-emerald-500/20 mx-auto">
                     <Mail className="w-7 h-7 text-emerald-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white">{t('auth.resetSent')}</h3>
+                  <h3 className="text-lg font-semibold text-white">{t('auth.checkEmail')}</h3>
                   <p className="text-slate-400 text-sm">
-                    If an account exists for <strong className="text-white">{forgotEmail}</strong>, we've sent a password reset link. The link expires in 1 hour.
+                    {t('auth.resetEmailSent').replace('{{email}}', forgotEmail)}
                   </p>
                   <button
                     type="button"
@@ -469,10 +469,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-6">
-          By continuing, you agree to our{' '}
-          <Link to="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
-          {' '}and{' '}
-          <Link to="/privacy" className="hover:text-slate-400 transition-colors">Privacy Policy</Link>.
+          {t('auth.agreeTo')}{' '}
+          <Link to="/terms" className="hover:text-slate-400 transition-colors">{t('landing.footer.terms')}</Link>
+          {' '}{t('auth.and')}{' '}
+          <Link to="/privacy" className="hover:text-slate-400 transition-colors">{t('landing.footer.privacy')}</Link>.
         </p>
       </div>
     </div>

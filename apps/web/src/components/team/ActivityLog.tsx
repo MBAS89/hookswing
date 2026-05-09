@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { useToast } from '../../hooks/useToast';
 import ConfirmModal from '../ui/ConfirmModal';
+import { useTranslation } from '../../i18n';
 import { Loader2, Clock, FolderPlus, FolderPen, FolderX, Play, Trash2, UserPlus, UserCheck, UserCog, UserX, PenLine, ArrowRightLeft, BellPlus, BellOff, ToggleLeft, Globe, FileDown, MessageSquare, MessageSquareOff, MessageSquareReply, Trash } from 'lucide-react';
 
 interface Activity {
@@ -70,6 +71,7 @@ function formatTimeAgo(date: string): string {
 }
 
 export default function ActivityLog({ teamId, isOwner }: { teamId: string; isOwner: boolean }) {
+  const { t } = useTranslation();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [clearConfirm, setClearConfirm] = useState(false);
@@ -92,9 +94,9 @@ export default function ActivityLog({ teamId, isOwner }: { teamId: string; isOwn
       await api.delete(`/teams/${teamId}/activity`);
       setActivities([]);
       setClearConfirm(false);
-      toast.success('Activity log cleared');
+      toast.success(t('workspace.activityCleared'));
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to clear activity log');
+      toast.error(err.response?.data?.error || t('common.error'));
     }
   };
 
@@ -110,23 +112,23 @@ export default function ActivityLog({ teamId, isOwner }: { teamId: string; isOwn
     return (
       <div className="text-center py-8 text-slate-500">
         <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">No activity yet</p>
-        <p className="text-xs mt-1">Team actions will appear here</p>
+        <p className="text-sm">{t('workspace.noActivity')}</p>
+        <p className="text-xs mt-1">{t('workspace.activityHint')}</p>
         {isOwner && (
           <button
             onClick={() => setClearConfirm(true)}
             className="mt-4 text-xs text-red-400 hover:text-red-300 flex items-center gap-1 mx-auto"
           >
             <Trash className="w-3 h-3" />
-            Clear Activity Log
+            {t('workspace.clearActivity')}
           </button>
         )}
         <ConfirmModal
           open={clearConfirm}
-          title="Clear Activity Log"
-          message="Are you sure you want to clear all activity log entries? This cannot be undone."
-          confirmLabel="Clear"
-          cancelLabel="Cancel"
+          title={t('workspace.clearActivity')}
+          message={t('workspace.clearActivityConfirm')}
+          confirmLabel={t('common.confirm')}
+          cancelLabel={t('common.cancel')}
           danger
           onConfirm={handleClear}
           onCancel={() => setClearConfirm(false)}
@@ -144,7 +146,7 @@ export default function ActivityLog({ teamId, isOwner }: { teamId: string; isOwn
             className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
           >
             <Trash className="w-3 h-3" />
-            Clear Activity Log
+            {t('workspace.clearActivity')}
           </button>
         </div>
       )}

@@ -328,10 +328,10 @@ function PathPreservationDemo() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            One URL. Every Service. Your Localhost.
+            {t('landing.pathDemo.title')}
           </h2>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            With HookSwing, everything is easy. Point Stripe, PayPal, GitHub — whatever you use — to a single URL. We preserve the path and forward it straight to your local server.
+            {t('landing.pathDemo.subtitle')}
           </p>
         </div>
 
@@ -342,7 +342,7 @@ function PathPreservationDemo() {
             <div className="flex gap-4">
               <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400 font-bold shrink-0">1</div>
               <div>
-                <h3 className="text-white font-semibold mb-2">Copy your HookSwing URL</h3>
+                <h3 className="text-white font-semibold mb-2">{t('landing.pathDemo.step1')}</h3>
                 <div className="bg-slate-900 rounded-lg border border-slate-700 p-3 flex items-center gap-3">
                   <code className="text-emerald-400 text-sm font-mono">{hookUrl}</code>
                   <button
@@ -365,7 +365,7 @@ function PathPreservationDemo() {
             <div className="flex gap-4">
               <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400 font-bold shrink-0">2</div>
               <div className="flex-1">
-                <h3 className="text-white font-semibold mb-3">Paste it into your services</h3>
+                <h3 className="text-white font-semibold mb-3">{t('landing.pathDemo.step2')}</h3>
                 <div className="space-y-3">
                   {/* Stripe */}
                   <div className="bg-slate-900 rounded-lg border border-slate-700 p-4">
@@ -379,7 +379,7 @@ function PathPreservationDemo() {
                         <code className="text-emerald-400 font-mono">{hookUrl}</code>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Forwards to:</span>
+                        <span className="text-slate-500">{t('landing.pathDemo.forwardsTo')}</span>
                         <code className="text-blue-400 font-mono">localhost:3000/api/stripe/webhook</code>
                       </div>
                     </div>
@@ -397,7 +397,7 @@ function PathPreservationDemo() {
                         <code className="text-emerald-400 font-mono">{hookUrl}</code>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Forwards to:</span>
+                        <span className="text-slate-500">{t('landing.pathDemo.forwardsTo')}</span>
                         <code className="text-blue-400 font-mono">localhost:3000/api/paypal/webhook</code>
                       </div>
                     </div>
@@ -415,11 +415,11 @@ function PathPreservationDemo() {
             <div className="flex gap-4">
               <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400 font-bold shrink-0">3</div>
               <div>
-                <h3 className="text-white font-semibold mb-2">Run one command</h3>
+                <h3 className="text-white font-semibold mb-2">{t('landing.pathDemo.step3')}</h3>
                 <div className="bg-slate-900 rounded-lg border border-slate-700 p-3">
                   <code className="text-emerald-400 text-sm font-mono">hookswing forward project-1 3000</code>
                 </div>
-                <p className="text-slate-500 text-sm mt-2">That's it. Any port number works — 3000, 8080, 1337, whatever you use.</p>
+                <p className="text-slate-500 text-sm mt-2">{t('landing.pathDemo.step3Body')}</p>
               </div>
             </div>
           </div>
@@ -504,7 +504,7 @@ function DeepDiveSection() {
   return (
     <section className="py-24 bg-slate-800/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">Built for Developers, Not Committees</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">{t('landing.deepDive.title')}</h2>
 
         {/* What's New Section */}
         <div className="bg-slate-900/50 rounded-xl border border-slate-700 p-6 mb-20">
@@ -520,17 +520,17 @@ function DeepDiveSection() {
             </div>
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
               <Heart className="w-5 h-5 text-rose-400 mb-2" />
-              <h4 className="text-sm font-semibold text-white mb-1">Live Support & Feedback</h4>
+              <h4 className="text-sm font-semibold text-white mb-1">{t('landing.whatsNew.liveSupportTitle')}</h4>
               <p className="text-xs text-slate-400">{t('landing.whatsNew.liveSupport')}</p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
               <ShieldCheck className="w-5 h-5 text-emerald-400 mb-2" />
-              <h4 className="text-sm font-semibold text-white mb-1">Bulletproof Stability</h4>
+              <h4 className="text-sm font-semibold text-white mb-1">{t('landing.whatsNew.stabilityTitle')}</h4>
               <p className="text-xs text-slate-400">{t('landing.whatsNew.stability')}</p>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50">
               <Zap className="w-5 h-5 text-amber-400 mb-2" />
-              <h4 className="text-sm font-semibold text-white mb-1">Smarter Comments</h4>
+              <h4 className="text-sm font-semibold text-white mb-1">{t('landing.whatsNew.smartCommentsTitle')}</h4>
               <p className="text-xs text-slate-400">{t('landing.whatsNew.smartComments')}</p>
             </div>
           </div>
@@ -555,24 +555,26 @@ function DeepDiveSection() {
             </div>
           </div>
           <div className="order-1 lg:order-2">
-            <h3 className="text-2xl font-bold text-white mb-4">Two CLIs. Your choice.</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">{t('landing.deepDive.cliTitle')}</h3>
             <p className="text-slate-400 leading-relaxed mb-4">
-              <strong className="text-white">npm CLI:</strong> Install <code className="text-emerald-400">hookswing</code> globally. Run <code className="text-emerald-400">hookswing forward</code> to pipe webhooks straight to localhost. No ngrok. No tunnel config. Just works.
+              <strong className="text-white">{t('landing.deepDive.cliNpmLabel')}</strong>{' '}
+              {t('landing.deepDive.cliNpm')}
             </p>
             <p className="text-slate-400 leading-relaxed mb-6">
-              <strong className="text-white">Web CLI:</strong> Prefer staying in the browser? Open the built-in terminal right in your dashboard at <code className="text-emerald-400">/dashboard/cli</code> — same commands, zero install.
+              <strong className="text-white">{t('landing.deepDive.cliWebLabel')}</strong>{' '}
+              {t('landing.deepDive.cliWeb')}
             </p>
             <Link to="/docs" className="text-emerald-400 hover:text-emerald-300 font-medium inline-flex items-center gap-1">
-              View CLI Docs →
+              {t('landing.deepDive.cliDocs')}
             </Link>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
           <div>
-            <h3 className="text-2xl font-bold text-white mb-4">Share the pain with your team</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">{t('landing.deepDive.teamTitle')}</h3>
             <p className="text-slate-400 leading-relaxed mb-6">
-              Create a team workspace. Share projects. Comment on specific webhooks. ('This one caused the double-charge bug.') Export logs for compliance. Your backend team and your frontend team finally speak the same language.
+              {t('landing.deepDive.teamBody')}
             </p>
           </div>
           <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
@@ -601,9 +603,9 @@ function DeepDiveSection() {
             </div>
           </div>
           <div className="order-1 lg:order-2">
-            <h3 className="text-2xl font-bold text-white mb-4">Get pinged when it matters</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">{t('landing.deepDive.alertsTitle')}</h3>
             <p className="text-slate-400 leading-relaxed mb-6">
-              Connect Slack, Discord, or Telegram. Get notified the moment a webhook arrives — or when your server returns a 500. Compare two webhooks side-by-side to spot exactly what changed. No more refreshing the dashboard like a maniac.
+              {t('landing.deepDive.alertsBody')}
             </p>
           </div>
         </div>

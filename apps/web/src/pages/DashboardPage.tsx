@@ -297,11 +297,11 @@ export default function DashboardPage() {
             <table className="w-full">
               <thead>
                 <tr className="text-left text-xs text-slate-500 uppercase tracking-wider border-b border-slate-800">
-                  <th className="pb-3 font-medium">Project</th>
-                  <th className="pb-3 font-medium">Method</th>
-                  <th className="pb-3 font-medium">Source</th>
+                  <th className="pb-3 font-medium">{t('layout.projects')}</th>
+                  <th className="pb-3 font-medium">{t('common.method')}</th>
+                  <th className="pb-3 font-medium">{t('common.source')}</th>
                   <th className="pb-3 font-medium">IP</th>
-                  <th className="pb-3 font-medium text-right">Time</th>
+                  <th className="pb-3 font-medium text-right">{t('common.time')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">

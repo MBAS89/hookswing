@@ -130,7 +130,7 @@ export default function WebhookDetail({
             {webhook.method}
           </span>
           {webhook.isReplay && (
-            <span className="text-xs text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">REPLAY</span>
+            <span className="text-xs text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">{t('webhook.replay')}</span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -216,7 +216,7 @@ export default function WebhookDetail({
                   className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  Reset
+                  {t('webhook.resetAll')}
                 </button>
               </div>
               <textarea
@@ -238,7 +238,7 @@ export default function WebhookDetail({
                   className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  Reset
+                  {t('webhook.resetAll')}
                 </button>
               </div>
               <textarea
@@ -260,7 +260,7 @@ export default function WebhookDetail({
                   className="text-[10px] text-slate-500 hover:text-emerald-400 flex items-center gap-1"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  Reset
+                  {t('webhook.resetAll')}
                 </button>
               </div>
               <textarea
@@ -380,7 +380,7 @@ export default function WebhookDetail({
               className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
             >
               {replayLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Send Replay
+              {t('webhook.sendReplay')}
             </button>
             <button
               onClick={() => {
@@ -393,7 +393,7 @@ export default function WebhookDetail({
               className="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1"
             >
               <RotateCcw className="w-3 h-3" />
-              Reset All
+              {t('webhook.resetAll')}
             </button>
           </div>
 
@@ -410,7 +410,7 @@ export default function WebhookDetail({
               ) : (
                 <AlertCircle className="w-3.5 h-3.5" />
               )}
-              {replayResult.status === 0 ? 'Replay failed' : `Response: ${replayResult.status} in ${replayResult.responseTime}ms`}
+              {replayResult.status === 0 ? t('webhook.replayFailed') : `Response: ${replayResult.status} in ${replayResult.responseTime}ms`}
             </div>
           )}
         </div>
@@ -464,7 +464,7 @@ export default function WebhookDetail({
               <p className="text-sm text-slate-300 mt-1 break-all">{webhook.userAgent || '—'}</p>
             </div>
             <div>
-              <label className="text-xs text-slate-500 uppercase tracking-wider">Source</label>
+              <label className="text-xs text-slate-500 uppercase tracking-wider">{t('webhook.response')}</label>
               <p className="text-sm text-slate-300 mt-1">{webhook.source || 'custom'}</p>
             </div>
             {webhook.statusCode && (
@@ -586,7 +586,7 @@ export default function WebhookDetail({
                             onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                             className="text-xs text-slate-500 hover:text-sky-400 transition-colors"
                           >
-                            Reply
+                            {t('workspace.reply')}
                           </button>
                           {comment._count && comment._count.replies > comment.replies.length && (
                             <span className="text-[10px] text-slate-600">

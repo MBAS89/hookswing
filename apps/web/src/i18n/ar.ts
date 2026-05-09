@@ -84,6 +84,16 @@ export const ar = {
         body: 'تُعاد webhooks المرسلة إلى /hook/abc123/api/webhook تلقائياً إلى localhost:3000/api/webhook. مساراتك تبقى سليمة.',
       },
     },
+    pathDemo: {
+      title: 'رابط واحد. كل الخدمات. جهازك المحلي.',
+      subtitle:
+        'مع HookSwing، كل شيء سهل. وجّه Stripe أو PayPal أو GitHub — أياً كان ما تستخدمه — إلى رابط واحد. نحفظ المسار ونوجهه مباشرة إلى خادمك المحلي.',
+      step1: 'انسخ رابط HookSwing الخاص بك',
+      step2: 'الصقه في خدماتك',
+      forwardsTo: 'يوجّه إلى:',
+      step3: 'شغّل أمراً واحداً',
+      step3Body: 'هذا كل شيء. أي رقم منفذ يعمل — 3000، 8080، 1337، أياً كان ما تستخدمه.',
+    },
     howItWorks: {
       title: 'من الصفر إلى التصحيح في 30 ثانية',
       step1Title: 'أنشئ مشروعاً',
@@ -100,6 +110,24 @@ export const ar = {
       liveSupport: 'دردشة دعم قابلة للتوسيع في الشريط الجانبي مع وعد بالرد في 5 دقائق ونماذج ملاحظات مدمجة.',
       stability: 'موجهات آمنة، إيقافات أنيقة، وتجميع اتصالات لا يخذلك.',
       smartComments: 'ذاكرة تخزين مؤقت مشتركة للتعليقات تزيل فيضان الطلبات. جلب واحد لكل webhook، فحسب.',
+      liveSupportTitle: 'دعم مباشر وملاحظات',
+      stabilityTitle: 'استقرار لا يتزعزع',
+      smartCommentsTitle: 'تعليقات أذكى',
+    },
+    deepDive: {
+      title: 'مبني للمطوّرين، وليس للجان',
+      cliTitle: 'واجهتان سطرية. خيارك.',
+      cliNpmLabel: 'npm CLI:',
+      cliNpm: 'ثبّت hookswing عمومياً. شغّل hookswing forward لتوجيه webhooks مباشرة إلى localhost. لا ngrok. لا إعداد نفق. يعمل ببساطة.',
+      cliWebLabel: 'Web CLI:',
+      cliWeb: 'تفضّل البقاء في المتصفح؟ افتح الطرفية المدمجة مباشرة في لوحة التحكم عند /dashboard/cli — نفس الأوامر، بدون تثبيت.',
+      cliDocs: 'عرض توثيق CLI →',
+      teamTitle: 'شارك الألم مع فريقك',
+      teamBody:
+        "أنشئ مساحة عمل للفريق. شارك المشاريع. علّق على webhooks محددة. ('هذا سبب خطأ الشحن المزدوج.') صدّر السجلات للامتثال. فريق الخلفية وفريق الواجهة الأمامية يتحدثان أخيراً نفس اللغة.",
+      alertsTitle: 'احصل على إشعار عندما يهم الأمر',
+      alertsBody:
+        'اربط Slack أو Discord أو Telegram. احصل على إشعار في اللحظة التي يصل فيها webhook — أو عندما يُرجع خادمك خطأ 500. قارن بين webhookين جنباً إلى جنب لتعرف بالضبط ما تغيّر. لا مزيد من تحديث لوحة التحكم بجنون.',
     },
     pricing: {
       title: 'أسعار بسيطة. بدون مفاجآت.',
@@ -242,6 +270,13 @@ export const ar = {
     signIn: 'سجّل الدخول',
     resetPassword: 'إعادة تعيين كلمة المرور',
     resetSent: 'تحقق من بريدك الإلكتروني لتعليمات إعادة التعيين.',
+    authCode: 'رمز المصادقة',
+    sixDigitCode: 'رمز مكوّن من 6 أرقام',
+    resendCode: 'إعادة إرسال الرمز',
+    checkEmail: 'تحقق من بريدك الإلكتروني',
+    resetEmailSent: 'إذا كان هناك حساب لـ {{email}}، فقد أرسلنا رابط إعادة تعيين كلمة المرور. الرابط تنتهي صلاحيته خلال ساعة.',
+    agreeTo: 'بالاستمرار، فإنك توافق على',
+    and: 'و',
   },
 
   layout: {
@@ -278,6 +313,9 @@ export const ar = {
     logout: 'تسجيل الخروج',
     deleteProject: 'حذف المشروع',
     noProjects: 'لا توجد مشاريع بعد',
+    notifications: 'الإشعارات',
+    noNotifications: 'لا توجد إشعارات بعد',
+    notificationSettings: 'إعدادات الإشعارات',
   },
 
   dashboard: {
@@ -331,6 +369,12 @@ export const ar = {
 
   webhook: {
     overview: 'نظرة عامة',
+    compare: 'قارن الطلبات',
+    requestA: 'الطلب أ',
+    requestB: 'الطلب ب',
+    method: 'الطريقة',
+    status: 'الحالة',
+    source: 'المصدر',
     headers: 'الرؤوس',
     body: 'الجسم',
     query: 'الاستعلام',
@@ -352,6 +396,15 @@ export const ar = {
     replayRequiresPro: 'إعادة التشغيل تتطلب Pro أو Team',
     deleteWebhook: 'حذف الـ Webhook',
     deleteConfirm: 'هل أنت متأكد من حذف هذا الـ webhook؟',
+    pick: 'اختيار',
+    diff: 'مقارنة',
+    custom: 'مخصص',
+    json: '(JSON)',
+    invalidHeaders: 'الرؤوس: JSON غير صالح',
+    invalidBody: 'الجسم: غير صالح',
+    invalidQuery: 'الاستعلام: JSON غير صالح',
+    corsError: 'تعذر الوصول إلى رابط الهدف. تحقق من إعدادات CORS على خادمك.',
+    selectForCompare: 'اختيار للمقارنة',
   },
 
   workspace: {
@@ -370,6 +423,11 @@ export const ar = {
     reply: 'رد',
     delete: 'حذف',
     viewWebhook: 'عرض الـ webhook',
+    noActivity: 'لا يوجد نشاط بعد',
+    activityHint: 'ستظهر إجراءات الفريق هنا',
+    clearActivity: 'مسح سجل النشاط',
+    clearActivityConfirm: 'هل أنت متأكد من مسح جميع إدخالات سجل النشاط؟ لا يمكن التراجع عن هذا.',
+    activityCleared: 'تم مسح سجل النشاط',
   },
 
   team: {
@@ -396,6 +454,15 @@ export const ar = {
     save: 'حفظ',
     currentPassword: 'كلمة المرور الحالية',
     newPassword: 'كلمة المرور الجديدة',
+    confirmNewPassword: 'تأكيد كلمة المرور الجديدة',
+    notifications: 'تفضيلات الإشعارات',
+    dangerZone: 'منطقة الخطر',
+    confirmDelete: 'للتأكيد، اكتب DELETE أدناه:',
+    scanQR: 'مسح رمز QR',
+    saveBackupCodes: 'احفظ رموز الاحتياطية',
+    currentPeriod: 'الفترة الحالية',
+    renews: 'التجديد',
+    cancelsSoon: 'يلغى قريباً',
   },
 
   common: {
@@ -406,5 +473,18 @@ export const ar = {
     error: 'خطأ',
     success: 'نجاح',
     retry: 'إعادة المحاولة',
+    clearAll: 'مسح الكل',
+    markAllRead: 'تحديد الكل كمقروء',
+    accept: 'قبول',
+    decline: 'رفض',
+    unknown: 'غير معروف',
+    yes: 'نعم',
+    no: 'لا',
+    status: 'الحالة',
+    value: 'القيمة',
+    method: 'الطريقة',
+    source: 'المصدر',
+    time: 'الوقت',
   },
+
 };

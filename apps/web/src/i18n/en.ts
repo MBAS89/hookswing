@@ -84,6 +84,16 @@ export const en = {
         body: 'Webhooks sent to /hook/abc123/api/webhook forward to localhost:3000/api/webhook automatically. Your routes stay intact.',
       },
     },
+    pathDemo: {
+      title: 'One URL. Every Service. Your Localhost.',
+      subtitle:
+        'With HookSwing, everything is easy. Point Stripe, PayPal, GitHub — whatever you use — to a single URL. We preserve the path and forward it straight to your local server.',
+      step1: 'Copy your HookSwing URL',
+      step2: 'Paste it into your services',
+      forwardsTo: 'Forwards to:',
+      step3: 'Run one command',
+      step3Body: "That's it. Any port number works — 3000, 8080, 1337, whatever you use.",
+    },
     howItWorks: {
       title: 'From Zero to Debug in 30 Seconds',
       step1Title: 'Create a project',
@@ -100,6 +110,24 @@ export const en = {
       liveSupport: 'Expandable sidebar chat with 5-min reply promise and built-in feedback forms.',
       stability: 'Safe routers, graceful shutdowns, and connection pooling that will not let you down.',
       smartComments: 'Shared comment cache eliminates request floods. One fetch per webhook, period.',
+      liveSupportTitle: 'Live Support & Feedback',
+      stabilityTitle: 'Bulletproof Stability',
+      smartCommentsTitle: 'Smarter Comments',
+    },
+    deepDive: {
+      title: 'Built for Developers, Not Committees',
+      cliTitle: 'Two CLIs. Your choice.',
+      cliNpmLabel: 'npm CLI:',
+      cliNpm: 'Install hookswing globally. Run hookswing forward to pipe webhooks straight to localhost. No ngrok. No tunnel config. Just works.',
+      cliWebLabel: 'Web CLI:',
+      cliWeb: 'Prefer staying in the browser? Open the built-in terminal right in your dashboard at /dashboard/cli — same commands, zero install.',
+      cliDocs: 'View CLI Docs →',
+      teamTitle: 'Share the pain with your team',
+      teamBody:
+        "Create a team workspace. Share projects. Comment on specific webhooks. ('This one caused the double-charge bug.') Export logs for compliance. Your backend team and your frontend team finally speak the same language.",
+      alertsTitle: 'Get pinged when it matters',
+      alertsBody:
+        'Connect Slack, Discord, or Telegram. Get notified the moment a webhook arrives — or when your server returns a 500. Compare two webhooks side-by-side to spot exactly what changed. No more refreshing the dashboard like a maniac.',
     },
     pricing: {
       title: 'Simple Pricing. No Surprises.',
@@ -243,6 +271,13 @@ export const en = {
     signIn: 'Sign in',
     resetPassword: 'Reset Password',
     resetSent: 'Check your email for reset instructions.',
+    authCode: 'Authentication Code',
+    sixDigitCode: '6-Digit Code',
+    resendCode: 'Resend code',
+    checkEmail: 'Check your email',
+    resetEmailSent: 'If an account exists for {{email}}, we\'ve sent a password reset link. The link expires in 1 hour.',
+    agreeTo: 'By continuing, you agree to our',
+    and: 'and',
   },
 
   // Sidebar / Dashboard Layout
@@ -280,6 +315,9 @@ export const en = {
     logout: 'Log Out',
     deleteProject: 'Delete project',
     noProjects: 'No projects yet',
+    notifications: 'Notifications',
+    noNotifications: 'No notifications yet',
+    notificationSettings: 'Notification settings',
   },
 
   // Dashboard
@@ -336,6 +374,12 @@ export const en = {
   // Webhook Card / Detail
   webhook: {
     overview: 'Overview',
+    compare: 'Compare Requests',
+    requestA: 'Request A',
+    requestB: 'Request B',
+    method: 'Method',
+    status: 'Status',
+    source: 'Source',
     headers: 'Headers',
     body: 'Body',
     query: 'Query',
@@ -357,6 +401,15 @@ export const en = {
     replayRequiresPro: 'Replay requires Pro or Team plan',
     deleteWebhook: 'Delete Webhook',
     deleteConfirm: 'Are you sure you want to delete this webhook?',
+    pick: 'Pick',
+    diff: 'Diff',
+    custom: 'custom',
+    json: '(JSON)',
+    invalidHeaders: 'Headers: Invalid JSON',
+    invalidBody: 'Body: Invalid',
+    invalidQuery: 'Query: Invalid JSON',
+    corsError: 'Could not reach target URL. Check CORS on your server.',
+    selectForCompare: 'Select for compare',
   },
 
   // Workspace
@@ -376,6 +429,11 @@ export const en = {
     reply: 'Reply',
     delete: 'Delete',
     viewWebhook: 'View webhook',
+    noActivity: 'No activity yet',
+    activityHint: 'Team actions will appear here',
+    clearActivity: 'Clear Activity Log',
+    clearActivityConfirm: 'Are you sure you want to clear all activity log entries? This cannot be undone.',
+    activityCleared: 'Activity log cleared',
   },
 
   // Team
@@ -404,6 +462,15 @@ export const en = {
     save: 'Save',
     currentPassword: 'Current Password',
     newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    notifications: 'Notification Preferences',
+    dangerZone: 'Danger Zone',
+    confirmDelete: 'To confirm, type DELETE below:',
+    scanQR: 'Scan QR Code',
+    saveBackupCodes: 'Save Your Backup Codes',
+    currentPeriod: 'Current period',
+    renews: 'Renews',
+    cancelsSoon: 'Cancels soon',
   },
 
   // Common
@@ -415,7 +482,20 @@ export const en = {
     error: 'Error',
     success: 'Success',
     retry: 'Retry',
+    clearAll: 'Clear all',
+    markAllRead: 'Mark all read',
+    accept: 'Accept',
+    decline: 'Decline',
+    unknown: 'Unknown',
+    yes: 'Yes',
+    no: 'No',
+    status: 'Status',
+    value: 'Value',
+    method: 'Method',
+    source: 'Source',
+    time: 'Time',
   },
+
 };
 
 type DeepStringify<T> = T extends readonly string[]

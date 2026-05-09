@@ -1,4 +1,5 @@
 import { X, GitCompare } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 import { formatDate } from '../../lib/utils';
 
 interface Webhook {
@@ -22,6 +23,7 @@ interface WebhookCompareProps {
 }
 
 export default function WebhookCompare({ left, right, onClose }: WebhookCompareProps) {
+  const { t } = useTranslation();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -33,8 +35,8 @@ export default function WebhookCompare({ left, right, onClose }: WebhookCompareP
               <GitCompare className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Compare Requests</h2>
-              <p className="text-xs text-slate-400">Side-by-side diff of two webhooks</p>
+              <h2 className="text-lg font-semibold text-white">{t('webhook.compare')}</h2>
+              <p className="text-xs text-slate-400">{t('landing.features.compare.body')}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
@@ -47,30 +49,30 @@ export default function WebhookCompare({ left, right, onClose }: WebhookCompareP
           <div className="grid grid-cols-2 gap-4">
             {/* Left Column */}
             <div className="space-y-4">
-              <ColumnHeader label="Request A" time={left.createdAt} />
-              <DiffRow label="Method" left={left.method} right={right.method} />
-              <DiffRow label="Status" left={left.statusCode?.toString() || '-'} right={right.statusCode?.toString() || '-'} />
-              <DiffRow label="Source" left={left.source || 'Unknown'} right={right.source || 'Unknown'} />
-              <DiffRow label="IP" left={left.ip} right={right.ip} />
-              <DiffRow label="User Agent" left={left.userAgent || '-'} right={right.userAgent || '-'} />
-              <DiffRow label="Replay" left={left.isReplay ? 'Yes' : 'No'} right={right.isReplay ? 'Yes' : 'No'} />
+              <ColumnHeader label={t('webhook.requestA')} time={left.createdAt} />
+              <DiffRow label={t('webhook.method')} left={left.method} right={right.method} />
+              <DiffRow label={t('webhook.status')} left={left.statusCode?.toString() || '-'} right={right.statusCode?.toString() || '-'} />
+              <DiffRow label={t('webhook.source')} left={left.source || t('common.unknown')} right={right.source || t('common.unknown')} />
+              <DiffRow label={t('webhook.ip')} left={left.ip} right={right.ip} />
+              <DiffRow label={t('webhook.userAgent')} left={left.userAgent || '-'} right={right.userAgent || '-'} />
+              <DiffRow label={t('webhook.replay')} left={left.isReplay ? t('common.yes') : t('common.no')} right={right.isReplay ? t('common.yes') : t('common.no')} />
             </div>
 
             {/* Right Column */}
             <div className="space-y-4">
-              <ColumnHeader label="Request B" time={right.createdAt} />
+              <ColumnHeader label={t('webhook.requestB')} time={right.createdAt} />
               <div className="h-6" /> {/* spacer for alignment */}
               <ValueCell value={right.method} compare={left.method} />
               <ValueCell value={right.statusCode?.toString() || '-'} compare={left.statusCode?.toString() || '-'} />
-              <ValueCell value={right.source || 'Unknown'} compare={left.source || 'Unknown'} />
+              <ValueCell value={right.source || t('common.unknown')} compare={left.source || t('common.unknown')} />
               <ValueCell value={right.ip} compare={left.ip} />
               <ValueCell value={right.userAgent || '-'} compare={left.userAgent || '-'} />
-              <ValueCell value={right.isReplay ? 'Yes' : 'No'} compare={left.isReplay ? 'Yes' : 'No'} />
+              <ValueCell value={right.isReplay ? t('common.yes') : t('common.no')} compare={left.isReplay ? t('common.yes') : t('common.no')} />
             </div>
           </div>
 
           {/* Headers Diff */}
-          <SectionTitle title="Headers" />
+          <SectionTitle title={t('webhook.headers')} />
           <div className="grid grid-cols-2 gap-4">
             <ObjectDiffTable obj={left.headers || {}} compare={right.headers || {}} />
             <ObjectDiffTable obj={right.headers || {}} compare={left.headers || {}} reverse />
@@ -79,7 +81,7 @@ export default function WebhookCompare({ left, right, onClose }: WebhookCompareP
           {/* Query Diff */}
           {(left.query || right.query) && (
             <>
-              <SectionTitle title="Query Parameters" />
+              <SectionTitle title={t('webhook.query')} />
               <div className="grid grid-cols-2 gap-4">
                 <ObjectDiffTable obj={left.query || {}} compare={right.query || {}} />
                 <ObjectDiffTable obj={right.query || {}} compare={left.query || {}} reverse />
@@ -88,7 +90,7 @@ export default function WebhookCompare({ left, right, onClose }: WebhookCompareP
           )}
 
           {/* Body Diff */}
-          <SectionTitle title="Body" />
+          <SectionTitle title={t('webhook.body')} />
           <div className="grid grid-cols-2 gap-4">
             <BodyDiff body={left.body} compare={right.body} />
             <BodyDiff body={right.body} compare={left.body} reverse />
@@ -177,10 +179,11 @@ function ObjectDiffTable({ obj, compare, reverse }: { obj: Record<string, any>; 
 }
 
 function BodyDiff({ body, compare, reverse }: { body: any; compare: any; reverse?: boolean }) {
+  const { t } = useTranslation();
   if (!body && !compare) {
     return (
       <div className="bg-slate-950 rounded-lg border border-slate-800 p-4">
-        <p className="text-xs text-slate-500 text-center">No body</p>
+        <p className="text-xs text-slate-500 text-center">{t('webhook.noBody')}</p>
       </div>
     );
   }

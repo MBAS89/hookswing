@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, FolderGit2, Loader2, Users } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface TeamOption {
   id: string;
@@ -14,6 +15,7 @@ interface CreateProjectModalProps {
 }
 
 export default function CreateProjectModal({ isOpen, onClose, onCreate, teams }: CreateProjectModalProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [teamId, setTeamId] = useState('');
@@ -65,8 +67,8 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate, teams }:
               <FolderGit2 className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Create Project</h2>
-              <p className="text-sm text-slate-400">Get a unique webhook URL</p>
+              <h2 className="text-lg font-semibold text-white">{t('layout.newProject')}</h2>
+              <p className="text-sm text-slate-400">{t('dashboard.createProject')}</p>
             </div>
           </div>
           <button
@@ -87,7 +89,7 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate, teams }:
 
           <div>
             <label htmlFor="project-name" className="block text-sm font-medium text-slate-300 mb-1.5">
-              Project Name <span className="text-red-400">*</span>
+              {t('layout.projects')} <span className="text-red-400">*</span>
             </label>
             <input
               id="project-name"
@@ -104,7 +106,7 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate, teams }:
           {teams && teams.length > 0 && (
             <div>
               <label htmlFor="project-team" className="block text-sm font-medium text-slate-300 mb-1.5">
-                Team <span className="text-slate-500">(optional)</span>
+                {t('team.title')} <span className="text-slate-500">(optional)</span>
               </label>
               <div className="relative">
                 <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -114,7 +116,7 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate, teams }:
                   onChange={(e) => setTeamId(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 appearance-none"
                 >
-                  <option value="">Personal</option>
+                  <option value="">{t('account.profile')}</option>
                   {teams.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
@@ -125,7 +127,7 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate, teams }:
 
           <div>
             <label htmlFor="project-description" className="block text-sm font-medium text-slate-300 mb-1.5">
-              Description <span className="text-slate-500">(optional)</span>
+              {t('project.description')} <span className="text-slate-500">(optional)</span>
             </label>
             <textarea
               id="project-description"
@@ -145,7 +147,7 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate, teams }:
               disabled={loading}
               className="flex-1 py-2.5 rounded-lg font-medium text-sm text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700 transition-colors disabled:opacity-50"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -153,7 +155,7 @@ export default function CreateProjectModal({ isOpen, onClose, onCreate, teams }:
               className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white py-2.5 rounded-lg font-semibold text-sm transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Create Project
+              {t('layout.newProject')}
             </button>
           </div>
         </form>

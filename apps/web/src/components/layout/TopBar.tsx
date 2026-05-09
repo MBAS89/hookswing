@@ -23,6 +23,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { api } from '../../lib/api';
+import { useTranslation } from '../../i18n';
 
 const typeIcons: Record<string, React.ElementType> = {
   team_invite: Users,
@@ -68,6 +69,7 @@ function timeAgo(iso: string) {
 }
 
 export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
+  const { t } = useTranslation();
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -195,7 +197,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
           {notifOpen && createPortal(
             <div ref={notifPanelRef} className="fixed right-4 top-16 w-[360px] max-h-[480px] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[9999] flex flex-col">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-                <h3 className="text-sm font-semibold text-white">Notifications</h3>
+                <h3 className="text-sm font-semibold text-white">{t('layout.notifications')}</h3>
                 <div className="flex items-center gap-2">
                   {notifications.length > 0 && (
                     <button
@@ -203,7 +205,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                       className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
                     >
                       <Trash2 className="w-3 h-3" />
-                      Clear all
+                      {t('common.clearAll')}
                     </button>
                   )}
                   {unreadCount > 0 && (
@@ -212,7 +214,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                       className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
                     >
                       <CheckCheck className="w-3 h-3" />
-                      Mark all read
+                      {t('common.markAllRead')}
                     </button>
                   )}
                 </div>
@@ -222,7 +224,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                 {notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 text-slate-500">
                     <Bell className="w-8 h-8 mb-2 opacity-30" />
-                    <p className="text-sm">No notifications yet</p>
+                    <p className="text-sm">{t('layout.noNotifications')}</p>
                   </div>
                 ) : (
                   notifications.map((n) => {
@@ -265,7 +267,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                                   ) : (
                                     <Check className="w-3 h-3" />
                                   )}
-                                  Accept
+                                  {t('common.accept')}
                                 </button>
                                 <button
                                   onClick={() => handleDeclineInvite(n.data.inviteToken, n.id)}
@@ -273,7 +275,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                                   className="flex items-center gap-1 px-2.5 py-1 bg-red-500/10 text-red-400 text-xs rounded-md hover:bg-red-500/20 transition-colors disabled:opacity-50"
                                 >
                                   <X className="w-3 h-3" />
-                                  Decline
+                                  {t('common.decline')}
                                 </button>
                               </div>
                             )}
@@ -315,7 +317,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                     onClick={() => { setNotifOpen(false); navigate('/dashboard/account?tab=notifications'); }}
                     className="text-xs text-slate-400 hover:text-white transition-colors"
                   >
-                    Notification settings
+                    {t('layout.notificationSettings')}
                   </button>
                 </div>
               )}
@@ -343,7 +345,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
               >
                 <User className="w-4 h-4" />
-                Account
+                {t('landing.nav.account')}
               </button>
               <div className="border-t border-slate-800" />
               <button
@@ -351,7 +353,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-800 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
-                Log Out
+                {t('landing.nav.logout')}
               </button>
             </div>, document.body
           )}

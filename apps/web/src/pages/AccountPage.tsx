@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
+import { useTranslation } from '../i18n';
 import { api } from '../lib/api';
 import {
   User,
@@ -64,10 +65,11 @@ export default function AccountPage() {
     if (tab && tabs.some((t) => t.id === tab)) return tab;
     return 'profile';
   });
+  const { t } = useTranslation();
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-6">Account Settings</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">{t('account.title')}</h1>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar Tabs */}
@@ -111,6 +113,7 @@ export default function AccountPage() {
 function NotificationsTab() {
   const { preferences, loading: prefsLoading, updatePreference, refresh } = useNotifications();
   const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const { t } = useTranslation();
 
   useEffect(() => {
     refresh();
@@ -145,7 +148,7 @@ function NotificationsTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-white mb-1">Notification Preferences</h2>
+        <h2 className="text-lg font-semibold text-white mb-1">{t('account.notifications')}</h2>
         <p className="text-sm text-slate-400">Choose which notifications you want to receive in-app.</p>
       </div>
 
@@ -182,6 +185,7 @@ function ProfileTab({ user, updateUser }: { user: any; updateUser: (u: any) => v
   const email = user?.email || '';
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const { t } = useTranslation();
 
   const handleSave = async () => {
     setSaving(true);
@@ -200,11 +204,11 @@ function ProfileTab({ user, updateUser }: { user: any; updateUser: (u: any) => v
   return (
     <div className="space-y-6">
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">Profile Information</h2>
+        <h2 className="text-lg font-semibold text-white mb-4">{t('account.profile')}</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1.5">Name</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1.5">{t('auth.name')}</label>
             <input
               type="text"
               value={name}
@@ -215,7 +219,7 @@ function ProfileTab({ user, updateUser }: { user: any; updateUser: (u: any) => v
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1.5">{t('auth.email')}</label>
             <div className="relative">
               <input
                 type="email"
@@ -268,6 +272,7 @@ function DangerZone({ user }: { user: any }) {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'confirm' | 'sent'>('confirm');
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   const handleRequest = async () => {
     if (confirmText !== 'DELETE') return;
@@ -288,7 +293,7 @@ function DangerZone({ user }: { user: any }) {
     <div className="bg-slate-900 rounded-xl border border-red-500/20 p-6">
       <div className="flex items-center gap-2 mb-4">
         <AlertTriangle className="w-5 h-5 text-red-400" />
-        <h2 className="text-lg font-semibold text-red-400">Danger Zone</h2>
+        <h2 className="text-lg font-semibold text-red-400">{t('account.dangerZone')}</h2>
       </div>
 
       <p className="text-sm text-slate-400 mb-4">
@@ -306,7 +311,7 @@ function DangerZone({ user }: { user: any }) {
       ) : step === 'confirm' ? (
         <div className="space-y-3">
           <p className="text-sm text-slate-300">
-            To confirm, type <span className="font-mono font-bold text-white">DELETE</span> below:
+            {t('account.confirmDelete')}
           </p>
           <input
             type="text"
@@ -364,6 +369,7 @@ function PasswordTab() {
   const [showNew, setShowNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const { t } = useTranslation();
 
   const handleChange = async () => {
     if (newPassword !== confirmPassword) {
@@ -391,11 +397,11 @@ function PasswordTab() {
 
   return (
     <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-      <h2 className="text-lg font-semibold text-white mb-4">Change Password</h2>
+      <h2 className="text-lg font-semibold text-white mb-4">{t('account.changePassword')}</h2>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-400 mb-1.5">Current Password</label>
+          <label className="block text-sm font-medium text-slate-400 mb-1.5">{t('account.currentPassword')}</label>
           <div className="relative">
             <input
               type={showCurrent ? 'text' : 'password'}
@@ -413,7 +419,7 @@ function PasswordTab() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-400 mb-1.5">New Password</label>
+          <label className="block text-sm font-medium text-slate-400 mb-1.5">{t('account.newPassword')}</label>
           <div className="relative">
             <input
               type={showNew ? 'text' : 'password'}
@@ -431,7 +437,7 @@ function PasswordTab() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-400 mb-1.5">Confirm New Password</label>
+          <label className="block text-sm font-medium text-slate-400 mb-1.5">{t('account.confirmNewPassword')}</label>
           <input
             type="password"
             value={confirmPassword}
@@ -470,6 +476,7 @@ function SecurityTab({ user, updateUser, logout }: { user: any; updateUser: (u: 
   const [showDisableModal, setShowDisableModal] = useState(false);
   const [disablePassword, setDisablePassword] = useState('');
   const [disableCode, setDisableCode] = useState('');
+  const { t } = useTranslation();
 
   const startSetup = async () => {
     setLoading(true);
@@ -573,7 +580,7 @@ function SecurityTab({ user, updateUser, logout }: { user: any; updateUser: (u: 
       {/* 2FA Setup Flow */}
       {qrCode && !backupCodes && (
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-          <h3 className="text-md font-semibold text-white mb-4">Scan QR Code</h3>
+          <h3 className="text-md font-semibold text-white mb-4">{t('account.scanQR')}</h3>
           <p className="text-sm text-slate-400 mb-4">
             Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
           </p>
@@ -620,7 +627,7 @@ function SecurityTab({ user, updateUser, logout }: { user: any; updateUser: (u: 
         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-md font-semibold text-white">Save Your Backup Codes</h3>
+            <h3 className="text-md font-semibold text-white">{t('account.saveBackupCodes')}</h3>
           </div>
           <p className="text-sm text-slate-400 mb-4">
             These codes can be used to access your account if you lose your authenticator device.
@@ -709,6 +716,7 @@ function BillingTab() {
   const [yearly, setYearly] = useState(searchParams.get('yearly') === 'true');
   const [checkoutError, setCheckoutError] = useState('');
   const [notification, setNotification] = useState<{type: 'success'|'info'|'error', message: string} | null>(null);
+  const { t } = useTranslation();
 
   const isSuccess = searchParams.get('success') === 'true';
   const isCanceled = searchParams.get('canceled') === 'true';
@@ -842,10 +850,10 @@ function BillingTab() {
             <Crown className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
-            <p className="text-sm text-slate-400">Current Plan</p>
+            <p className="text-sm text-slate-400">{t('landing.pricing.currentPlan')}</p>
             <p className="text-xl font-bold text-white">
               {user?.plan || 'FREE'}
-              {!isFree && <span className="text-sm font-normal text-slate-400 ml-2">({currentInterval === 'year' ? 'Yearly' : 'Monthly'})</span>}
+              {!isFree && <span className="text-sm font-normal text-slate-400 ml-2">({currentInterval === 'year' ? t('landing.pricing.yearly') : t('landing.pricing.monthly')})</span>}
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -876,21 +884,21 @@ function BillingTab() {
             <div className="flex items-center gap-3">
               <Calendar className="w-4 h-4 text-slate-500" />
               <div>
-                <p className="text-xs text-slate-500">Current period</p>
+                <p className="text-xs text-slate-500">{t('account.currentPeriod')}</p>
                 <p className="text-sm text-white">{formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Check className="w-4 h-4 text-emerald-400" />
               <div>
-                <p className="text-xs text-slate-500">Status</p>
+                <p className="text-xs text-slate-500">{t('common.status')}</p>
                 <p className="text-sm text-white capitalize">{sub.status}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <AlertCircle className={`w-4 h-4 ${sub.cancelAtPeriodEnd ? 'text-amber-400' : 'text-emerald-400'}`} />
               <div>
-                <p className="text-xs text-slate-500">Renews</p>
+                <p className="text-xs text-slate-500">{t('account.renews')}</p>
                 <p className={`text-sm ${sub.cancelAtPeriodEnd ? 'text-amber-400' : 'text-emerald-400'}`}>
                   {sub.cancelAtPeriodEnd ? 'Cancels on ' + formatDate(sub.currentPeriodEnd) : formatDate(sub.currentPeriodEnd)}
                 </p>
@@ -913,7 +921,7 @@ function BillingTab() {
               }`}>
                 <div>
                   <p className="text-sm text-white font-medium">
-                    {sub.plan} — {sub.interval === 'year' ? 'Yearly' : 'Monthly'}
+                    {sub.plan} — {sub.interval === 'year' ? t('landing.pricing.yearly') : t('landing.pricing.monthly')}
                   </p>
                   <p className="text-xs text-slate-500">
                     {formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}
@@ -926,7 +934,7 @@ function BillingTab() {
                     {sub.status}
                   </span>
                   {sub.cancelAtPeriodEnd && (
-                    <span className="text-xs text-amber-400">Cancels soon</span>
+                    <span className="text-xs text-amber-400">{t('account.cancelsSoon')}</span>
                   )}
                 </div>
               </div>
@@ -984,14 +992,14 @@ function BillingTab() {
       )}
 
       <div className="flex items-center justify-center gap-3">
-        <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>Monthly</span>
+        <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>{t('landing.pricing.monthly')}</span>
         <button
           onClick={handleToggleYearly}
           className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors"
         >
           <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${yearly ? 'translate-x-6' : ''}`} />
         </button>
-        <span className={`text-sm ${yearly ? 'text-white' : 'text-slate-500'}`}>Yearly <span className="text-emerald-400">(save 2 months)</span></span>
+        <span className={`text-sm ${yearly ? 'text-white' : 'text-slate-500'}`}>{t('landing.pricing.yearly')} <span className="text-emerald-400">{t('landing.pricing.yearlySave')}</span></span>
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
