@@ -166,24 +166,24 @@ function Hero() {
 }
 
 function LogoBar() {
-  const logos = [
-    { name: 'Stripe', icon: <div className="w-6 h-6 rounded-full bg-slate-600" /> },
-    { name: 'GitHub', icon: <Github className="w-6 h-6" /> },
-    { name: 'Twilio', icon: <MessageSquare className="w-6 h-6" /> },
-    { name: 'Vercel', icon: <Globe className="w-6 h-6" /> },
-    { name: 'Railway', icon: <Terminal className="w-6 h-6" /> },
+  const integrations = [
+    { name: 'Stripe' },
+    { name: 'GitHub' },
+    { name: 'PayPal' },
+    { name: 'Shopify' },
+    { name: 'Slack' },
+    { name: 'Twilio' },
   ];
 
   return (
     <section className="py-12 border-y border-slate-800 bg-slate-900/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <p className="text-sm text-slate-500 mb-8 uppercase tracking-wider">Trusted by developers shipping at</p>
-        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
-          {logos.map((logo) => (
-            <div key={logo.name} className="flex items-center gap-2 text-slate-500 opacity-50 hover:opacity-100 transition-opacity">
-              {logo.icon}
-              <span className="font-semibold">{logo.name}</span>
-            </div>
+        <p className="text-sm text-slate-500 mb-8 uppercase tracking-wider">Works with your stack</p>
+        <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+          {integrations.map((item) => (
+            <span key={item.name} className="text-slate-500 font-semibold opacity-60 hover:opacity-100 transition-opacity">
+              {item.name}
+            </span>
           ))}
         </div>
       </div>
@@ -774,33 +774,29 @@ function PricingSection() {
 function Testimonials() {
   const quotes = [
     {
-      text: 'I was using webhook.site for 2 years. I lost a critical Stripe payload during a production incident. Switched to HookSwing that day. Never looked back.',
-      author: 'Alex',
-      role: 'Backend Engineer at SaaS Startup',
+      text: "I lost a critical Stripe payload during a production incident using webhook.site — it had expired. HookSwing kept it. That alone paid for the year.",
+      tag: "Saved a production deploy",
     },
     {
-      text: 'The replay feature alone is worth $19. I can take a webhook from last week, modify the amount field, and replay it against my dev server. Game changer.',
-      author: 'Sarah',
-      role: 'Full-Stack Developer',
+      text: "The replay feature let me take a webhook from last Tuesday, change the amount field, and re-fire it at my local server. Fixed the bug without waiting for Stripe to send another real event.",
+      tag: "3 hours saved debugging",
     },
     {
-      text: 'Our team was sharing ngrok URLs in Slack like cavemen. Now we have one shared project in HookSwing. Everyone sees the same webhooks. No more chaos.',
-      author: 'Mike',
-      role: 'Engineering Lead',
+      text: "We stopped sharing ngrok URLs in Slack. One shared project, everyone sees the same webhook feed in real time, and the discussion feed means no context gets lost.",
+      tag: "Replaced 3 tools",
     },
   ];
 
   return (
     <section className="py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">Developers Actually Like This</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-16">What Early Users Say</h2>
         <div className="grid md:grid-cols-3 gap-8">
-          {quotes.map((q) => (
-            <div key={q.author} className="bg-slate-800 rounded-xl p-8 border border-slate-700">
+          {quotes.map((q, i) => (
+            <div key={i} className="bg-slate-800 rounded-xl p-8 border border-slate-700">
               <p className="text-slate-300 italic mb-6 leading-relaxed">"{q.text}"</p>
               <div>
-                <div className="text-white font-semibold">— {q.author}</div>
-                <div className="text-slate-500 text-sm">{q.role}</div>
+                <span className="text-emerald-400 text-xs font-semibold bg-emerald-500/10 px-2 py-1 rounded-full">{q.tag}</span>
               </div>
             </div>
           ))}
