@@ -24,6 +24,20 @@ interface Line {
 
 const API_URL = window.location.origin;
 
+/**
+ * Normalize a user-provided URL for local forwarding/testing.
+ * "3000" → "http://localhost:3000"
+ * "localhost:3000" → "http://localhost:3000"
+ * Full URLs → left as-is
+ */
+function normalizeUrl(url: string): string {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  if (/^\d+$/.test(url)) return `http://localhost:${url}`;
+  if (/^[a-zA-Z0-9_.-]+(:\d+)?$/.test(url)) return `http://${url}`;
+  return url;
+}
+
 // ── Module-level singleton state ──
 // Persists across route changes so the CLI survives navigation.
 let _lines: Line[] = [];
@@ -469,15 +483,21 @@ export default function CliPage() {
 
       case 'forward': {
         const fwdSlug = args[0];
-        const fwdUrl = args[1];
-        if (!fwdSlug || !fwdUrl) {
+        const rawFwdUrl = args[1];
+        if (!fwdSlug || !rawFwdUrl) {
           liveRef.addLine('error', 'Usage: forward <project-slug> <local-url>');
-          liveRef.addLine('info', '  Example: forward my-project http://localhost:3000');
+          liveRef.addLine('info', '  Example: forward my-project 3000');
+          liveRef.addLine('info', '           forward my-project localhost:3000');
+          liveRef.addLine('info', '           forward my-project http://localhost:3000');
           break;
         }
         if (_listening) {
           liveRef.addLine('error', 'Already active. Type "stop" first.');
           break;
+        }
+        const fwdUrl = normalizeUrl(rawFwdUrl);
+        if (fwdUrl !== rawFwdUrl) {
+          liveRef.addLine('info', `Normalized "${rawFwdUrl}" → ${fwdUrl}`);
         }
         startForwarding(fwdSlug, fwdUrl);
         break;
@@ -511,10 +531,15 @@ export default function CliPage() {
 
       case 'replay': {
         const replayId = args[0];
-        const replayUrl = args[1];
-        if (!replayId || !replayUrl) {
+        const rawReplayUrl = args[1];
+        if (!replayId || !rawReplayUrl) {
           liveRef.addLine('error', 'Usage: replay <webhook-id> <target-url>');
+          liveRef.addLine('info', '  Example: replay wh_abc123 3000');
           break;
+        }
+        const replayUrl = normalizeUrl(rawReplayUrl);
+        if (replayUrl !== rawReplayUrl) {
+          liveRef.addLine('info', `Normalized "${rawReplayUrl}" → ${replayUrl}`);
         }
         try {
           liveRef.addLine('info', `Replaying ${replayId} → ${replayUrl}...`);
@@ -554,12 +579,17 @@ export default function CliPage() {
       case 'tester': {
         const tProvider = args[0];
         const tEvent = args[1];
-        const tUrl = args[2];
-        if (!tProvider || !tEvent || !tUrl) {
+        const rawTUrl = args[2];
+        if (!tProvider || !tEvent || !rawTUrl) {
           liveRef.addLine('error', 'Usage: tester <provider> <event> <target-url>');
-          liveRef.addLine('info', '  Example: tester stripe invoice.payment_succeeded https://hookswing.com/hook/abc123');
+          liveRef.addLine('info', '  Example: tester stripe invoice.payment_succeeded 3000');
+          liveRef.addLine('info', '           tester stripe invoice.payment_succeeded localhost:3000');
           liveRef.addLine('info', '  Providers: stripe, github, paypal, shopify, twilio, slack, discord, microsoft_teams, sendgrid, mailgun, zoom, calendly, typeform, google, square, generic');
           break;
+        }
+        const tUrl = normalizeUrl(rawTUrl);
+        if (tUrl !== rawTUrl) {
+          liveRef.addLine('info', `Normalized "${rawTUrl}" → ${tUrl}`);
         }
         try {
           liveRef.addLine('info', `Sending ${tProvider}/${tEvent} → ${tUrl}...`);
