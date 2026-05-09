@@ -320,11 +320,14 @@ router.post('/', async (req: AuthRequest, res) => {
 // GET /api/security-scans — list user's scans
 router.get('/', async (req: AuthRequest, res) => {
   const userId = req.user!.id;
+  const plan = req.user!.plan || 'FREE';
   const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
   const skip = (page - 1) * limit;
 
-  const [scans, total] = await Promise.all([
+  const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const [scans, total, usedThisMonth] = await Promise.all([
     prisma.securityScan.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -343,9 +346,25 @@ router.get('/', async (req: AuthRequest, res) => {
       },
     }),
     prisma.securityScan.count({ where: { userId } }),
+    prisma.securityScan.count({
+      where: { userId, createdAt: { gte: oneMonthAgo } },
+    }),
   ]);
 
-  res.json({ scans, total, page, limit, totalPages: Math.ceil(total / limit) });
+  const scanLimit = SCAN_LIMITS[plan as keyof typeof SCAN_LIMITS]?.perMonth ?? SCAN_LIMITS.FREE.perMonth;
+
+  res.json({
+    scans,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+    usage: {
+      usedThisMonth,
+      limit: scanLimit,
+      remaining: Math.max(0, scanLimit - usedThisMonth),
+    },
+  });
 });
 
 // GET /api/security-scans/:id — get scan details

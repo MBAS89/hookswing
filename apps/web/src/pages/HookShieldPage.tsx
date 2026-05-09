@@ -153,6 +153,7 @@ export default function HookShieldPage() {
   const [currentScan, setCurrentScan] = useState<ScanResult | null>(null);
   const [scans, setScans] = useState<ScanResult[]>([]);
   const [scansLoading, setScansLoading] = useState(false);
+  const [usage, setUsage] = useState<{ usedThisMonth: number; limit: number; remaining: number } | null>(null);
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   const fetchScans = useCallback(async () => {
@@ -160,6 +161,7 @@ export default function HookShieldPage() {
     try {
       const res = await api.get('/security-scans');
       setScans(res.data.scans || []);
+      setUsage(res.data.usage || null);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to load scan history');
     } finally {
@@ -242,7 +244,7 @@ export default function HookShieldPage() {
   }, [pollInterval]);
 
   const plan = user?.plan || 'FREE';
-  const scanLimit = plan === 'FREE' ? 30 : plan === 'PRO' ? 500 : 2000;
+  const planLabel = plan === 'FREE' ? 'Free' : plan === 'PRO' ? 'Pro' : 'Team';
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -312,11 +314,27 @@ export default function HookShieldPage() {
               </button>
             </div>
           </div>
-          <p className="mt-3 text-xs text-slate-500">
-            {plan === 'FREE'
-              ? t('hookshield.scanInput.freeLimit', { count: 50 })
-              : t('hookshield.scanInput.proLimit', { count: scanLimit })}
-          </p>
+          {usage && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-slate-400">
+                  {planLabel} plan: {usage.usedThisMonth} of {usage.limit} scans used this month
+                </span>
+                <span className={usage.remaining === 0 ? 'text-red-400 font-semibold' : 'text-emerald-400'}>
+                  {usage.remaining} remaining
+                </span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    usage.usedThisMonth >= usage.limit ? 'bg-red-500' :
+                    usage.usedThisMonth >= usage.limit * 0.8 ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`}
+                  style={{ width: `${Math.min(100, (usage.usedThisMonth / usage.limit) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Current Scan Results */}
