@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useNotifications } from '../hooks/useNotifications';
 import { api } from '../lib/api';
 import {
   User,
@@ -23,6 +24,7 @@ import {
   LogOut,
   ChevronRight,
   XCircle,
+  Bell,
 } from 'lucide-react';
 
 const tabs = [
@@ -30,6 +32,7 @@ const tabs = [
   { id: 'password', label: 'Password', icon: Lock },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'billing', label: 'Billing', icon: CreditCard },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
 function formatDate(iso: string) {
@@ -87,7 +90,77 @@ export default function AccountPage() {
           {activeTab === 'password' && <PasswordTab />}
           {activeTab === 'security' && <SecurityTab user={user} updateUser={updateUser} logout={logout} />}
           {activeTab === 'billing' && <BillingTab />}
+          {activeTab === 'notifications' && <NotificationsTab />}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Notifications Tab ---------- */
+function NotificationsTab() {
+  const { preferences, loading: prefsLoading, updatePreference, refresh } = useNotifications();
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const handleToggle = async (type: string, enabled: boolean) => {
+    setSaving((s) => ({ ...s, [type]: true }));
+    await updatePreference(type, enabled);
+    setSaving((s) => ({ ...s, [type]: false }));
+  };
+
+  const allTypes = [
+    { type: 'team_invite', label: 'Team Invites', desc: 'When someone invites you to a team' },
+    { type: 'team_invite_accepted', label: 'Invite Accepted', desc: 'When someone accepts your team invite' },
+    { type: 'team_invite_declined', label: 'Invite Declined', desc: 'When someone declines your team invite' },
+    { type: 'member_left', label: 'Member Left', desc: 'When a member leaves your team' },
+    { type: 'member_removed', label: 'Member Removed', desc: 'When a member is removed from your team' },
+    { type: 'role_changed', label: 'Role Changed', desc: 'When your team role is changed' },
+    { type: 'ownership_transferred', label: 'Ownership Transferred', desc: 'When team ownership is transferred' },
+    { type: 'comment_added', label: 'New Comments', desc: 'When a comment is added to your project' },
+    { type: 'comment_replied', label: 'Comment Replies', desc: 'When someone replies to your comment' },
+    { type: 'webhook_received', label: 'Webhooks Received', desc: 'When a webhook is received (per project)' },
+    { type: 'plan_changed', label: 'Plan Changes', desc: 'When your plan is upgraded or downgraded' },
+    { type: 'project_created', label: 'Project Created', desc: 'When a project is created in your team' },
+  ];
+
+  const getPref = (type: string) => {
+    const p = preferences.find((pref) => pref.type === type);
+    return p ? p.enabled : true;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-white mb-1">Notification Preferences</h2>
+        <p className="text-sm text-slate-400">Choose which notifications you want to receive in-app.</p>
+      </div>
+
+      <div className="bg-slate-900 rounded-xl border border-slate-800 divide-y divide-slate-800">
+        {allTypes.map(({ type, label, desc }) => (
+          <div key={type} className="flex items-center justify-between px-5 py-4">
+            <div>
+              <p className="text-sm font-medium text-white">{label}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+            </div>
+            <button
+              onClick={() => handleToggle(type, !getPref(type))}
+              disabled={saving[type] || prefsLoading}
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                getPref(type) ? 'bg-emerald-500' : 'bg-slate-700'
+              } disabled:opacity-50`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  getPref(type) ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );

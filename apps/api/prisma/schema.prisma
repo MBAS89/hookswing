@@ -33,10 +33,12 @@ model User {
   teamsOwned    Team[]
   sentInvites   TeamInvite[] @relation("InvitedBy")
   sessions      Session[]
-  comments      WebhookComment[]
-  reactions     CommentReaction[]
-  activityLogs  ActivityLog[]
-  emailLogs     EmailLog[]
+  comments            WebhookComment[]
+  reactions           CommentReaction[]
+  activityLogs        ActivityLog[]
+  emailLogs           EmailLog[]
+  notifications       Notification[]
+  notificationPrefs   NotificationPreference[]
 
   @@map("users")
 }
@@ -123,6 +125,34 @@ model TeamInvite {
 enum TeamRole {
   MEMBER
   ADMIN
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  message   String
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id      String @id @default(cuid())
+  userId  String @map("user_id")
+  type    String
+  enabled Boolean @default(true)
+
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@map("notification_preferences")
 }
 
 model Project {

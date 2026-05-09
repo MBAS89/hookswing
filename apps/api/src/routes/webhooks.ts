@@ -7,6 +7,7 @@ import { getEffectivePlan } from '../lib/permissions';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 import { getIO } from '../lib/socketio';
+import { createNotification, notifyTeamMembers } from '../lib/notification';
 
 function getHistoryCutoff(plan: string): Date | null {
   const now = new Date();
@@ -570,6 +571,34 @@ router.post('/:id/comments', async (req: AuthRequest, res) => {
       action: result.data.parentId ? 'comment_replied' : 'comment_added',
       targetType: 'webhook',
       targetId: req.params.id,
+    });
+  }
+
+  // Send notifications
+  if (result.data.parentId) {
+    // Reply: notify parent comment author
+    const parent = await prisma.webhookComment.findUnique({
+      where: { id: result.data.parentId },
+      select: { userId: true },
+    });
+    if (parent && parent.userId !== req.user!.id) {
+      await createNotification({
+        userId: parent.userId,
+        type: 'comment_replied',
+        title: 'New reply to your comment',
+        message: `${comment.user.name || comment.user.email} replied to your comment on a webhook.`,
+        data: { webhookId: req.params.id, commentId: comment.id },
+      });
+    }
+  } else if (webhook.project?.teamId) {
+    // New comment: notify team members
+    await notifyTeamMembers({
+      teamId: webhook.project.teamId,
+      excludeUserId: req.user!.id,
+      type: 'comment_added',
+      title: 'New comment on webhook',
+      message: `${comment.user.name || comment.user.email} commented on a webhook in your team.`,
+      data: { webhookId: req.params.id, commentId: comment.id },
     });
   }
 

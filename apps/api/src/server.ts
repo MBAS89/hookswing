@@ -11,6 +11,7 @@ import authRoutes from './routes/auth';
 import projectRoutes from './routes/projects';
 import webhookRoutes from './routes/webhooks';
 import teamRoutes from './routes/teams';
+import notificationRoutes from './routes/notifications';
 import billingRoutes from './routes/billing';
 import alertRoutes from './routes/alerts';
 import dashboardRoutes from './routes/dashboard';
@@ -260,6 +261,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/projects/:projectId/alerts', alertRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -292,7 +294,8 @@ io.use((socket, next) => {
   }
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET!);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    (socket as any).userId = decoded.userId;
     next();
   } catch {
     next(new Error('Authentication error: invalid token'));
@@ -300,6 +303,11 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+  const userId = (socket as any).userId;
+  if (userId) {
+    socket.join(`user:${userId}`);
+  }
+
   socket.on('subscribe', (projectId: string) => {
     socket.join(projectId);
   });

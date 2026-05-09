@@ -16,6 +16,7 @@ import {
   canSendPasswordReset,
   testSmtpConnection,
 } from '../services/emailService';
+import { seedDefaultPreferences } from '../lib/notification';
 
 const router = Router();
 
@@ -389,6 +390,7 @@ router.get('/github/callback', async (req, res) => {
             emailVerified: true,
           },
         });
+        await seedDefaultPreferences(user.id);
         console.log('[GitHub OAuth] New user created:', user.id);
       }
     }
@@ -539,6 +541,13 @@ router.post('/login', authRateLimit, async (req, res) => {
     },
   });
 
+  const [pendingInvites, unreadNotifications] = await Promise.all([
+    prisma.teamInvite.count({
+      where: { email: user.email, status: 'PENDING', expiresAt: { gt: new Date() } },
+    }),
+    prisma.notification.count({ where: { userId: user.id, read: false } }),
+  ]);
+
   res.json({
     user: {
       id: user.id,
@@ -551,6 +560,8 @@ router.post('/login', authRateLimit, async (req, res) => {
     },
     accessToken,
     refreshToken,
+    pendingInvites,
+    unreadNotifications,
   });
 });
 
@@ -622,6 +633,13 @@ router.post('/login/2fa', authRateLimit, async (req, res) => {
     },
   });
 
+  const [pendingInvites, unreadNotifications] = await Promise.all([
+    prisma.teamInvite.count({
+      where: { email: user.email, status: 'PENDING', expiresAt: { gt: new Date() } },
+    }),
+    prisma.notification.count({ where: { userId: user.id, read: false } }),
+  ]);
+
   res.json({
     user: {
       id: user.id,
@@ -634,6 +652,8 @@ router.post('/login/2fa', authRateLimit, async (req, res) => {
     },
     accessToken,
     refreshToken,
+    pendingInvites,
+    unreadNotifications,
   });
 });
 
@@ -713,7 +733,12 @@ router.get('/me', async (req: AuthRequest, res) => {
       },
     });
 
-    res.json({ user, usage: { used: usage?.count || 0, limit }, pendingInvites });
+    // Get unread notifications
+    const unreadNotifications = await prisma.notification.count({
+      where: { userId: user.id, read: false },
+    });
+
+    res.json({ user, usage: { used: usage?.count || 0, limit }, pendingInvites, unreadNotifications });
   } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
@@ -1078,6 +1103,9 @@ router.post('/verify-email', authRateLimit, async (req, res) => {
     // Non-critical: don't fail verification if welcome email fails
   }
 
+  // Seed default notification preferences
+  await seedDefaultPreferences(user.id);
+
   // Log them in after verification
   const { accessToken, refreshToken } = generateTokens(user.id);
   await prisma.session.create({
@@ -1088,7 +1116,21 @@ router.post('/verify-email', authRateLimit, async (req, res) => {
     },
   });
 
-  res.json({ user: updatedUser, accessToken, refreshToken, message: 'Email verified successfully' });
+  const [pendingInvites, unreadNotifications] = await Promise.all([
+    prisma.teamInvite.count({
+      where: { email: user.email, status: 'PENDING', expiresAt: { gt: new Date() } },
+    }),
+    prisma.notification.count({ where: { userId: user.id, read: false } }),
+  ]);
+
+  res.json({
+    user: updatedUser,
+    accessToken,
+    refreshToken,
+    pendingInvites,
+    unreadNotifications,
+    message: 'Email verified successfully',
+  });
 });
 
 // --- Forgot password ---

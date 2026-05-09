@@ -20,6 +20,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   pendingInvites: number;
+  unreadNotifications: number;
   loading: boolean;
   login: (email: string, password: string) => Promise<any>;
   verify2FA: (tempToken: string, code: string) => Promise<void>;
@@ -28,6 +29,7 @@ interface AuthContextType {
   register: (email: string, password: string, name?: string) => Promise<any>;
   logout: () => void;
   updateUser: (user: User) => void;
+  setUnreadNotifications: (count: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -35,6 +37,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [pendingInvites, setPendingInvites] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((res) => {
           setUser(res.data.user);
           setPendingInvites(res.data.pendingInvites || 0);
+          setUnreadNotifications(res.data.unreadNotifications || 0);
         })
         .catch(() => {
           localStorage.removeItem('accessToken');
@@ -67,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
     setPendingInvites(res.data.pendingInvites || 0);
+    setUnreadNotifications(res.data.unreadNotifications || 0);
     return res.data;
   }, []);
 
@@ -76,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
     setPendingInvites(res.data.pendingInvites || 0);
+    setUnreadNotifications(res.data.unreadNotifications || 0);
   }, []);
 
   const verifyEmail = useCallback(async (email: string, code: string) => {
@@ -84,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('refreshToken', res.data.refreshToken);
     setUser(res.data.user);
     setPendingInvites(res.data.pendingInvites || 0);
+    setUnreadNotifications(res.data.unreadNotifications || 0);
     return res.data;
   }, []);
 
@@ -111,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, pendingInvites, loading, login, verify2FA, verifyEmail, resendVerification, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, pendingInvites, unreadNotifications, loading, login, verify2FA, verifyEmail, resendVerification, register, logout, updateUser, setUnreadNotifications }}>
       {children}
     </AuthContext.Provider>
   );

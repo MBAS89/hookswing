@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma';
 import { logActivity } from '../lib/activity';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
-import { sendTeamInviteEmail } from '../services/emailService';
+import { createNotification, notifyTeamAdmins } from '../lib/notification';
 
 const router = Router();
 
@@ -247,9 +247,26 @@ router.post('/:id/leave', async (req: AuthRequest, res) => {
     return res.status(400).json({ error: 'Owner cannot leave. Transfer ownership or delete the team.' });
   }
 
+  const teamBeforeLeave = await prisma.team.findUnique({
+    where: { id: req.params.id },
+    select: { name: true },
+  });
+
   await prisma.teamMember.deleteMany({
     where: { teamId: req.params.id, userId: req.user!.id },
   });
+
+  if (teamBeforeLeave) {
+    const leaver = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true, email: true } });
+    await notifyTeamAdmins({
+      teamId: req.params.id,
+      excludeUserId: req.user!.id,
+      type: 'member_left',
+      title: 'Member Left',
+      message: `${leaver?.name || leaver?.email || 'A member'} left ${teamBeforeLeave.name}.`,
+      data: { teamId: req.params.id, userId: req.user!.id },
+    });
+  }
 
   res.json({ success: true });
 });
@@ -306,6 +323,17 @@ router.post('/:id/transfer', async (req: AuthRequest, res) => {
     action: 'team_transferred',
     targetType: 'member',
     targetId: result.data.newOwnerId,
+  });
+
+  // Notify new owner
+  const transferTeam = await prisma.team.findUnique({ where: { id: req.params.id }, select: { name: true } });
+  const oldOwner = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true, email: true } });
+  await createNotification({
+    userId: result.data.newOwnerId,
+    type: 'ownership_transferred',
+    title: 'You are now the team owner',
+    message: `${oldOwner?.name || oldOwner?.email || 'The previous owner'} transferred ownership of ${transferTeam?.name || 'the team'} to you.`,
+    data: { teamId: req.params.id },
   });
 
   res.json({ success: true });
@@ -378,20 +406,15 @@ router.post('/:id/members', async (req: AuthRequest, res) => {
     },
   });
 
-  // Send invite email
-  const acceptUrl = `${process.env.FRONTEND_URL || 'https://hookswing.com'}/dashboard/team?invite=${token}`;
-  try {
-    await sendTeamInviteEmail(
-      email,
-      invite.invitedBy.name || invite.invitedBy.email,
-      team.name,
-      acceptUrl,
-      result.data.role || 'MEMBER',
-      req.user!.id
-    );
-  } catch (err) {
-    console.error('[Team Invite] Failed to send email:', err);
-    // Non-critical: invite is still created
+  // Send in-app notification to invited user
+  if (invitedUser) {
+    await createNotification({
+      userId: invitedUser.id,
+      type: 'team_invite',
+      title: `Invited to ${team.name}`,
+      message: `${invite.invitedBy.name || invite.invitedBy.email} invited you to join ${team.name} as ${result.data.role || 'MEMBER'}.`,
+      data: { teamId: team.id, inviteToken: token, role: result.data.role || 'MEMBER' },
+    });
   }
 
   await logActivity({
@@ -540,6 +563,16 @@ router.post('/invites/:token/accept', async (req: AuthRequest, res) => {
     metadata: { email: user.email, role: invite.role },
   });
 
+  // Notify team admins
+  const accepter = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true, email: true } });
+  await notifyTeamAdmins({
+    teamId: invite.teamId,
+    type: 'team_invite_accepted',
+    title: 'Invite Accepted',
+    message: `${accepter?.name || accepter?.email || 'A user'} accepted the invite to join ${invite.team.name}.`,
+    data: { teamId: invite.teamId, userId: req.user!.id },
+  });
+
   res.json({ success: true, teamId: invite.teamId });
 });
 
@@ -554,6 +587,11 @@ router.post('/invites/:token/decline', async (req: AuthRequest, res) => {
     return res.status(401).json({ error: 'User not found' });
   }
 
+  const declinedInvite = await prisma.teamInvite.findFirst({
+    where: { token: req.params.token, email: user.email, status: 'PENDING' },
+    include: { team: true },
+  });
+
   await prisma.teamInvite.updateMany({
     where: {
       token: req.params.token,
@@ -562,6 +600,17 @@ router.post('/invites/:token/decline', async (req: AuthRequest, res) => {
     },
     data: { status: 'DECLINED', declinedAt: new Date() },
   });
+
+  if (declinedInvite) {
+    const decliner = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true, email: true } });
+    await notifyTeamAdmins({
+      teamId: declinedInvite.teamId,
+      type: 'team_invite_declined',
+      title: 'Invite Declined',
+      message: `${decliner?.name || decliner?.email || 'A user'} declined the invite to join ${declinedInvite.team.name}.`,
+      data: { teamId: declinedInvite.teamId },
+    });
+  }
 
   res.json({ success: true });
 });
@@ -607,6 +656,16 @@ router.patch('/:id/members/:userId', async (req: AuthRequest, res) => {
     metadata: { newRole: result.data.role },
   });
 
+  // Notify affected user
+  const changer = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true, email: true } });
+  await createNotification({
+    userId: req.params.userId,
+    type: 'role_changed',
+    title: 'Your role has changed',
+    message: `${changer?.name || changer?.email || 'An admin'} changed your role to ${result.data.role} in ${team.name}.`,
+    data: { teamId: req.params.id, newRole: result.data.role },
+  });
+
   res.json({ success: true });
 });
 
@@ -628,6 +687,8 @@ router.delete('/:id/members/:userId', async (req: AuthRequest, res) => {
     return res.status(400).json({ error: 'Cannot remove team owner' });
   }
 
+  const removedTeam = await prisma.team.findUnique({ where: { id: req.params.id }, select: { name: true } });
+
   await prisma.teamMember.deleteMany({
     where: {
       teamId: req.params.id,
@@ -641,6 +702,16 @@ router.delete('/:id/members/:userId', async (req: AuthRequest, res) => {
     action: 'member_removed',
     targetType: 'member',
     targetId: req.params.userId,
+  });
+
+  // Notify removed user
+  const remover = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { name: true, email: true } });
+  await createNotification({
+    userId: req.params.userId,
+    type: 'member_removed',
+    title: 'Removed from team',
+    message: `${remover?.name || remover?.email || 'An admin'} removed you from ${removedTeam?.name || 'the team'}.`,
+    data: { teamId: req.params.id },
   });
 
   res.json({ success: true });
