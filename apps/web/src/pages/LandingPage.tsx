@@ -4,7 +4,8 @@ import {
   Trash2, Laptop, GitCompare, SatelliteDish, Search, Repeat,
   Terminal, Users, MessageSquare, Check, ChevronDown, ChevronUp,
   Menu, X, Github, Globe, LayoutDashboard, LogOut, User, Zap,
-  ArrowRight, Copy, MessagesSquare, Sparkles, Heart, ShieldCheck
+  ArrowRight, Copy, MessagesSquare, Sparkles, Heart, ShieldCheck,
+  AlertTriangle, Code2, Gauge, ClipboardList
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
@@ -941,6 +942,197 @@ function Footer() {
   );
 }
 
+function HookShieldStory() {
+  const { t } = useTranslation();
+  return (
+    <section className="py-24 bg-red-950/10 border-y border-red-500/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">{t('landing.hookshield.storyTitle')}</h2>
+          <p className="text-lg text-slate-400 mb-4">{t('landing.hookshield.storyBody1')}</p>
+          <p className="text-lg text-slate-400">{t('landing.hookshield.storyBody2')}</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6">
+            <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('landing.hookshield.card1Title')}</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">{t('landing.hookshield.card1Body')}</p>
+          </div>
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6">
+            <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+              <Code2 className="w-5 h-5 text-red-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('landing.hookshield.card2Title')}</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">{t('landing.hookshield.card2Body')}</p>
+          </div>
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6">
+            <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+              <ClipboardList className="w-5 h-5 text-red-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('landing.hookshield.card3Title')}</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">{t('landing.hookshield.card3Body')}</p>
+          </div>
+        </div>
+        <p className="text-center text-xl font-bold text-white">{t('landing.hookshield.pivot')}</p>
+      </div>
+    </section>
+  );
+}
+
+function HookShieldFeatures() {
+  const { t } = useTranslation();
+  return (
+    <section className="py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">{t('landing.hookshield.featureTitle')}</h2>
+          <p className="text-lg text-slate-400 max-w-2xl mx-auto">{t('landing.hookshield.featureSubtitle')}</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-slate-800 rounded-2xl mb-6 border border-slate-700">
+              <Search className="w-8 h-8 text-emerald-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-3">{t('landing.hookshield.feature1Title')}</h3>
+            <p className="text-slate-400 leading-relaxed">{t('landing.hookshield.feature1Body')}</p>
+          </div>
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-slate-800 rounded-2xl mb-6 border border-slate-700">
+              <Gauge className="w-8 h-8 text-emerald-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-3">{t('landing.hookshield.feature2Title')}</h3>
+            <p className="text-slate-400 leading-relaxed">{t('landing.hookshield.feature2Body')}</p>
+          </div>
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-slate-800 rounded-2xl mb-6 border border-slate-700">
+              <Code2 className="w-8 h-8 text-emerald-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-3">{t('landing.hookshield.feature3Title')}</h3>
+            <p className="text-slate-400 leading-relaxed">{t('landing.hookshield.feature3Body')}</p>
+          </div>
+        </div>
+
+        {/* Comparison Table */}
+        <div className="max-w-3xl mx-auto rounded-xl border border-slate-700 bg-slate-900 overflow-hidden mb-16">
+          <div className="px-6 py-4 border-b border-slate-700">
+            <h3 className="text-lg font-semibold text-white">{t('landing.hookshield.comparisonTitle')}</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-700 bg-slate-800/50">
+                <th className="text-left py-3 px-6 text-slate-400 font-medium"></th>
+                <th className="text-center py-3 px-4 text-slate-400 font-medium">webhook.site</th>
+                <th className="text-center py-3 px-4 text-slate-400 font-medium">ngrok</th>
+                <th className="text-center py-3 px-4 text-emerald-400 font-medium">HookSwing</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { feature: 'Catch webhooks', ws: '✅ 24h', ng: '✅ Live', hs: '✅ 90 days' },
+                { feature: 'Replay payloads', ws: '❌', ng: '❌', hs: '✅' },
+                { feature: 'Forward to localhost', ws: '❌', ng: '✅', hs: '✅' },
+                { feature: 'Security scan your endpoint', ws: '❌', ng: '❌', hs: '✅ HookShield' },
+                { feature: 'Detect signature vulnerabilities', ws: '❌', ng: '❌', hs: '✅' },
+                { feature: 'Generate fix code', ws: '❌', ng: '❌', hs: '✅' },
+              ].map((row, i) => (
+                <tr key={i} className="border-b border-slate-800">
+                  <td className="py-3 px-6 text-slate-300 font-medium">{row.feature}</td>
+                  <td className="py-3 px-4 text-center text-slate-500">{row.ws}</td>
+                  <td className="py-3 px-4 text-center text-slate-500">{row.ng}</td>
+                  <td className="py-3 px-4 text-center text-emerald-400 font-semibold">{row.hs}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="px-6 py-4 bg-slate-800/30">
+            <p className="text-sm text-slate-400">{t('landing.hookshield.comparisonSubtitle')}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HookShieldFixSnippet() {
+  const [copied, setCopied] = useState(false);
+  const { t } = useTranslation();
+  const code = `// ❌ WRONG: express.json() breaks signature verification
+app.use(express.json());
+app.post('/api/webhook/stripe', (req, res) => {
+  // req.body is already parsed — signature NEVER matches
+});
+
+// ✅ CORRECT: Use express.raw() on the webhook route
+app.post('/api/webhook/stripe',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body, sig, process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      return res.status(400).send(\`Webhook Error: \${err.message}\`);
+    }
+    // Process verified event safely
+    res.json({ received: true });
+  }
+);`;
+  return (
+    <section className="py-24 bg-slate-900/50 border-y border-slate-800">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-8">The Express Fix</h2>
+        <div className="rounded-xl border border-slate-700 bg-slate-950 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+            <span className="text-sm font-medium text-white">Express + Stripe</span>
+            <button
+              onClick={() => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+              className="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <pre className="p-6 text-sm text-slate-300 overflow-x-auto">
+            <code>{code}</code>
+          </pre>
+        </div>
+        <p className="text-center text-sm text-slate-500 mt-4">This is the exact fix HookShield generates for your framework.</p>
+      </div>
+    </section>
+  );
+}
+
+function HookShieldCTA() {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  return (
+    <section className="py-24 relative overflow-hidden bg-red-950/10">
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-red-950/5 to-slate-950" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
+      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 className="text-3xl sm:text-5xl font-bold text-white mb-6">{t('landing.hookshield.ctaTitle')}</h2>
+        <p className="text-lg text-slate-400 mb-10 max-w-xl mx-auto">{t('landing.hookshield.ctaSubtitle')}</p>
+        <button
+          onClick={() => navigate('/dashboard/hookshield')}
+          className="bg-red-500 hover:bg-red-400 text-white px-10 py-4 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02] shadow-lg shadow-red-500/30"
+        >
+          {t('landing.hookshield.ctaButton')}
+        </button>
+        <p className="mt-4 text-sm text-slate-500">{t('landing.hookshield.ctaSecondary')}</p>
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-xs text-slate-500">
+          <span>🔒 {t('landing.hookshield.trustSafe')}</span>
+          <span>🛡️ {t('landing.hookshield.trustIsolated')}</span>
+          <span>📋 {t('landing.hookshield.trustSecrets')}</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage() {
   const { t } = useTranslation();
   const faqQuestions = [
@@ -969,10 +1161,14 @@ export default function LandingPage() {
       <SolutionSection />
       <PathPreservationDemo />
       <DeepDiveSection />
+      <HookShieldStory />
+      <HookShieldFeatures />
+      <HookShieldFixSnippet />
       <HowItWorks />
       <PricingSection />
       <Testimonials />
       <FAQ />
+      <HookShieldCTA />
       <FinalCTA />
       <Footer />
     </div>

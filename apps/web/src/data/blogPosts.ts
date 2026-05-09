@@ -1511,6 +1511,251 @@ Webhook integrations are not hard to build. They are hard to build reliably. The
 
 **[Build reliable webhook integrations →](/register)**`,
   },
+  {
+    slug: '1542-apps-vulnerable-stripe-webhooks',
+    title: '1,542 Apps Accept Fake Stripe Webhooks: How to Not Be One of Them',
+    excerpt:
+      'A security researcher sent forged Stripe webhooks to 6,000 production apps. 1,542 accepted them without signature verification. Here is how the attack works, why developers keep making this mistake, and exactly how to fix it.',
+    author: 'HookSwing Security Team',
+    date: '2026-05-06',
+    tags: ['stripe webhook signature verification', 'webhook security vulnerability', 'express raw stripe webhook', 'fake stripe webhook attack', 'payment bypass webhook'],
+    readingTime: '10 min read',
+    content: `## The Security Scan That Shocked the Internet
+
+A security researcher recently ran a simple experiment: send forged Stripe webhooks to 6,000 production websites and see how many accept them.
+
+The result was staggering: **1,542 apps returned "200 OK" and processed the fake payment events as real.**
+
+No exploit. No zero-day. No sophisticated attack. Just a basic HTTP POST with a fake \`checkout.session.completed\` event and **no signature header**.
+
+---
+
+## What the Attack Looks Like
+
+Here is the entire attack, step by step:
+
+1. The attacker crafts a fake Stripe event:
+\`\`\`json
+{
+  "id": "evt_fake_123",
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_fake_123",
+      "amount_total": 5000,
+      "currency": "usd",
+      "customer": "cus_attacker",
+      "payment_status": "paid",
+      "status": "complete"
+    }
+  }
+}
+\`\`\`
+
+2. The attacker sends it to \`/api/webhook/stripe\` on a target app:
+\`\`\`bash
+curl -X POST https://target-app.com/api/webhook/stripe \\
+  -H "Content-Type: application/json" \\
+  -d '{"id":"evt_fake_123","type":"checkout.session.completed",...}'
+\`\`\`
+
+3. The target app returns \`200 OK\` and upgrades the attacker's account to premium, ships a product, or grants access.
+
+That's it. One curl command. No Stripe account needed. No real payment made.
+
+---
+
+## Why Do 1,542 Apps Have This Bug?
+
+### The Developer Journey
+
+Every developer building with Stripe webhooks goes through the same stages:
+
+1. **Build the webhook route locally**
+2. **Console.log the body to test**
+3. **Get the "upgrade user" logic working**
+4. **"TODO: add signature verification"**
+5. **Ship to production**
+6. **6 months pass**
+7. **Nobody remembers the TODO**
+8. **Attacker sends fake payment → accepted**
+
+### The express.json() Trap
+
+The #1 technical cause of this vulnerability is middleware order:
+
+\`\`\`javascript
+// ❌ WRONG: This breaks Stripe signature verification
+app.use(express.json());
+app.post('/api/webhook/stripe', (req, res) => {
+  // req.body is already parsed into a JS object
+  // stripe.webhooks.constructEvent() will NEVER match
+});
+\`\`\`
+
+When you use \`app.use(express.json())\` globally, the raw request body is parsed into a JavaScript object **before** it reaches your webhook handler. Stripe's signature verification requires the **raw body string** to compute the HMAC hash. If you pass a parsed object, the signature never matches.
+
+Some developers "fix" this by... removing signature verification entirely.
+
+💀
+
+---
+
+## How to Fix It
+
+### Express
+
+\`\`\`javascript
+// ✅ CORRECT: Use express.raw() specifically for the webhook route
+app.post('/api/webhook/stripe',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const sig = req.headers['stripe-signature'];
+
+    if (!sig) {
+      return res.status(400).send('Missing signature');
+    }
+
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,  // Raw body — NOT parsed JSON
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      return res.status(400).send(\`Webhook Error: \${err.message}\`);
+    }
+
+    // ✅ Event is verified. Process it safely.
+    res.json({ received: true });
+  }
+);
+
+// Safe to use express.json() for ALL OTHER routes AFTER the webhook route
+app.use(express.json());
+app.use('/api', apiRoutes);
+\`\`\`
+
+### FastAPI
+
+\`\`\`python
+from fastapi import Request, HTTPException, Header
+
+@app.post("/api/webhook/stripe")
+async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
+    if not stripe_signature:
+        raise HTTPException(status_code=400, detail="Missing signature")
+
+    payload = await request.body()  # Raw bytes — NOT request.json()
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload,
+            stripe_signature,
+            os.environ['STRIPE_WEBHOOK_SECRET']
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    return {"received": True}
+\`\`\`
+
+### Next.js (App Router)
+
+\`\`\`typescript
+import { NextResponse } from 'next/server';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+export async function POST(req: Request) {
+  const sig = req.headers.get('stripe-signature');
+
+  if (!sig) {
+    return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
+  }
+
+  const payload = await req.text(); // ⚠️ Use .text(), not .json()
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ received: true });
+}
+\`\`\`
+
+### Django
+
+\`\`\`python
+import stripe
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def stripe_webhook(request):
+    sig = request.headers.get('Stripe-Signature')
+
+    if not sig:
+        return HttpResponseBadRequest('Missing signature')
+
+    payload = request.body  # Raw bytes
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload,
+            sig,
+            settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        return HttpResponseBadRequest('Invalid payload')
+    except stripe.error.SignatureVerificationError:
+        return HttpResponseBadRequest('Invalid signature')
+
+    return HttpResponse(status=200)
+\`\`\`
+
+---
+
+## How to Test YOUR Endpoint
+
+Reading about vulnerabilities is one thing. Knowing your endpoint is secure is another.
+
+**HookShield** is a built-in security scanner in HookSwing that tests your webhook endpoint in 10 seconds:
+
+1. **Enter your webhook URL** — e.g., \`https://myapp.com/api/webhook/stripe\`
+2. **HookShield sends 3 test payloads:**
+   - No signature header → should return 400
+   - Invalid signature → should return 400
+   - Wrong secret → should return 400
+3. **Get your security score** — 0 to 100
+4. **Copy the fix code** for your framework if you're vulnerable
+
+**[Scan your endpoint free →](/dashboard/hookshield)**
+
+---
+
+## The Bottom Line
+
+Signature verification is not optional. It is not a "nice to have." It is the only thing standing between your app and anyone on the internet pretending to be Stripe.
+
+The 1,542 vulnerable apps all made the same mistake: they trusted the payload without verifying the signature.
+
+Don't be #1,543.
+
+1. Verify your webhook signatures today.
+2. Test your endpoint with HookShield.
+3. Sleep better tonight.
+
+**[Scan your endpoint now →](/dashboard/hookshield)**`,
+  },
 ];
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {

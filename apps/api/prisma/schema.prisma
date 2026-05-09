@@ -41,6 +41,7 @@ model User {
   notificationPrefs   NotificationPreference[]
   feedback            Feedback[]
   supportChats        SupportChat[]
+  securityScans       SecurityScan[]
 
   @@map("users")
 }
@@ -249,6 +250,24 @@ enum IntegrationType {
   EMAIL
 }
 
+enum Provider {
+  STRIPE
+  GITHUB
+  PAYPAL
+  TWILIO
+  SHOPIFY
+  DISCORD
+  SLACK
+  CUSTOM
+}
+
+enum ScanStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
 model ActivityLog {
   id         String   @id @default(cuid())
   teamId     String   @map("team_id")
@@ -353,6 +372,26 @@ model SupportChat {
 
   @@index([userId, createdAt])
   @@map("support_chats")
+}
+
+model SecurityScan {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  projectId         String?  @map("project_id")
+  targetUrl         String   @map("target_url")
+  provider          Provider @default(STRIPE)
+  status            ScanStatus @default(PENDING)
+  results           Json
+  securityScore     Int?     @map("security_score")
+  isVulnerable      Boolean  @default(false) @map("is_vulnerable")
+  detectedFramework String?  @map("detected_framework")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("security_scans")
 }
 
 model AdminAlertConfig {

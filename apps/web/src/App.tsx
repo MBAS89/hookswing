@@ -30,6 +30,7 @@ import RequestBinAlternativePage from './pages/alternatives/RequestBinAlternativ
 import BeeceptorAlternativePage from './pages/alternatives/BeeceptorAlternativePage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DeleteAccountPage from './pages/DeleteAccountPage';
+import HookShieldPage from './pages/HookShieldPage';
 import DashboardLayout from './components/layout/DashboardLayout';
 import { usePageTracking } from './hooks/usePageTracking';
 
@@ -59,6 +60,7 @@ function AppRoutes() {
       <Route path="/dashboard/tester" element={<PrivateRoute><DashboardLayout><TesterPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/cli" element={<PrivateRoute><DashboardLayout><CliPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/admin" element={<PrivateRoute><DashboardLayout><AdminPage /></DashboardLayout></PrivateRoute>} />
+      <Route path="/dashboard/hookshield" element={<PrivateRoute><DashboardLayout><HookShieldPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/terms" element={<TermsOfServicePage />} />
       <Route path="/cookies" element={<CookiePolicyPage />} />
