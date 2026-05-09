@@ -28,15 +28,16 @@ function CodeBlock({ code, lang = 'bash' }: { code: string; lang?: string }) {
 const sections = [
   { id: 'quick-start', label: '1. Quick Start' },
   { id: 'dashboard', label: '2. Dashboard Guide' },
-  { id: 'cli', label: '3. CLI Reference' },
-  { id: 'web-cli', label: '4. Web CLI' },
-  { id: 'integrations', label: '5. Integrations' },
-  { id: 'teams', label: '6. Teams' },
-  { id: 'billing', label: '7. Billing & Plans' },
-  { id: 'security', label: '8. Security' },
-  { id: 'api', label: '9. API Reference' },
-  { id: 'troubleshooting', label: '10. Troubleshooting' },
-  { id: 'faq', label: '11. FAQ' },
+  { id: 'tester', label: '3. Webhook Tester' },
+  { id: 'cli', label: '4. CLI Reference' },
+  { id: 'web-cli', label: '5. Web CLI' },
+  { id: 'integrations', label: '6. Integrations' },
+  { id: 'teams', label: '7. Teams' },
+  { id: 'billing', label: '8. Billing & Plans' },
+  { id: 'security', label: '9. Security' },
+  { id: 'api', label: '10. API Reference' },
+  { id: 'troubleshooting', label: '11. Troubleshooting' },
+  { id: 'faq', label: '12. FAQ' },
 ];
 
 function Sidebar({ active }: { active: string }) {
@@ -220,77 +221,170 @@ export default function DocsPage() {
                 <li>Delete project (permanent — webhooks are disassociated, not deleted)</li>
                 <li>Alerts — connect Slack, Discord, or Telegram</li>
                 <li>Export webhooks as JSON</li>
+                <li>Webhook Tester — send test payloads from real providers</li>
               </ul>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">2.6 Collapsible Project Header</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">2.6 Webhook Tester</h3>
+              <p className="text-slate-300">Navigate to <strong className="text-white">/dashboard/tester</strong> or click <strong className="text-white">"Tester"</strong> in the sidebar. Select a provider (Stripe, GitHub, etc.), pick an event type, enter your target URL, and send a realistic test payload. Perfect for testing your handler before going live.</p>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">2.7 Collapsible Project Header</h3>
               <p className="text-slate-300">The project card above the webhook feed can be collapsed to give you more screen space. Click the chevron icon next to the webhook count.</p>
             </Section>
 
+            <Section id="tester" title="Webhook Tester">
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.1 What is the Webhook Tester?</h3>
+              <p className="text-slate-300">The built-in Webhook Tester lets you send realistic test payloads from 16+ well-known providers to any URL — without setting up the actual integration. Perfect for testing your webhook handler before going live.</p>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.2 Using the Dashboard Tester</h3>
+              <ol className="list-decimal list-inside space-y-2 text-slate-300">
+                <li>Navigate to <strong className="text-white">/dashboard/tester</strong> or click <strong className="text-white">"Tester"</strong> in the sidebar</li>
+                <li>Select a provider (Stripe, GitHub, Shopify, etc.)</li>
+                <li>Select an event type</li>
+                <li>Enter your target URL</li>
+                <li>Click <strong className="text-white">"Send Test Payload"</strong></li>
+                <li>Inspect the response instantly</li>
+              </ol>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.3 Supported Providers</h3>
+              <div className="grid sm:grid-cols-2 gap-2 text-sm text-slate-300">
+                <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                  <p className="font-semibold text-white">Stripe</p>
+                  <p className="text-slate-500 text-xs">invoice.payment_succeeded, customer.created, charge.succeeded, subscription.created, payment_intent.succeeded</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                  <p className="font-semibold text-white">GitHub</p>
+                  <p className="text-slate-500 text-xs">push, pull_request, issues, star, release</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                  <p className="font-semibold text-white">PayPal</p>
+                  <p className="text-slate-500 text-xs">PAYMENT.CAPTURE.COMPLETED, BILLING.SUBSCRIPTION.CREATED</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                  <p className="font-semibold text-white">Shopify</p>
+                  <p className="text-slate-500 text-xs">orders/create, products/create</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                  <p className="font-semibold text-white">Twilio</p>
+                  <p className="text-slate-500 text-xs">incoming.sms, call.status</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                  <p className="font-semibold text-white">Slack</p>
+                  <p className="text-slate-500 text-xs">slash_command, interactive_message</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                  <p className="font-semibold text-white">Discord</p>
+                  <p className="text-slate-500 text-xs">interaction (slash command)</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
+                  <p className="font-semibold text-white">Zoom, Calendly, Typeform, Google, Square, SendGrid, Mailgun, Microsoft Teams, Generic</p>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.4 Custom Payloads</h3>
+              <p className="text-slate-300">Enable "Edit payload before sending" to modify the JSON body before the request is sent. This is useful for edge-case testing.</p>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.5 Source Identification</h3>
+              <p className="text-slate-300">When you send a test payload to a HookSwing URL, the source is automatically identified. Instead of seeing "custom" in your feed, you'll see <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">stripe</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">github</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">shopify</code>, etc.</p>
+            </Section>
+
             <Section id="cli" title="CLI Reference">
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.1 Installation</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.1 Installation</h3>
               <CodeBlock code={`npm install -g hookswing
 
 hookswing --version
 # Expected: 1.x.x`} />
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.2 Login</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.2 Login</h3>
               <CodeBlock code={`hookswing login
 
-# You'll be prompted for email and password
+# Or login with GitHub (opens browser automatically)
+hookswing login --github
+
 # Token stored in ~/.hookswing/config.json
 
 hookswing logout
 # Removes config file`} />
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.3 Forward Webhooks to Localhost</h3>
-              <CodeBlock code={`hookswing forward abc123def456 http://localhost:3000/webhook`} />
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.3 Forward Webhooks to Localhost</h3>
+              <CodeBlock code={`hookswing forward abc123def456 http://localhost:3000`} />
               <p className="text-slate-300 mt-3">You can also use your custom slug:</p>
-              <CodeBlock code={`hookswing forward my-company http://localhost:3000/webhook`} />
+              <CodeBlock code={`hookswing forward my-company http://localhost:3000`} />
               <p className="text-slate-300 mt-3">Output:</p>
-              <CodeBlock code={`🪝 HookSwing Forwarder
-   Project: My First Project (abc123def456)
-   Target:  http://localhost:3000/webhook
+              <CodeBlock code={`  _    _               ____                  _     
+ | |  | |             / ___| _   _ ___  __ _| |    
+ | |__| | _____      _\\___ \\| | | / __|/ _\` | |    
+ |  __  |/ _ \\ \\ /\\ / /___) | |_| \\__ \\ (_| | |    
+ | |  | | (_) \\ V  V //___ \\>  _ <| |_) \\__,_| |    
+ |_|  |_|\\___/ \\_/\\_/ \\____/_| \\_\\ .__/ \\__, |_|    
+                                 |_|    |___/      
 
-   [Press Ctrl+C to stop]
+  Target: http://localhost:3000
+  Project: My SaaS (abc123def456)
 
-[03:17:42] POST  200  1.2KB  45ms  stripe:invoice.payment_succeeded
-[03:18:15] POST  500  0.8KB  12ms  github:push  ⚠️ Server Error`} />
+  Session: 00:12:34  |  Requests: 8 / 100 ████████░░
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.4 List Projects</h3>
+  [Press Ctrl+C to stop]
+
+[03:17:42] POST   /api/webhook       200   (stripe)
+[03:18:15] POST   /api/webhook       500   (github)  ⚠️ Server Error`} />
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.4 Send Test Payloads</h3>
+              <CodeBlock code={`hookswing test stripe invoice.payment_succeeded https://hookswing.com/hook/abc123
+# → 200 OK in 245ms — source: stripe
+
+hookswing test github push http://localhost:3000/webhook
+# → 200 OK in 12ms — source: github
+
+hookswing test shopify orders/create https://your-app.com/webhook
+# → 201 Created in 89ms — source: shopify`} />
+              <p className="text-slate-300 mt-3">Supported providers: <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">stripe</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">github</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">paypal</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">shopify</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">twilio</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">slack</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">discord</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">microsoft_teams</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">sendgrid</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">mailgun</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">zoom</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">calendly</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">typeform</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">google</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">square</code>, <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">generic</code></p>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.5 List Projects</h3>
               <CodeBlock code={`hookswing list`} />
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.5 Replay from CLI</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.6 Replay from CLI</h3>
               <p className="text-slate-300 mb-2"><span className="text-amber-400 font-medium">Available on: Pro and Team plans.</span></p>
               <CodeBlock code={`hookswing replay wh_123abc456 http://localhost:3000/webhook`} />
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">3.6 Update CLI</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.7 Update CLI</h3>
               <CodeBlock code={`npm update -g hookswing`} />
             </Section>
 
             <Section id="web-cli" title="Web CLI">
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.1 What is the Web CLI?</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">5.1 What is the Web CLI?</h3>
               <p className="text-slate-300">A browser-based terminal built into your dashboard. No installation required. Run the same <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">hookswing</code> commands directly from your browser — perfect for quick checks, locked-down machines, or when you don't want to install Node.js.</p>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.2 Access It</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">5.2 Access It</h3>
               <ol className="list-decimal list-inside space-y-2 text-slate-300">
                 <li>Log in to your dashboard</li>
                 <li>Navigate to <strong className="text-white">/dashboard/cli</strong></li>
                 <li>Or click <strong className="text-white">"CLI"</strong> in the sidebar</li>
               </ol>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.3 Available Commands</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">5.3 Available Commands</h3>
               <p className="text-slate-300">All commands from the npm CLI work in the Web CLI:</p>
               <CodeBlock code={`hookswing list
 hookswing forward <slug> <target-url>
 hookswing webhooks <slug> --limit 20
-hookswing replay <webhook-id> <target-url>`} />
+hookswing replay <webhook-id> <target-url>
+hookswing tester <provider> <event-type> <target-url>`} />
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">4.4 Authentication</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">5.4 Features</h3>
+              <ul className="list-disc list-inside space-y-1 text-slate-300">
+                <li><strong className="text-white">HookSwing logo</strong> — Small emerald icon in the header</li>
+                <li><strong className="text-white">Colored output</strong> — Method and status code colors match the npm CLI</li>
+                <li><strong className="text-white">Session timer</strong> — Live elapsed time since forward/listen started</li>
+                <li><strong className="text-white">Usage bar</strong> — Live request count vs plan limit with progress bar</li>
+                <li><strong className="text-white">Path preservation</strong> — Original request paths forwarded correctly</li>
+                <li><strong className="text-white">Auto-reconnect</strong> — Reconnects automatically on network blips</li>
+              </ul>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">5.5 Authentication</h3>
               <p className="text-slate-300">The Web CLI uses your existing dashboard session — no separate login required. Commands run with your user permissions.</p>
             </Section>
 
             <Section id="integrations" title="Integrations">
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">5.1 Slack</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">6.1 Slack</h3>
               <ol className="list-decimal list-inside space-y-2 text-slate-300">
                 <li>Go to your project page</li>
                 <li>Find the <strong className="text-white">Alerts</strong> section in the project header</li>
@@ -299,7 +393,7 @@ hookswing replay <webhook-id> <target-url>`} />
                 <li>Toggle on/off anytime</li>
               </ol>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">5.2 Discord</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">6.2 Discord</h3>
               <ol className="list-decimal list-inside space-y-2 text-slate-300">
                 <li>Go to your project page → Alerts section</li>
                 <li>Click <strong className="text-white">"Add Alert"</strong></li>
@@ -307,7 +401,7 @@ hookswing replay <webhook-id> <target-url>`} />
                 <li>Toggle on/off anytime</li>
               </ol>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">5.3 Telegram</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">6.3 Telegram</h3>
               <ol className="list-decimal list-inside space-y-2 text-slate-300">
                 <li>Go to your project page → Alerts section</li>
                 <li>Click <strong className="text-white">"Add Alert"</strong></li>
@@ -319,7 +413,7 @@ hookswing replay <webhook-id> <target-url>`} />
             </Section>
 
             <Section id="teams" title="Teams">
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">6.1 Create a Team</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">7.1 Create a Team</h3>
               <ol className="list-decimal list-inside space-y-2 text-slate-300">
                 <li>Go to Account → Teams</li>
                 <li>Click <strong className="text-white">"Create Team"</strong></li>
@@ -327,13 +421,13 @@ hookswing replay <webhook-id> <target-url>`} />
                 <li>You're now the Owner</li>
               </ol>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">6.2 Invite Members</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">7.2 Invite Members</h3>
               <p className="text-slate-300">Admins can invite by email. Choose role: <strong className="text-white">Admin</strong> (can invite/remove/manage alerts) or <strong className="text-white">Member</strong> (view, replay, and comment).</p>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">6.3 Shared Projects</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">7.3 Shared Projects</h3>
               <p className="text-slate-300">Any project owned by the team is visible to all members in real time. Free users invited to a team project get full TEAM privileges on that project — unlimited history, replay, alerts, and exports.</p>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">6.4 Activity Log</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">7.4 Activity Log</h3>
               <p className="text-slate-300">Team plans include an activity log showing who created projects, added alerts, deleted webhooks, and changed settings.</p>
             </Section>
 
@@ -363,21 +457,21 @@ hookswing replay <webhook-id> <target-url>`} />
                 </table>
               </div>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">7.2 Upgrade</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">8.1 Upgrade</h3>
               <p className="text-slate-300">Go to Dashboard → Billing. Click "Upgrade to Pro" or "Upgrade to Team". You'll be redirected to Stripe Checkout. Instant activation.</p>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">7.3 Manage Billing</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">8.2 Manage Billing</h3>
               <p className="text-slate-300">Click "Manage Billing" to open Stripe Customer Portal for invoices, payment methods, and cancellation.</p>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">7.4 Plan Inheritance</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">8.3 Plan Inheritance</h3>
               <p className="text-slate-300">Free users who are members of a Team project automatically get TEAM-level privileges on that project — unlimited history, replay, alerts, and exports. Your personal projects still follow your own plan limits.</p>
             </Section>
 
             <Section id="security" title="Security">
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">8.1 Email Verification</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.1 Email Verification</h3>
               <p className="text-slate-300">All accounts require email verification before login. After registering, you'll receive a 6-digit OTP valid for 15 minutes. You can resend the code if needed.</p>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">8.2 Two-Factor Authentication (2FA)</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.2 Two-Factor Authentication (2FA)</h3>
               <p className="text-slate-300 mb-3">Add an extra layer of security with TOTP-based 2FA:</p>
               <ol className="list-decimal list-inside space-y-2 text-slate-300">
                 <li>Go to Account Settings → Security</li>
@@ -387,20 +481,20 @@ hookswing replay <webhook-id> <target-url>`} />
                 <li>Save your 10 backup codes — they won't be shown again</li>
               </ol>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">8.3 Password Reset</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.3 Password Reset</h3>
               <p className="text-slate-300">If you forget your password, click "Forgot password?" on the login page. We'll send a reset link to your email valid for 1 hour.</p>
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">8.4 Session Management</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.4 Session Management</h3>
               <p className="text-slate-300">Changing your password invalidates all existing sessions. 2FA disable requires both your password and a valid 2FA code.</p>
             </Section>
 
             <Section id="api" title="API Reference">
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.1 Authentication</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">10.1 Authentication</h3>
               <p className="text-slate-300 mb-3">All API requests (except /hook/:slug) require a Bearer token:</p>
               <CodeBlock code={`curl https://hookswing.com/api/projects \\
   -H "Authorization: Bearer YOUR_JWT_TOKEN"`} />
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.2 Public Hook Endpoint</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">10.2 Public Hook Endpoint</h3>
               <CodeBlock code={`ANY https://hookswing.com/hook/:slug
 
 # Accepts any HTTP method
@@ -409,7 +503,7 @@ hookswing replay <webhook-id> <target-url>`} />
 # Returns 200 OK immediately
 # No authentication required`} />
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.3 Projects</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">10.3 Projects</h3>
               <p className="text-slate-300 font-semibold mt-4">List Projects</p>
               <CodeBlock code={`GET /api/projects`} />
               <p className="text-slate-300 font-semibold mt-4">Create Project</p>
@@ -421,7 +515,7 @@ Content-Type: application/json
   "description": "Optional description"
 }`} />
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.4 Webhooks</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">10.4 Webhooks</h3>
               <p className="text-slate-300 font-semibold mt-4">List Webhooks</p>
               <CodeBlock code={`GET /api/projects/:projectId/webhooks?page=1&limit=50&method=POST`} />
               <p className="text-slate-300 font-semibold mt-4">Replay Webhook</p>
@@ -434,7 +528,21 @@ Content-Type: application/json
   "body": {}
 }`} />
 
-              <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.5 Rate Limits</h3>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">10.5 Tester API</h3>
+              <p className="text-slate-300 font-semibold mt-4">List Tester Providers</p>
+              <CodeBlock code={`GET /api/tester/providers`} />
+              <p className="text-slate-300 font-semibold mt-4">Send Test Payload</p>
+              <CodeBlock code={`POST /api/tester/send
+Content-Type: application/json
+
+{
+  "targetUrl": "https://hookswing.com/hook/abc123",
+  "provider": "stripe",
+  "eventType": "invoice.payment_succeeded",
+  "customPayload": { /* optional */ }
+}`} />
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">10.6 Rate Limits</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-slate-300 border border-slate-700 rounded-lg">
                   <thead className="bg-slate-800 text-slate-400">
@@ -444,7 +552,7 @@ Content-Type: application/json
                     <tr><td className="px-4 py-3 font-mono">/hook/:slug</td><td className="px-4 py-3">100 req/min per IP</td></tr>
                     <tr><td className="px-4 py-3 font-mono">/api/auth/*</td><td className="px-4 py-3">10 req/min per IP</td></tr>
                     <tr><td className="px-4 py-3 font-mono">/api/auth/send-verification</td><td className="px-4 py-3">5 req/min per IP</td></tr>
-                    <tr><td className="px-4 py-3 font-mono">/api/*</td><td className="px-4 py-3">100 req/min per user</td></tr>
+                    <tr><td className="px-4 py-3 font-mono">/api/*</td><td className="px-4 py-3">300 req/min per user</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -521,7 +629,7 @@ Content-Type: application/json
 
             <div className="mt-16 pt-8 border-t border-slate-800 text-center">
               <p className="text-slate-400">Need help? Email us at <a href="mailto:support@hookswing.com" className="text-emerald-400 hover:underline">support@hookswing.com</a></p>
-              <p className="text-slate-500 text-sm mt-2">Last updated: May 2026</p>
+              <p className="text-slate-500 text-sm mt-2">Last updated: June 2026</p>
             </div>
           </main>
         </div>

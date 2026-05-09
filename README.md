@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/MBAS89/hookswing-cli/main/logo.svg" width="80" alt="HookSwing">
+</p>
+
 # HookSwing
 
 > The permanent webhook inbox for developers. Catch any HTTP payload, inspect JSON in real time, replay against localhost, compare diffs, and share with your team.
@@ -23,7 +27,9 @@ Free webhook bins delete your data. ngrok tunnels die when your laptop sleeps. H
 - **Team sharing** — one URL, whole team sees the same feed in real time
 - **Smart alerts** — Slack, Discord, and Telegram notifications
 - **Custom subdomains** — clean URLs like `/hook/my-company` (Pro/Team)
+- **Webhook Tester** — send realistic test payloads from 16+ providers to any URL
 - **Path preservation** — webhooks sent to `/hook/abc123/api/webhook` forward to `localhost:3000/api/webhook`
+- **Comments & Annotations** — comment on webhooks with replies and reactions (Team)
 - **GitHub OAuth login** — one-click CLI authentication
 - **Email verification & 2FA** — enterprise-grade security
 
@@ -68,12 +74,15 @@ hookswing/
 - **Integrations** — Slack, Discord, and Telegram alerts (Pro/Team)
 - **Export** — Download webhooks as JSON (Pro/Team)
 - **Collapsible Header** — Project card above the feed can be collapsed for more space
+- **Webhook Tester** — Built-in tester with realistic payloads from Stripe, GitHub, Shopify, Twilio, Slack, Discord, and 10+ more providers
+- **Comments System** — Comment on webhooks, reply to comments, like/dislike reactions (Team plan)
 - **Billing** — Stripe-powered subscriptions with Customer Portal
 
 ### CLI (Open Source)
 - **Forward** — WebSocket-based forwarding to localhost (no ngrok), preserves original request paths
 - **GitHub OAuth** — `hookswing login --github` opens browser, no copy-paste
 - **Auto token refresh** — Uses 30-day refresh tokens, stays connected through access token expiry
+- **Webhook Tester** — `hookswing test` sends realistic payloads from 16+ providers to any URL
 - **List** — Projects and webhook counts
 - **Replay** — Replay webhooks from terminal (Pro/Team)
 - **Web CLI** — Browser-based terminal at `/dashboard/cli`, no install required
@@ -200,7 +209,11 @@ Output:
 # From CLI
 hookswing replay wh_123abc456 http://localhost:3000/webhook
 
+# Send a realistic test payload
+hookswing test stripe invoice.payment_succeeded https://hookswing.com/hook/abc123
+
 # Or in the web dashboard — click any webhook, hit Replay, edit the target URL
+# Or use the built-in Webhook Tester at /dashboard/tester
 ```
 
 ## API Reference
@@ -240,6 +253,8 @@ ANY https://hookswing.com/hook/:slug
 | POST | `/api/projects` | Create project |
 | GET | `/api/projects/:id/webhooks` | List webhooks |
 | POST | `/api/webhooks/:id/replay` | Replay webhook |
+| GET | `/api/tester/providers` | List tester providers & events |
+| POST | `/api/tester/send` | Send test payload to any URL |
 | GET | `/api/billing` | Subscription status |
 | POST | `/api/billing/checkout` | Stripe Checkout |
 | POST | `/api/billing/portal` | Stripe Customer Portal |
@@ -348,6 +363,8 @@ npm publish --access public
 | Alerts | ❌ | Slack + Discord | Slack + Discord + Telegram |
 | Team Members | 1 | 1 | Unlimited |
 | Export | ❌ | JSON | JSON |
+| Webhook Tester | ✅ | ✅ | ✅ |
+| Comments | ❌ | ❌ | ✅ |
 | Activity Log | ❌ | ❌ | ✅ |
 | Plan Inheritance | — | — | Free members get TEAM privileges on team projects |
 

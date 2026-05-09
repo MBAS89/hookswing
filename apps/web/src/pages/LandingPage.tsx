@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Trash2, Laptop, GitCompare, SatelliteDish, Search, Repeat,
   Terminal, Users, MessageSquare, Check, ChevronDown, ChevronUp,
-  Menu, X, Github, Globe, LayoutDashboard, LogOut, User
+  Menu, X, Github, Globe, LayoutDashboard, LogOut, User, Zap
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
@@ -256,6 +256,16 @@ function SolutionSection() {
       title: 'Smart Alerts',
       body: 'Get notified in Slack, Discord, or Telegram the instant a webhook hits — or when your server responds with a 500. Set it and forget it.',
     },
+    {
+      icon: <Zap className="w-10 h-10 text-yellow-400" />,
+      title: 'Webhook Tester',
+      body: 'Send realistic test payloads from Stripe, GitHub, Shopify, Twilio, Slack, Discord, and 10+ more providers to any URL. No setup required.',
+    },
+    {
+      icon: <Terminal className="w-10 h-10 text-cyan-400" />,
+      title: 'Path Preservation',
+      body: 'Webhooks sent to /hook/abc123/api/webhook forward to localhost:3000/api/webhook automatically. Your routes stay intact.',
+    },
   ];
 
   return (
@@ -295,8 +305,10 @@ function DeepDiveSection() {
               </div>
               <div className="p-4 space-y-1 text-slate-300">
                 <div><span className="text-emerald-400">$</span> npm install -g hookswing</div>
-                <div className="text-slate-500">+ hookswing@1.0.5</div>
-                <div className="pt-2"><span className="text-emerald-400">$</span> hookswing forward abc123 http://localhost:3000/webhook</div>
+                <div className="text-slate-500">+ hookswing@1.0.17</div>
+                <div className="pt-2"><span className="text-emerald-400">$</span> hookswing test stripe invoice.payment_succeeded https://hookswing.com/hook/abc123</div>
+                <div className="text-slate-500 pt-1">→ 200 OK in 245ms — source: stripe</div>
+                <div className="pt-2"><span className="text-emerald-400">$</span> hookswing forward abc123 http://localhost:3000</div>
                 <div className="text-slate-500 pt-1">Connected. Forwarding webhooks...</div>
               </div>
             </div>
@@ -418,7 +430,7 @@ function PricingSection() {
       badge: 'For side projects',
       price: '$0',
       period: 'forever',
-      features: ['3 projects', '500 webhooks/month', '7-day history', 'Basic inspection', 'CLI forwarding', 'Email support'],
+      features: ['3 projects', '500 webhooks/month', '7-day history', 'Basic inspection', 'CLI forwarding', 'Webhook Tester', 'Email support'],
       cta: 'Sign Up Free',
       planKey: 'FREE',
       featured: false,
@@ -428,7 +440,7 @@ function PricingSection() {
       badge: 'For serious developers',
       price: yearly ? '$190' : '$19',
       period: yearly ? '/year' : '/month',
-      features: ['Unlimited projects', '10,000 webhooks/month', '90-day history', 'Replay (web + CLI)', 'Custom subdomains', 'Slack & Discord alerts', 'Request diff/comparison', 'Export JSON/CSV'],
+      features: ['Unlimited projects', '10,000 webhooks/month', '90-day history', 'Replay (web + CLI)', 'Custom subdomains', 'Slack & Discord alerts', 'Webhook Tester', 'Request diff/comparison', 'Export JSON/CSV'],
       cta: 'Start Pro Trial',
       planKey: 'PRO',
       featured: true,
