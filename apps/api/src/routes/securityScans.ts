@@ -329,7 +329,7 @@ router.get('/', async (req: AuthRequest, res) => {
 
   const [scans, total, usedThisMonth] = await Promise.all([
     prisma.securityScan.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
@@ -345,7 +345,8 @@ router.get('/', async (req: AuthRequest, res) => {
         updatedAt: true,
       },
     }),
-    prisma.securityScan.count({ where: { userId } }),
+    prisma.securityScan.count({ where: { userId, deletedAt: null } }),
+    // Usage count includes deleted scans — deleting doesn't give credits back
     prisma.securityScan.count({
       where: { userId, createdAt: { gte: oneMonthAgo } },
     }),
@@ -371,7 +372,7 @@ router.get('/', async (req: AuthRequest, res) => {
 router.get('/:id', async (req: AuthRequest, res) => {
   const userId = req.user!.id;
   const scan = await prisma.securityScan.findFirst({
-    where: { id: req.params.id, userId },
+    where: { id: req.params.id, userId, deletedAt: null },
   });
 
   if (!scan) {
@@ -381,18 +382,21 @@ router.get('/:id', async (req: AuthRequest, res) => {
   res.json(scan);
 });
 
-// DELETE /api/security-scans/:id — delete a scan
+// DELETE /api/security-scans/:id — soft delete a scan
 router.delete('/:id', async (req: AuthRequest, res) => {
   const userId = req.user!.id;
   const scan = await prisma.securityScan.findFirst({
-    where: { id: req.params.id, userId },
+    where: { id: req.params.id, userId, deletedAt: null },
   });
 
   if (!scan) {
     return res.status(404).json({ error: 'Scan not found' });
   }
 
-  await prisma.securityScan.delete({ where: { id: req.params.id } });
+  await prisma.securityScan.update({
+    where: { id: req.params.id },
+    data: { deletedAt: new Date() },
+  });
   res.json({ success: true });
 });
 
