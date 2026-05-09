@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Menu,
@@ -175,8 +176,8 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
             )}
           </button>
 
-          {notifOpen && (
-            <div className="absolute right-0 mt-3 w-[360px] max-h-[480px] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-50 flex flex-col">
+          {notifOpen && createPortal(
+            <div className="fixed right-4 top-16 w-[360px] max-h-[480px] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[9999] flex flex-col">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
                 <h3 className="text-sm font-semibold text-white">Notifications</h3>
                 {unreadCount > 0 && (
@@ -291,7 +292,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                   </button>
                 </div>
               )}
-            </div>
+            </div>, document.body
           )}
         </div>
 
@@ -308,8 +309,8 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
             <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden z-50">
+          {dropdownOpen && createPortal(
+            <div className="fixed right-4 top-16 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden z-[9999]">
               <button
                 onClick={() => { setDropdownOpen(false); navigate('/dashboard/account'); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
@@ -325,7 +326,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
                 <LogOut className="w-4 h-4" />
                 Log Out
               </button>
-            </div>
+            </div>, document.body
           )}
         </div>
       </div>
