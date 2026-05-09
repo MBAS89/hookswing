@@ -292,7 +292,7 @@ router.get('/:id/discussion', async (req: AuthRequest, res) => {
     const dislikes = c.reactions?.filter((r: any) => r.type === 'dislike').length ?? 0;
     const userReaction = c.reactions?.find((r: any) => r.userId === userId)?.type || null;
     const projectName = c.webhook?.projectId ? (projectMap.get(c.webhook.projectId) || 'Unknown') : 'Unknown';
-    const { reactions, webhook, ...rest } = c;
+    const { reactions, ...rest } = c;
     return {
       ...rest,
       likes,
