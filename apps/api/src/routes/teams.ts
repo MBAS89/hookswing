@@ -304,6 +304,15 @@ router.post('/:id/transfer', async (req: AuthRequest, res) => {
     return res.status(400).json({ error: 'New owner must be a team member' });
   }
 
+  // Verify new owner has Team plan
+  const newOwner = await prisma.user.findUnique({
+    where: { id: result.data.newOwnerId },
+    select: { plan: true },
+  });
+  if (newOwner?.plan !== 'TEAM') {
+    return res.status(403).json({ error: 'New owner must have Team plan' });
+  }
+
   // Ensure new owner is ADMIN
   if (member.role !== 'ADMIN') {
     await prisma.teamMember.update({
