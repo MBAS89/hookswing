@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../lib/api';
 import { useToast } from '../hooks/useToast';
+import { useTranslation } from '../i18n';
 import {
   Send, Loader2, CheckCircle, AlertCircle, Clock,
   Globe, Code2, FileJson, ChevronDown, Zap, RefreshCw,
@@ -34,6 +35,7 @@ interface TestResponse {
 }
 
 export default function TesterPage() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(true);
@@ -70,11 +72,11 @@ export default function TesterPage() {
 
   const handleSend = useCallback(async () => {
     if (!targetUrl.trim()) {
-      toast.error('Please enter a target URL');
+      toast.error(t('tester.enterTargetUrl'));
       return;
     }
     if (!selectedProvider || !selectedEvent) {
-      toast.error('Please select a provider and event type');
+      toast.error(t('tester.selectProviderAndEvent'));
       return;
     }
 
@@ -87,7 +89,7 @@ export default function TesterPage() {
         try {
           body.customPayload = JSON.parse(customPayload);
         } catch {
-          toast.error('Custom payload is not valid JSON');
+          toast.error(t('tester.invalidJson'));
           setSending(false);
           return;
         }
@@ -133,10 +135,10 @@ export default function TesterPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Zap className="w-6 h-6 text-emerald-400" />
-            Webhook Tester
+            {t('tester.title')}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Send realistic test payloads from 15+ providers to any URL. Inspect responses instantly.
+            {t('tester.subtitle')}
           </p>
         </div>
         {history.length > 0 && (
@@ -145,7 +147,7 @@ export default function TesterPage() {
             className="text-sm text-slate-400 hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
           >
             <Clock className="w-4 h-4" />
-            History ({history.length})
+            {t('tester.history')} ({history.length})
           </button>
         )}
       </div>
@@ -153,7 +155,7 @@ export default function TesterPage() {
       {/* History Panel */}
       {showHistory && history.length > 0 && (
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-          <h3 className="text-sm font-medium text-white mb-3">Recent Tests</h3>
+          <h3 className="text-sm font-medium text-white mb-3">{t('tester.recentTests')}</h3>
           <div className="space-y-2 max-h-48 overflow-auto">
             {history.map((h, i) => (
               <button
@@ -182,7 +184,7 @@ export default function TesterPage() {
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
               <KeyRound className="w-3.5 h-3.5" />
-              Provider
+              {t('tester.provider')}
             </label>
             <div className="relative">
               <select
@@ -191,7 +193,7 @@ export default function TesterPage() {
                 disabled={loadingProviders}
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
               >
-                <option value="">Select a provider...</option>
+                <option value="">{t('tester.selectProvider')}</option>
                 {providers.map((p) => (
                   <option key={p.key} value={p.key}>{p.name}</option>
                 ))}
@@ -204,7 +206,7 @@ export default function TesterPage() {
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
               <Play className="w-3.5 h-3.5" />
-              Event Type
+              {t('tester.eventType')}
             </label>
             <div className="relative">
               <select
@@ -213,7 +215,7 @@ export default function TesterPage() {
                 disabled={!selectedProvider}
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
               >
-                <option value="">Select an event...</option>
+                <option value="">{t('tester.selectEvent')}</option>
                 {currentProvider?.events.map((e) => (
                   <option key={e.key} value={e.key}>{e.label}</option>
                 ))}
@@ -227,17 +229,17 @@ export default function TesterPage() {
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
             <Globe className="w-3.5 h-3.5" />
-            Target URL
+            {t('tester.targetUrl')}
           </label>
           <input
             type="url"
             value={targetUrl}
             onChange={(e) => setTargetUrl(e.target.value)}
-            placeholder="https://hookswing.com/hook/your-slug or any URL"
+            placeholder={t('tester.placeholder') as string}
             className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 font-mono"
           />
           <p className="text-[11px] text-slate-600">
-            Send to your HookSwing URL to inspect in the dashboard, or any external endpoint.
+            {t('tester.hint')}
           </p>
         </div>
 
@@ -251,14 +253,14 @@ export default function TesterPage() {
                 onChange={(e) => setUseCustomPayload(e.target.checked)}
                 className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500"
               />
-              Edit payload before sending
+              {t('tester.editPayload')}
             </label>
 
             {useCustomPayload && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                   <Code2 className="w-3.5 h-3.5" />
-                  Custom Payload (JSON)
+                  {t('tester.customPayload')}
                 </label>
                 <textarea
                   value={customPayload}
@@ -280,7 +282,7 @@ export default function TesterPage() {
           className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg font-semibold text-sm transition-all hover:scale-[1.02] shadow-lg shadow-emerald-500/20"
         >
           {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          {sending ? 'Sending...' : 'Send Test Payload'}
+          {sending ? t('tester.sending') : t('tester.send')}
         </button>
       </div>
 
@@ -349,7 +351,7 @@ export default function TesterPage() {
                 ) : result.response?.body ? (
                   <JsonViewer data={result.response.body} />
                 ) : (
-                  <p className="text-sm text-slate-500">No response body</p>
+                  <p className="text-sm text-slate-500">{t('tester.noResponseBody')}</p>
                 )}
               </div>
             )}
@@ -361,7 +363,7 @@ export default function TesterPage() {
                   <span className="text-slate-300 font-mono">{result.request.url}</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-slate-500">Headers</p>
+                  <p className="text-xs font-medium text-slate-500">{t('tester.headers')}</p>
                   {Object.entries(result.request.headers).map(([k, v]) => (
                     <div key={k} className="flex items-start gap-3 text-xs py-1 border-b border-slate-800/50 last:border-0">
                       <span className="text-sky-400 font-mono shrink-0 w-40 truncate">{k}</span>
@@ -370,7 +372,7 @@ export default function TesterPage() {
                   ))}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-slate-500">Body</p>
+                  <p className="text-xs font-medium text-slate-500">{t('tester.body')}</p>
                   <JsonViewer data={result.request.body} />
                 </div>
               </div>
@@ -386,7 +388,7 @@ export default function TesterPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-slate-500">No response headers</p>
+                  <p className="text-sm text-slate-500">{t('tester.noResponseHeaders')}</p>
                 )}
               </div>
             )}
@@ -398,7 +400,7 @@ export default function TesterPage() {
       {!result && !sending && (
         <div className="text-center py-12 text-slate-600">
           <Zap className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Select a provider, event, and target URL to start testing</p>
+          <p className="text-sm">{t('tester.emptyState')}</p>
         </div>
       )}
     </div>

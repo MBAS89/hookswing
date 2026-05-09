@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import { Crown, CreditCard, Check, Loader2, FileText, Calendar, AlertCircle } from 'lucide-react';
+import { useTranslation } from '../i18n';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
@@ -21,6 +22,7 @@ export default function BillingPage() {
   const [yearly, setYearly] = useState(false);
   const [error, setError] = useState('');
   const [notification, setNotification] = useState<{type: 'success'|'error', message: string} | null>(null);
+  const { t } = useTranslation();
 
   const isFree = (user?.plan || 'FREE') === 'FREE';
   const currentPlanName = (user?.plan || 'FREE') as 'FREE' | 'PRO' | 'TEAM';
@@ -51,7 +53,7 @@ export default function BillingPage() {
       const res = await api.post('/billing/checkout', { plan, interval: yearly ? 'year' : 'month' });
       if (res.data.url) window.location.href = res.data.url;
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Checkout failed. Please try again.');
+      setError(err.response?.data?.error || t('billingPage.checkoutFailed'));
     } finally {
       setLoading(false);
     }
@@ -63,11 +65,12 @@ export default function BillingPage() {
     try {
       const res = await api.post('/billing/update-plan', { plan, interval: yearly ? 'year' : 'month' });
       if (res.data.success) {
-        setNotification({ type: 'success', message: `Plan updated to ${res.data.plan} (${res.data.interval}ly).` });
+        const intervalLabel = res.data.interval === 'year' ? t('billingPage.yearly') : t('billingPage.monthly');
+        setNotification({ type: 'success', message: t('billingPage.planUpdated').replace('{{plan}}', res.data.plan).replace('{{interval}}', intervalLabel) });
         await fetchBilling();
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Plan switch failed. Please try again.');
+      setError(err.response?.data?.error || t('billingPage.planSwitchFailed'));
     } finally {
       setLoading(false);
     }
@@ -95,25 +98,25 @@ export default function BillingPage() {
 
   const plans = [
     {
-      name: 'Free',
+      name: t('billingPage.free.name'),
       planKey: 'FREE' as const,
       price: '$0',
-      period: 'forever',
-      features: ['3 projects', '500 webhooks/month', '7-day history', 'Basic inspection', 'CLI forwarding'],
+      period: t('billingPage.free.period'),
+      features: t('billingPage.free.features'),
     },
     {
-      name: 'Pro',
+      name: t('billingPage.pro.name'),
       planKey: 'PRO' as const,
       price: yearly ? '$190' : '$19',
-      period: yearly ? '/year' : '/month',
-      features: ['Unlimited projects', '10,000 webhooks/month', '90-day history', 'Replay', 'Slack/Discord alerts', 'Export JSON/CSV'],
+      period: yearly ? t('billingPage.pro.periodYearly') : t('billingPage.pro.periodMonthly'),
+      features: t('billingPage.pro.features'),
     },
     {
-      name: 'Team',
+      name: t('billingPage.team.name'),
       planKey: 'TEAM' as const,
       price: yearly ? '$490' : '$49',
-      period: yearly ? '/year' : '/month',
-      features: ['Everything in Pro', 'Unlimited team members', 'Shared workspaces', 'Team activity log', 'Priority support'],
+      period: yearly ? t('billingPage.team.periodYearly') : t('billingPage.team.periodMonthly'),
+      features: t('billingPage.team.features'),
     },
   ];
 
@@ -121,19 +124,19 @@ export default function BillingPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-6">Billing</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">{t('billingPage.title')}</h1>
 
-      {/* Current Plan */}
+      {/* {t('billingPage.currentPlan')} */}
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 mb-8">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center">
             <Crown className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
-            <p className="text-sm text-slate-400">Current Plan</p>
+            <p className="text-sm text-slate-400">{t('billingPage.currentPlan')}</p>
             <p className="text-xl font-bold text-white">
-              {user?.plan || 'FREE'}
-              {!isFree && <span className="text-sm font-normal text-slate-400 ml-2">({currentInterval === 'year' ? 'Yearly' : 'Monthly'})</span>}
+              {user?.plan || t('billingPage.free.name')}
+              {!isFree && <span className="text-sm font-normal text-slate-400 ml-2">({currentInterval === 'year' ? t('billingPage.yearly') : t('billingPage.monthly')})</span>}
             </p>
           </div>
           {!isFree && (
@@ -143,7 +146,7 @@ export default function BillingPage() {
               className="ml-auto flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               <CreditCard className="w-4 h-4" />
-              Manage Billing
+              {t('billingPage.manageBilling')}
             </button>
           )}
         </div>
@@ -153,23 +156,23 @@ export default function BillingPage() {
             <div className="flex items-center gap-3">
               <Calendar className="w-4 h-4 text-slate-500" />
               <div>
-                <p className="text-xs text-slate-500">Current period</p>
+                <p className="text-xs text-slate-500">{t('billingPage.currentPeriod')}</p>
                 <p className="text-sm text-white">{formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Check className="w-4 h-4 text-emerald-400" />
               <div>
-                <p className="text-xs text-slate-500">Status</p>
+                <p className="text-xs text-slate-500">{t('billingPage.status')}</p>
                 <p className="text-sm text-white capitalize">{sub.status}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <AlertCircle className={`w-4 h-4 ${sub.cancelAtPeriodEnd ? 'text-amber-400' : 'text-emerald-400'}`} />
               <div>
-                <p className="text-xs text-slate-500">Renews</p>
+                <p className="text-xs text-slate-500">{t('billingPage.renews')}</p>
                 <p className={`text-sm ${sub.cancelAtPeriodEnd ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  {sub.cancelAtPeriodEnd ? 'Cancels on ' + formatDate(sub.currentPeriodEnd) : formatDate(sub.currentPeriodEnd)}
+                  {sub.cancelAtPeriodEnd ? t('billingPage.cancelsOn').replace('{{date}}', formatDate(sub.currentPeriodEnd)) : formatDate(sub.currentPeriodEnd)}
                 </p>
               </div>
             </div>
@@ -198,13 +201,13 @@ export default function BillingPage() {
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 mb-8">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <FileText className="w-5 h-5 text-slate-500" />
-            Invoices
+            {t('billingPage.invoices')}
           </h2>
           <div className="space-y-2">
             {billing.invoices.map((inv: any) => (
               <div key={inv.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-4 py-3">
                 <div>
-                  <p className="text-sm text-white font-medium">Invoice #{inv.number}</p>
+                  <p className="text-sm text-white font-medium">{t('billingPage.invoiceNumber').replace('{{number}}', inv.number)}</p>
                   <p className="text-xs text-slate-500">{formatDate(inv.created)}</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -215,7 +218,7 @@ export default function BillingPage() {
                   </span>
                   <span className="text-sm text-white font-medium">{formatCurrency(inv.amountPaid || inv.amountDue, inv.currency)}</span>
                   {inv.pdfUrl && (
-                    <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-400 hover:text-emerald-300 underline">PDF</a>
+                    <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-400 hover:text-emerald-300 underline">{t('billingPage.pdf')}</a>
                   )}
                 </div>
               </div>
@@ -225,14 +228,14 @@ export default function BillingPage() {
       )}
 
       <div className="flex items-center justify-center gap-3 mb-8">
-        <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>Monthly</span>
+        <span className={`text-sm ${!yearly ? 'text-white' : 'text-slate-500'}`}>{t('billingPage.monthly')}</span>
         <button
           onClick={handleToggleYearly}
           className="relative w-12 h-6 bg-slate-700 rounded-full transition-colors"
         >
           <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${yearly ? 'translate-x-6' : ''}`} />
         </button>
-        <span className={`text-sm ${yearly ? 'text-white' : 'text-slate-500'}`}>Yearly <span className="text-emerald-400">(save 2 months)</span></span>
+        <span className={`text-sm ${yearly ? 'text-white' : 'text-slate-500'}`}>{t('billingPage.yearly')} <span className="text-emerald-400">{t('billingPage.saveMonths')}</span></span>
       </div>
 
       {/* Plans */}
@@ -254,7 +257,7 @@ export default function BillingPage() {
             >
               {exactCurrent && (
                 <div className="absolute -top-2 left-4 bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  Current
+                  {t('billingPage.current')}
                 </div>
               )}
               <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
@@ -263,7 +266,7 @@ export default function BillingPage() {
                 <span className="text-sm text-slate-500">{plan.period}</span>
               </div>
               <ul className="space-y-2 mb-6">
-                {plan.features.map((f) => (
+                {plan.features.map((f: string) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
                     <Check className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
                     {f}
@@ -277,9 +280,9 @@ export default function BillingPage() {
                   className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-2 rounded-lg font-medium text-sm transition-all hover:scale-[1.02] disabled:opacity-50"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> :
-                    isFree ? `Subscribe to ${plan.name}` :
-                    isSameTierDifferentInterval ? `Switch to ${yearly ? 'Yearly' : 'Monthly'}` :
-                    `Switch to ${plan.name}`
+                    isFree ? t('billingPage.subscribeTo').replace('{{plan}}', plan.name) :
+                    isSameTierDifferentInterval ? t('billingPage.switchToInterval').replace('{{interval}}', yearly ? t('billingPage.yearly') : t('billingPage.monthly')) :
+                    t('billingPage.switchToPlan').replace('{{plan}}', plan.name)
                   }
                 </button>
               )}

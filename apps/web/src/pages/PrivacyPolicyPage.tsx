@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
+import { useTranslation } from '../i18n';
 
 export default function PrivacyPolicyPage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-slate-950 text-slate-300">
       {/* Navbar */}
@@ -13,47 +15,47 @@ export default function PrivacyPolicyPage() {
               <span className="text-xl font-bold text-white">HookSwing</span>
             </Link>
             <div className="flex items-center gap-4">
-              <Link to="/docs" className="text-slate-300 hover:text-white text-sm transition-colors">Docs</Link>
-              <Link to="/login" className="text-slate-300 hover:text-white text-sm transition-colors">Log In</Link>
-              <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Sign Up</Link>
+              <Link to="/docs" className="text-slate-300 hover:text-white text-sm transition-colors">{t('landing.nav.docs')}</Link>
+              <Link to="/login" className="text-slate-300 hover:text-white text-sm transition-colors">{t('landing.nav.login')}</Link>
+              <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">{t('landing.nav.signup')}</Link>
             </div>
           </div>
         </div>
       </nav>
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h1 className="text-3xl font-bold text-white mb-2">Privacy Policy</h1>
-        <p className="text-slate-500 mb-10">Last updated: May 7, 2026</p>
+        <h1 className="text-3xl font-bold text-white mb-2">{t('pages.privacy.title')}</h1>
+        <p className="text-slate-500 mb-10">{t('pages.privacy.lastUpdated')}</p>
 
         <div className="space-y-8">
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">1. Introduction</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">{t('pages.privacy.introduction')}</h2>
             <p className="leading-relaxed">
               Nuyvo LLC ("we," "our," or "us") respects your privacy and is committed to protecting your personal data. This policy explains how we collect, use, disclose, and safeguard your information when you use HookSwing ("Services").
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">2. Information We Collect</h2>
-            <h3 className="text-lg font-medium text-white mt-4 mb-2">Personal Data</h3>
+            <h2 className="text-xl font-semibold text-white mb-3">{t('pages.privacy.infoWeCollect')}</h2>
+            <h3 className="text-lg font-medium text-white mt-4 mb-2">{t('pages.privacy.personalData')}</h3>
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>Contact information (name, email address)</li>
               <li>Account credentials (encrypted password hashes)</li>
               <li>Payment information (processed securely through Stripe — we never store card details)</li>
               <li>Two-factor authentication settings (if enabled)</li>
             </ul>
-            <h3 className="text-lg font-medium text-white mt-4 mb-2">Webhook Data</h3>
+            <h3 className="text-lg font-medium text-white mt-4 mb-2">{t('pages.privacy.webhookData')}</h3>
             <p className="leading-relaxed">
               We store the HTTP requests sent to your webhook URLs, including headers, body, query parameters, and IP address. This data belongs to you and is only used to display it in your dashboard.
             </p>
-            <h3 className="text-lg font-medium text-white mt-4 mb-2">Usage Data</h3>
+            <h3 className="text-lg font-medium text-white mt-4 mb-2">{t('pages.privacy.usageData')}</h3>
             <p className="leading-relaxed">
               We collect anonymous usage data including IP address, browser type, pages visited, time spent on pages, and referral sources. We use cookies and similar tracking technologies for analytics and functionality.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">3. How We Use Your Information</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">{t('pages.privacy.howWeUse')}</h2>
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>To provide, maintain, and improve HookSwing</li>
               <li>To process transactions and send service-related communications</li>
@@ -65,7 +67,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">4. Data Sharing & Security</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">{t('pages.privacy.dataSharing')}</h2>
             <p className="leading-relaxed mb-3">
               We implement industry-standard security measures including encryption (TLS 1.3+), regular security audits, and strict access controls. We may share data with:
             </p>
@@ -79,7 +81,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">5. Your Rights</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">{t('pages.privacy.yourRights')}</h2>
             <p className="leading-relaxed mb-3">Depending on your location, you may have the right to:</p>
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>Access, correct, or delete your personal data</li>
@@ -93,28 +95,28 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">6. Data Retention</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">{t('pages.privacy.dataRetention')}</h2>
             <p className="leading-relaxed">
               Webhook payloads are retained according to your plan: 7 days (Free), 90 days (Pro), or unlimited (Team). Account data is retained for 24 months after account termination unless required by law. Anonymized analytics data may be retained indefinitely.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">7. Children's Privacy</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">{t('pages.privacy.childrensPrivacy')}</h2>
             <p className="leading-relaxed">
               HookSwing is not intended for individuals under 18. We do not knowingly collect personal information from children. If we become aware of such collection, we will delete the information immediately.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">8. Policy Updates</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">{t('pages.privacy.policyUpdates')}</h2>
             <p className="leading-relaxed">
               We may update this policy periodically. The updated version will be posted on this page with a revised "Last updated" date. Continued use of our Services after changes constitutes acceptance.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">9. Contact Us</h2>
+            <h2 className="text-xl font-semibold text-white mb-3">{t('pages.privacy.contactUs')}</h2>
             <p className="leading-relaxed">
               For privacy concerns or requests, contact us at <a href="mailto:support@hookswing.com" className="text-emerald-400 hover:underline">support@hookswing.com</a>.
             </p>

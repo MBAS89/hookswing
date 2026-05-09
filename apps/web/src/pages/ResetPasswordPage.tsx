@@ -3,8 +3,10 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { api } from '../lib/api';
+import { useTranslation } from '../i18n';
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
@@ -18,7 +20,7 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     if (!token) {
-      setError('Invalid or missing reset token');
+      setError(t('resetPassword.invalidToken'));
     }
   }, [token]);
 
@@ -27,11 +29,11 @@ export default function ResetPasswordPage() {
     setError('');
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('resetPassword.passwordMinLength'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('resetPassword.passwordsMismatch'));
       return;
     }
 
@@ -41,7 +43,7 @@ export default function ResetPasswordPage() {
       setSuccess(true);
       setTimeout(() => navigate('/login'), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to reset password');
+      setError(err.response?.data?.error || t('resetPassword.failed'));
     } finally {
       setLoading(false);
     }
@@ -59,12 +61,12 @@ export default function ResetPasswordPage() {
             <span className="text-3xl font-bold text-white tracking-tight">HookSwing</span>
           </Link>
           <h1 className="text-2xl font-bold text-white">
-            {success ? 'Password updated' : 'Reset your password'}
+            {success ? t('resetPassword.successTitle') : t('resetPassword.title')}
           </h1>
           <p className="text-slate-400 mt-2">
             {success
-              ? 'Your password has been reset successfully'
-              : 'Enter your new password below'}
+              ? t('resetPassword.successMessage')
+              : t('resetPassword.subtitle')}
           </p>
         </div>
 
@@ -82,19 +84,19 @@ export default function ResetPasswordPage() {
                 <CheckCircle className="w-7 h-7 text-emerald-400" />
               </div>
               <p className="text-slate-400">
-                You can now sign in with your new password. Redirecting to login...
+                {t('resetPassword.redirecting')}
               </p>
               <Link
                 to="/login"
                 className="inline-block w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] text-center shadow-lg shadow-emerald-500/20"
               >
-                Sign In Now
+                {t('resetPassword.signInNow')}
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">New Password</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">{t("resetPassword.newPassword")}</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -117,7 +119,7 @@ export default function ResetPasswordPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Confirm Password</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">{t("resetPassword.confirmPassword")}</label>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
@@ -135,7 +137,7 @@ export default function ResetPasswordPage() {
                 className="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Reset Password
+                {t('resetPassword.resetBtn')}
               </button>
             </form>
           )}

@@ -26,8 +26,11 @@ function getByPath(obj: any, path: string): any {
 export function useTranslation() {
   const { t, isRTL } = useI18n();
 
-  function translate(path: TranslationPath): any {
-    const val = getByPath(t, path);
+  function translate(path: TranslationPath, vars?: Record<string, string | number>): any {
+    let val = getByPath(t, path);
+    if (typeof val === 'string' && vars) {
+      val = val.replace(/\{\{(\w+)\}\}/g, (_, key) => String(vars[key] ?? `{{${key}}}`));
+    }
     if (typeof val === 'string' || Array.isArray(val)) return val;
     return path;
   }

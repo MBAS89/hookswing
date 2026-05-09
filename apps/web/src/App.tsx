@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
-import { I18nProvider } from './i18n';
+import { I18nProvider, useTranslation } from './i18n';
 import ToastContainer from './components/ui/ToastContainer';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
@@ -28,7 +28,8 @@ import DashboardLayout from './components/layout/DashboardLayout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">Loading...</div>;
+  const { t } = useTranslation();
+  if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">{t('app.loading')}</div>;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }

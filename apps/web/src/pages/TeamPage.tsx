@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../i18n';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import {
   Users, Plus, Trash2, Crown, User, Check, Loader2, X,
@@ -43,6 +44,7 @@ interface TeamInvite {
 }
 
 export default function TeamPage() {
+  const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
   const toast = useToast();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -123,7 +125,7 @@ export default function TeamPage() {
       setTeams([res.data, ...teams]);
       setNewTeamName('');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to create team');
+      toast.error(err.response?.data?.error || t('teamPage.failedCreateTeam'));
       setCreating(false);
       return;
     }
@@ -138,7 +140,7 @@ export default function TeamPage() {
       setTeams(teams.map((t) => (t.id === teamId ? res.data : t)));
       setEditingTeam(null);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to rename team');
+      toast.error(err.response?.data?.error || t('teamPage.failedRenameTeam'));
     }
   };
 
@@ -148,7 +150,7 @@ export default function TeamPage() {
       setTeams(teams.filter((t) => t.id !== teamId));
       setDeleteTeam(null);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to delete team');
+      toast.error(err.response?.data?.error || t('teamPage.failedDeleteTeam'));
       return;
     }
   };
@@ -159,7 +161,7 @@ export default function TeamPage() {
       setTeams(teams.filter((t) => t.id !== teamId));
       setLeaveConfirm(null);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to leave team');
+      toast.error(err.response?.data?.error || t('teamPage.failedLeaveTeam'));
       return;
     }
     await refreshUser();
@@ -174,7 +176,7 @@ export default function TeamPage() {
       fetchTeams();
       await refreshUser();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to transfer ownership');
+      toast.error(err.response?.data?.error || t('teamPage.failedTransferOwnership'));
     }
   };
 
@@ -187,7 +189,7 @@ export default function TeamPage() {
       setActiveInviteTeam(null);
       fetchTeamInvites(teamId);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to invite member');
+      toast.error(err.response?.data?.error || t('teamPage.failedInviteMember'));
     }
   };
 
@@ -199,7 +201,7 @@ export default function TeamPage() {
       await refreshUser();
       window.dispatchEvent(new CustomEvent('refresh-projects'));
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to accept invite');
+      toast.error(err.response?.data?.error || t('teamPage.failedAcceptInvite'));
     }
   };
 
@@ -209,7 +211,7 @@ export default function TeamPage() {
       setMyInvites((prev) => prev.filter((i) => i.token !== token));
       await refreshUser();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to decline invite');
+      toast.error(err.response?.data?.error || t('teamPage.failedDeclineInvite'));
     }
   };
 
@@ -218,7 +220,7 @@ export default function TeamPage() {
       await api.delete(`/teams/${teamId}/invites/${inviteId}`);
       fetchTeamInvites(teamId);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to cancel invite');
+      toast.error(err.response?.data?.error || t('teamPage.failedCancelInvite'));
     }
   };
 
@@ -227,7 +229,7 @@ export default function TeamPage() {
       await api.delete(`/teams/${teamId}/members/${userId}`);
       fetchTeams();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to remove member');
+      toast.error(err.response?.data?.error || t('teamPage.failedRemoveMember'));
     }
   };
 
@@ -236,7 +238,7 @@ export default function TeamPage() {
       await api.patch(`/teams/${teamId}/members/${userId}`, { role });
       fetchTeams();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update role');
+      toast.error(err.response?.data?.error || t('teamPage.failedUpdateRole'));
     }
   };
 
@@ -249,29 +251,29 @@ export default function TeamPage() {
         <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <Crown className="w-8 h-8 text-amber-400" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Teams require Team plan</h2>
-        <p className="text-slate-400 mb-6">Upgrade to Team ($49/mo) to create workspaces and invite unlimited members.</p>
+        <h2 className="text-2xl font-bold text-white mb-2">{t('teamPage.teamsRequirePlan')}</h2>
+        <p className="text-slate-400 mb-6">{t('teamPage.upgradePrompt')}</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-6">Teams</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">{t('teamPage.title')}</h1>
 
       {/* Create Team — only for Team plan holders */}
       {isTeamPlan && (
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <Users className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-semibold text-white">Create a Team</h2>
+            <h2 className="text-lg font-semibold text-white">{t('teamPage.createTeam')}</h2>
           </div>
           <div className="flex gap-3">
             <input
               type="text"
               value={newTeamName}
               onChange={(e) => setNewTeamName(e.target.value)}
-              placeholder="Team name (e.g. Backend Squad)"
+              placeholder={t('teamPage.teamNamePlaceholder')}
               className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
             <button
@@ -279,7 +281,7 @@ export default function TeamPage() {
               disabled={creating || !newTeamName.trim()}
               className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
             >
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Team'}
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : t('teamPage.createTeamButton')}
             </button>
           </div>
         </div>
@@ -290,16 +292,16 @@ export default function TeamPage() {
         <div className="mb-8 bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-5">
           <h2 className="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            You have {myInvites.length} pending team invitation{myInvites.length > 1 ? 's' : ''}
+            {myInvites.length === 1 ? t('teamPage.onePendingInvite') : t('teamPage.manyPendingInvites').replace('{{count}}', String(myInvites.length))}
           </h2>
           <div className="space-y-3">
             {myInvites.map((invite) => (
               <div key={invite.id} className="flex items-center justify-between bg-slate-900 rounded-lg px-4 py-3">
                 <div>
                   <p className="text-sm text-white">
-                    <strong>{invite.invitedBy?.name || invite.invitedBy?.email}</strong> invited you to <strong>{invite.team?.name}</strong>
+                    <strong>{invite.invitedBy?.name || invite.invitedBy?.email}</strong> {t('teamPage.invitedYouTo')} <strong>{invite.team?.name}</strong>
                   </p>
-                  <p className="text-xs text-slate-500">As {invite.role} • Expires {new Date(invite.expiresAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-slate-500">{t('teamPage.asRoleExpires').replace('{{role}}', invite.role).replace('{{date}}', new Date(invite.expiresAt).toLocaleDateString())}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -307,14 +309,14 @@ export default function TeamPage() {
                     className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 rounded-lg text-xs font-medium"
                   >
                     <UserCheck className="w-3 h-3" />
-                    Accept
+                    {t('common.accept')}
                   </button>
                   <button
                     onClick={() => declineInvite(invite.token)}
                     className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium"
                   >
                     <UserXIcon className="w-3 h-3" />
-                    Decline
+                    {t('common.decline')}
                   </button>
                 </div>
               </div>
@@ -330,7 +332,7 @@ export default function TeamPage() {
       ) : teams.length === 0 && myInvites.length === 0 ? (
         <div className="text-center py-12 text-slate-500">
           <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p>No teams yet. Create one above.</p>
+          <p>{t('teamPage.noTeams')}</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -376,9 +378,9 @@ export default function TeamPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-500">{team.members?.length || 0} members</span>
+                      <span className="text-xs text-slate-500">{t('teamPage.membersCount').replace('{{count}}', String(team.members?.length || 0))}</span>
                       <span className="text-xs text-slate-600">•</span>
-                      <span className="text-xs text-slate-500">{team.projects?.length || 0} projects</span>
+                      <span className="text-xs text-slate-500">{t('teamPage.projectsCount').replace('{{count}}', String(team.projects?.length || 0))}</span>
                     </div>
                   </div>
 
@@ -391,14 +393,14 @@ export default function TeamPage() {
                           className="text-xs flex items-center gap-1 text-amber-400 hover:text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-md transition-colors"
                         >
                           <Shield className="w-3 h-3" />
-                          Transfer
+                          {t('teamPage.transfer')}
                         </button>
                         <button
                           onClick={() => setDeleteTeam(team.id)}
                           className="text-xs flex items-center gap-1 text-red-400 hover:text-red-300 bg-red-500/10 px-2.5 py-1 rounded-md transition-colors"
                         >
                           <Trash2 className="w-3 h-3" />
-                          Delete
+                          {t('teamPage.delete')}
                         </button>
                       </>
                     ) : (
@@ -407,7 +409,7 @@ export default function TeamPage() {
                         className="text-xs flex items-center gap-1 text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1 rounded-md transition-colors"
                       >
                         <LogOut className="w-3 h-3" />
-                        Leave
+                        {t('teamPage.leave')}
                       </button>
                     )}
                   </div>
@@ -415,19 +417,19 @@ export default function TeamPage() {
                   {/* Transfer Modal Inline */}
                   {transferTeam === team.id && (
                     <div className="mt-3 p-3 bg-slate-800 rounded-lg border border-slate-700">
-                      <p className="text-xs text-slate-400 mb-2">Select new owner (must be an admin):</p>
+                      <p className="text-xs text-slate-400 mb-2">{t('teamPage.selectNewOwner')}</p>
                       <div className="flex gap-2">
                         <select
                           value={transferUserId}
                           onChange={(e) => setTransferUserId(e.target.value)}
                           className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm"
                         >
-                          <option value="">Select member...</option>
+                          <option value="">{t('teamPage.selectMember')}</option>
                           {team.members
                             .filter((m) => m.user.id !== team.ownerId)
                             .map((m) => (
                               <option key={m.user.id} value={m.user.id}>
-                                {m.user.name || m.user.email} {m.role === 'ADMIN' ? '(Admin)' : '(Member)'}
+                                {m.user.name || m.user.email} {m.role === 'ADMIN' ? `(${t('team.admin')})` : `(${t('team.member')})`}
                               </option>
                             ))}
                         </select>
@@ -436,7 +438,7 @@ export default function TeamPage() {
                           disabled={!transferUserId}
                           className="bg-amber-500 hover:bg-amber-400 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
                         >
-                          Transfer
+                          {t('teamPage.transfer')}
                         </button>
                         <button
                           onClick={() => { setTransferTeam(null); setTransferUserId(''); }}
@@ -451,19 +453,19 @@ export default function TeamPage() {
                   {/* Delete Confirm */}
                   {deleteTeam === team.id && (
                     <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                      <p className="text-xs text-red-400 mb-2">This will delete the team and all its projects. This cannot be undone.</p>
+                      <p className="text-xs text-red-400 mb-2">{t('teamPage.deleteConfirm')}</p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => deleteTeamFn(team.id)}
                           className="bg-red-500 hover:bg-red-400 text-white px-3 py-1.5 rounded-lg text-xs font-medium"
                         >
-                          Delete Team
+                          {t('teamPage.deleteTeamButton')}
                         </button>
                         <button
                           onClick={() => setDeleteTeam(null)}
                           className="text-slate-400 hover:text-white px-3 py-1.5 text-xs"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                       </div>
                     </div>
@@ -473,7 +475,7 @@ export default function TeamPage() {
                 {/* Projects */}
                 {team.projects?.length > 0 && (
                   <div className="px-6 py-4 border-b border-slate-800">
-                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Projects</h3>
+                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t('teamPage.projects')}</h3>
                     <div className="grid sm:grid-cols-2 gap-2">
                       {team.projects.map((project) => (
                         <Link
@@ -496,7 +498,7 @@ export default function TeamPage() {
 
                 {/* Members */}
                 <div className="px-6 py-4">
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Members</h3>
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t('teamPage.members')}</h3>
                   <div className="space-y-2">
                     {(team.members || []).map((member) => (
                       <div key={member.id} className="flex items-center justify-between py-2 border-b border-slate-800/50 last:border-0">
@@ -511,7 +513,7 @@ export default function TeamPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {team.ownerId === member.user.id && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium">Owner</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium">{t('teamPage.owner')}</span>
                           )}
                           {isAdmin && team.ownerId !== member.user.id ? (
                             <>
@@ -520,8 +522,8 @@ export default function TeamPage() {
                                 onChange={(e) => updateRole(team.id, member.user.id, e.target.value as 'MEMBER' | 'ADMIN')}
                                 className="bg-slate-800 border border-slate-700 rounded px-2 py-0.5 text-xs text-white"
                               >
-                                <option value="MEMBER">Member</option>
-                                <option value="ADMIN">Admin</option>
+                                <option value="MEMBER">{t('team.member')}</option>
+                                <option value="ADMIN">{t('team.admin')}</option>
                               </select>
                               <button
                                 onClick={() => removeMember(team.id, member.user.id)}
@@ -534,7 +536,7 @@ export default function TeamPage() {
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
                               member.role === 'ADMIN' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-700 text-slate-400'
                             }`}>
-                              {member.role}
+                              {member.role === 'ADMIN' ? t('team.admin') : member.role === 'MEMBER' ? t('team.member') : member.role}
                             </span>
                           )}
                         </div>
@@ -545,20 +547,20 @@ export default function TeamPage() {
                   {/* Pending Invites (admin view) */}
                   {isAdmin && (teamInvites[team.id] || []).length > 0 && (
                     <div className="mt-4 pt-4 border-t border-slate-800">
-                      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Pending Invites</h4>
+                      <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t('teamPage.pendingInvitesSection')}</h4>
                       <div className="space-y-2">
                         {teamInvites[team.id].map((invite) => (
                           <div key={invite.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2">
                             <div className="flex items-center gap-2">
                               <Mail className="w-3.5 h-3.5 text-slate-500" />
                               <span className="text-sm text-slate-300">{invite.email}</span>
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">{invite.role}</span>
-                              <span className="text-xs text-slate-600">expires {new Date(invite.expiresAt).toLocaleDateString()}</span>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">{invite.role === 'ADMIN' ? t('team.admin') : invite.role === 'MEMBER' ? t('team.member') : invite.role}</span>
+                              <span className="text-xs text-slate-600">{t('teamPage.expiresDate').replace('{{date}}', new Date(invite.expiresAt).toLocaleDateString())}</span>
                             </div>
                             <button
                               onClick={() => cancelInvite(team.id, invite.id)}
                               className="text-slate-500 hover:text-red-400 transition-colors"
-                              title="Cancel invite"
+                              title={t('teamPage.cancelInvite')}
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -580,7 +582,7 @@ export default function TeamPage() {
                         className="flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 font-medium"
                       >
                         <Plus className="w-4 h-4" />
-                        Invite Member
+                        {t('team.inviteMember')}
                       </button>
 
                       {activeInviteTeam === team.id && (
@@ -589,7 +591,7 @@ export default function TeamPage() {
                             type="email"
                             value={inviteEmail}
                             onChange={(e) => setInviteEmail(e.target.value)}
-                            placeholder="Email address"
+                            placeholder={t('teamPage.emailPlaceholder')}
                             className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm"
                           />
                           <select
@@ -597,14 +599,14 @@ export default function TeamPage() {
                             onChange={(e) => setInviteRole(e.target.value as 'MEMBER' | 'ADMIN')}
                             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
                           >
-                            <option value="MEMBER">Member</option>
-                            <option value="ADMIN">Admin</option>
+                            <option value="MEMBER">{t('team.member')}</option>
+                            <option value="ADMIN">{t('team.admin')}</option>
                           </select>
                           <button
                             onClick={() => inviteMember(team.id)}
                             className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg font-medium text-sm"
                           >
-                            Invite
+                            {t('teamPage.inviteButton')}
                           </button>
                         </div>
                       )}
@@ -619,10 +621,10 @@ export default function TeamPage() {
 
       <ConfirmModal
         open={!!leaveConfirm}
-        title="Leave Team"
-        message="Are you sure you want to leave this team? You will lose access to all team projects."
-        confirmLabel="Leave"
-        cancelLabel="Cancel"
+        title={t('teamPage.leaveTeamTitle')}
+        message={t('teamPage.leaveTeamConfirm')}
+        confirmLabel={t('teamPage.leaveButton')}
+        cancelLabel={t('common.cancel')}
         danger
         onConfirm={() => leaveConfirm && leaveTeam(leaveConfirm)}
         onCancel={() => setLeaveConfirm(null)}

@@ -11,6 +11,7 @@ import {
   Check, Loader2 as LoaderIcon, MessageSquare, MessageCircle, Headphones,
 } from 'lucide-react';
 import { methodColor } from '../lib/utils';
+import { useTranslation } from '../i18n';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar,
@@ -29,6 +30,7 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 export default function AdminPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'subscriptions' | 'projects' | 'webhooks' | 'teams' | 'alerts' | 'feedback' | 'support'>('overview');
@@ -55,22 +57,22 @@ export default function AdminPage() {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500">
         <Shield className="w-12 h-12 text-red-400 mb-4" />
-        <h2 className="text-lg font-bold text-white mb-1">Access Denied</h2>
-        <p className="text-sm">This area is restricted to administrators.</p>
+        <h2 className="text-lg font-bold text-white mb-1">{t("admin.accessDenied")}</h2>
+        <p className="text-sm">{t('admin.adminOnly')}</p>
       </div>
     );
   }
 
   const tabs = [
-    { key: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
-    { key: 'users' as const, label: 'Users', icon: Users },
-    { key: 'subscriptions' as const, label: 'Subscriptions', icon: CreditCard },
-    { key: 'projects' as const, label: 'Projects', icon: FolderGit2 },
-    { key: 'webhooks' as const, label: 'Webhooks', icon: Radio },
-    { key: 'teams' as const, label: 'Teams', icon: Users2 },
-    { key: 'alerts' as const, label: 'Alerts', icon: Bell },
-    { key: 'feedback' as const, label: 'Feedback', icon: MessageSquare },
-    { key: 'support' as const, label: 'Support', icon: Headphones },
+    { key: 'overview' as const, label: t('admin.overview'), icon: LayoutDashboard },
+    { key: 'users' as const, label: t('admin.users'), icon: Users },
+    { key: 'subscriptions' as const, label: t('admin.subscriptions'), icon: CreditCard },
+    { key: 'projects' as const, label: t('admin.projects'), icon: FolderGit2 },
+    { key: 'webhooks' as const, label: t('admin.webhooks'), icon: Radio },
+    { key: 'teams' as const, label: t('admin.teams'), icon: Users2 },
+    { key: 'alerts' as const, label: t('admin.alerts'), icon: Bell },
+    { key: 'feedback' as const, label: t('admin.feedback'), icon: MessageSquare },
+    { key: 'support' as const, label: t('admin.support'), icon: Headphones },
   ];
 
   return (
@@ -81,8 +83,8 @@ export default function AdminPage() {
           <Shield className="w-5 h-5 text-amber-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-xs text-slate-500">Platform management & analytics</p>
+          <h1 className="text-xl font-bold text-white">{t("admin.title")}</h1>
+          <p className="text-xs text-slate-500">{t('admin.subtitle')}</p>
         </div>
       </div>
 
@@ -124,6 +126,7 @@ export default function AdminPage() {
 
 // ── Overview Tab ──
 function OverviewTab({ stats, loading, refresh }: { stats: any; loading: boolean; refresh: () => void }) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -135,8 +138,8 @@ function OverviewTab({ stats, loading, refresh }: { stats: any; loading: boolean
   if (!stats) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-        <p>Failed to load stats</p>
-        <button onClick={refresh} className="mt-2 text-emerald-400 hover:underline text-sm">Retry</button>
+        <p>{t('admin.failedLoadStats')}</p>
+        <button onClick={refresh} className="mt-2 text-emerald-400 hover:underline text-sm">{t("admin.retry")}</button>
       </div>
     );
   }
@@ -198,7 +201,7 @@ function OverviewTab({ stats, loading, refresh }: { stats: any; loading: boolean
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
           <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-slate-500" />
-            Plan Distribution
+            {t('admin.plan')} Distribution
           </h3>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
@@ -250,6 +253,7 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: any; label: string;
 
 // ── Users Tab ──
 function UsersTab() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -312,10 +316,10 @@ function UsersTab() {
           onChange={(e) => { setPlanFilter(e.target.value); setPage(1); }}
           className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
         >
-          <option value="">All plans</option>
-          <option value="FREE">Free</option>
-          <option value="PRO">Pro</option>
-          <option value="TEAM">Team</option>
+          <option value="">{t("admin.all")} plans</option>
+          <option value="FREE">{t("billingPage.free.name")}</option>
+          <option value="PRO">{t("billingPage.pro.name")}</option>
+          <option value="TEAM">{t("billingPage.team.name")}</option>
         </select>
       </div>
 
@@ -324,19 +328,19 @@ function UsersTab() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-800 bg-slate-800/50">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">User</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Projects</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Teams</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Joined</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("admin.name")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("admin.plan")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("layout.projects")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("admin.teams")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("admin.created")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("admin.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={6} className="py-12 text-center"><Loader2 className="w-5 h-5 text-emerald-400 animate-spin mx-auto" /></td></tr>
             ) : users.length === 0 ? (
-              <tr><td colSpan={6} className="py-8 text-center text-slate-500 text-sm">No users found</td></tr>
+              <tr><td colSpan={6} className="py-8 text-center text-slate-500 text-sm">{t('admin.noResults')}</td></tr>
             ) : (
               users.map((u) => (
                 <tr key={u.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30">
@@ -361,9 +365,9 @@ function UsersTab() {
                       disabled={changingPlan === u.id}
                       className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 disabled:opacity-50"
                     >
-                      <option value="FREE">Set Free</option>
-                      <option value="PRO">Set Pro</option>
-                      <option value="TEAM">Set Team</option>
+                      <option value="FREE">{t("billingPage.free.name")}</option>
+                      <option value="PRO">{t("billingPage.pro.name")}</option>
+                      <option value="TEAM">{t("billingPage.team.name")}</option>
                     </select>
                   </td>
                 </tr>
@@ -402,6 +406,7 @@ function UsersTab() {
 
 // ── Subscriptions Tab ──
 function SubscriptionsTab() {
+  const { t } = useTranslation();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -413,7 +418,7 @@ function SubscriptionsTab() {
   }, []);
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 text-emerald-400 animate-spin" /></div>;
-  if (!data) return <div className="text-center text-slate-500 py-12">Failed to load</div>;
+  if (!data) return <div className="text-center text-slate-500 py-12">{t('admin.failedLoadStats')}</div>;
 
   const monthlyChart = data.monthlySignups.reduce((acc: any[], curr: any) => {
     const monthLabel = new Date(curr.month).toLocaleDateString([], { month: 'short', year: '2-digit' });
@@ -445,10 +450,10 @@ function SubscriptionsTab() {
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="w-4 h-4 text-slate-500" />
-            <span className="text-xs text-slate-500 uppercase tracking-wider">Total Revenue</span>
+            <span className="text-xs text-slate-500 uppercase tracking-wider">{t("admin.total")} Revenue</span>
           </div>
           <p className="text-2xl font-bold text-white">${(data.totalRevenue / 100).toLocaleString()}</p>
-          <p className="text-xs text-slate-500 mt-0.5">Lifetime</p>
+          <p className="text-xs text-slate-500 mt-0.5">{t("landing.pricing.free.period")}</p>
         </div>
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -467,28 +472,28 @@ function SubscriptionsTab() {
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Activity className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs text-slate-500 uppercase tracking-wider">Active</span>
+            <span className="text-xs text-slate-500 uppercase tracking-wider">{t("admin.active")}</span>
           </div>
           <p className="text-xl font-bold text-white">{data.activeSubscriptions}</p>
         </div>
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
           <div className="flex items-center gap-2 mb-2">
             <XCircle className="w-4 h-4 text-red-400" />
-            <span className="text-xs text-slate-500 uppercase tracking-wider">Canceled</span>
+            <span className="text-xs text-slate-500 uppercase tracking-wider">{t("admin.cancel")}</span>
           </div>
           <p className="text-xl font-bold text-white">{data.canceledSubscriptions}</p>
         </div>
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <span className="text-xs text-slate-500 uppercase tracking-wider">Past Due</span>
+            <span className="text-xs text-slate-500 uppercase tracking-wider">{t("admin.status")}</span>
           </div>
           <p className="text-xl font-bold text-white">{data.pastDueSubscriptions}</p>
         </div>
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
           <div className="flex items-center gap-2 mb-2">
             <BarChart3 className="w-4 h-4 text-blue-400" />
-            <span className="text-xs text-slate-500 uppercase tracking-wider">Churn Rate</span>
+            <span className="text-xs text-slate-500 uppercase tracking-wider">{t("admin.failed")}</span>
           </div>
           <p className="text-xl font-bold text-white">{data.churnRate}%</p>
           <p className="text-xs text-slate-500 mt-0.5">ARPU ${data.arpu}</p>
@@ -515,9 +520,9 @@ function SubscriptionsTab() {
           </div>
         </div>
 
-        {/* Plan Distribution */}
+        {/* {t('admin.plan')} Distribution */}
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-          <h3 className="text-sm font-semibold text-white mb-3">Plan Distribution</h3>
+          <h3 className="text-sm font-semibold text-white mb-3">{t('admin.plan')} Distribution</h3>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -569,18 +574,18 @@ function SubscriptionsTab() {
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
         <h3 className="text-sm font-semibold text-white mb-3">Stripe Subscriptions ({subs.length})</h3>
         {subs.length === 0 ? (
-          <p className="text-sm text-slate-500">No Stripe subscriptions found.</p>
+          <p className="text-sm text-slate-500">{t('admin.noResults')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-800 text-slate-500">
-                  <th className="py-2 pr-4 font-medium">User</th>
-                  <th className="py-2 pr-4 font-medium">Plan</th>
-                  <th className="py-2 pr-4 font-medium">Status</th>
-                  <th className="py-2 pr-4 font-medium">Started</th>
-                  <th className="py-2 pr-4 font-medium">Renews</th>
-                  <th className="py-2 pr-4 font-medium">Amount</th>
+                  <th className="py-2 pr-4 font-medium">{t("admin.name")}</th>
+                  <th className="py-2 pr-4 font-medium">{t("admin.plan")}</th>
+                  <th className="py-2 pr-4 font-medium">{t("admin.status")}</th>
+                  <th className="py-2 pr-4 font-medium">{t("admin.created")}</th>
+                  <th className="py-2 pr-4 font-medium">{t("admin.renews")}</th>
+                  <th className="py-2 pr-4 font-medium">{t("admin.amount")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
@@ -625,6 +630,7 @@ function SubscriptionsTab() {
 
 // ── Projects Tab ──
 function ProjectsTab() {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -651,18 +657,18 @@ function ProjectsTab() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-800 bg-slate-800/50">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Project</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Webhooks</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Created</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("layout.projects")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("teamPage.owner")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("admin.type")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("layout.projects")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("admin.created")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={5} className="py-12 text-center"><Loader2 className="w-5 h-5 text-emerald-400 animate-spin mx-auto" /></td></tr>
             ) : projects.length === 0 ? (
-              <tr><td colSpan={5} className="py-8 text-center text-slate-500 text-sm">No projects</td></tr>
+              <tr><td colSpan={5} className="py-8 text-center text-slate-500 text-sm">{t('admin.noResults')}</td></tr>
             ) : (
               projects.map((p) => (
                 <tr key={p.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30">
@@ -697,6 +703,7 @@ function ProjectsTab() {
 
 // ── Webhooks Tab ──
 function WebhooksTab() {
+  const { t } = useTranslation();
   const [webhooks, setWebhooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -723,18 +730,18 @@ function WebhooksTab() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-800 bg-slate-800/50">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Method</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Source</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Project</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Time</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.method")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.source")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("layout.projects")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("admin.status")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("common.time")}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={5} className="py-12 text-center"><Loader2 className="w-5 h-5 text-emerald-400 animate-spin mx-auto" /></td></tr>
             ) : webhooks.length === 0 ? (
-              <tr><td colSpan={5} className="py-8 text-center text-slate-500 text-sm">No webhooks</td></tr>
+              <tr><td colSpan={5} className="py-8 text-center text-slate-500 text-sm">{t('admin.noResults')}</td></tr>
             ) : (
               webhooks.map((w) => (
                 <tr key={w.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30">
@@ -774,6 +781,7 @@ function WebhooksTab() {
 
 // ── Teams Tab ──
 function TeamsTab() {
+  const { t } = useTranslation();
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -800,11 +808,11 @@ function TeamsTab() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-800 bg-slate-800/50">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Team</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Owner</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("billingPage.team.name")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("teamPage.owner")}</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Members</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Projects</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Created</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("layout.projects")}</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t("admin.created")}</th>
             </tr>
           </thead>
           <tbody>
@@ -813,13 +821,13 @@ function TeamsTab() {
             ) : teams.length === 0 ? (
               <tr><td colSpan={5} className="py-8 text-center text-slate-500 text-sm">No teams</td></tr>
             ) : (
-              teams.map((t) => (
-                <tr key={t.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30">
-                  <td className="px-4 py-3 text-white font-medium">{t.name}</td>
-                  <td className="px-4 py-3 text-slate-300 text-xs">{t.owner?.email || '—'}</td>
-                  <td className="px-4 py-3 text-slate-300">{t.members?.length || 0}</td>
-                  <td className="px-4 py-3 text-slate-300">{t._count?.projects || 0}</td>
-                  <td className="px-4 py-3 text-slate-400 text-xs">{new Date(t.createdAt).toLocaleDateString()}</td>
+              teams.map((team) => (
+                <tr key={team.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30">
+                  <td className="px-4 py-3 text-white font-medium">{team.name}</td>
+                  <td className="px-4 py-3 text-slate-300 text-xs">{team.owner?.email || '—'}</td>
+                  <td className="px-4 py-3 text-slate-300">{team.members?.length || 0}</td>
+                  <td className="px-4 py-3 text-slate-300">{team._count?.projects || 0}</td>
+                  <td className="px-4 py-3 text-slate-400 text-xs">{new Date(team.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))
             )}

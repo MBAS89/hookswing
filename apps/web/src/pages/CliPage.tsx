@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 import { io, Socket } from 'socket.io-client';
 import { Terminal, Trash2, Wifi, WifiOff, Zap } from 'lucide-react';
+import { useTranslation } from '../i18n';
 
 type LineType = 'input' | 'output' | 'error' | 'success' | 'webhook' | 'info' | 'warn';
 
@@ -126,6 +127,7 @@ function statusColor(code?: number) {
 }
 
 export default function CliPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [lines, setLines] = useState<Line[]>(_lines);
   const [input, setInput] = useState('');
@@ -234,7 +236,7 @@ export default function CliPage() {
 
     const token = localStorage.getItem('accessToken');
     if (!token) {
-      liveRef.addLine('error', 'Not authenticated. Please log in.');
+      liveRef.addLine('error', t('cli.notAuthenticated'));
       return;
     }
 
@@ -665,17 +667,17 @@ export default function CliPage() {
       <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800">
         <div className="flex items-center gap-2.5">
           <CliLogo className="w-5 h-5 shrink-0" />
-          <span className="text-sm font-medium text-white">HookSwing CLI</span>
+          <span className="text-sm font-medium text-white">{t('cli.title')}</span>
           {_listening && (
             <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-              {_forwarding ? 'Forwarding' : 'Listening'}
+              {_forwarding ? t('cli.forwarding') : t('cli.listening')}
             </span>
           )}
           {reconnectAttempts > 0 && (
             <span className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
               <WifiOff className="w-3 h-3" />
-              Reconnecting {reconnectAttempts}
+              {t('cli.reconnecting')} {reconnectAttempts}
             </span>
           )}
         </div>
@@ -693,7 +695,7 @@ export default function CliPage() {
           <button
             onClick={() => { _lines = []; setLines([]); }}
             className="text-slate-500 hover:text-white transition-colors"
-            title="Clear"
+            title={t('cli.clear')}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -729,7 +731,7 @@ export default function CliPage() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           className="flex-1 bg-transparent text-slate-200 font-mono text-sm outline-none placeholder-slate-600"
-          placeholder={_listening ? 'Type "stop" to stop...' : 'Type a command...'}
+          placeholder={_listening ? t('cli.placeholderListening') as string : t('cli.placeholderDefault') as string}
           autoComplete="off"
           spellCheck={false}
         />

@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
+import { useTranslation } from '../i18n';
 
 export default function CareersPage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-slate-950 text-slate-300">
       {/* Navbar */}
@@ -13,22 +15,22 @@ export default function CareersPage() {
               <span className="text-xl font-bold text-white">HookSwing</span>
             </Link>
             <div className="flex items-center gap-4">
-              <Link to="/docs" className="text-slate-300 hover:text-white text-sm transition-colors">Docs</Link>
-              <Link to="/login" className="text-slate-300 hover:text-white text-sm transition-colors">Log In</Link>
-              <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Sign Up</Link>
+              <Link to="/docs" className="text-slate-300 hover:text-white text-sm transition-colors">{t('landing.nav.docs')}</Link>
+              <Link to="/login" className="text-slate-300 hover:text-white text-sm transition-colors">{t('landing.nav.login')}</Link>
+              <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">{t('landing.nav.signup')}</Link>
             </div>
           </div>
         </div>
       </nav>
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-        <h1 className="text-3xl font-bold text-white mb-4">Careers at HookSwing</h1>
+        <h1 className="text-3xl font-bold text-white mb-4">{t('pages.careers.title')}</h1>
         <p className="text-lg text-slate-400 mb-8">
           We're not actively hiring right now, but we're always interested in meeting talented people who care about developer tools.
         </p>
 
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-8 mb-8">
-          <h2 className="text-xl font-semibold text-white mb-3">No open positions</h2>
+          <h2 className="text-xl font-semibold text-white mb-3">{t('pages.careers.noOpenPositions')}</h2>
           <p className="text-slate-400 leading-relaxed">
             When positions become available, they will be posted here. Check back later or follow us for updates.
           </p>

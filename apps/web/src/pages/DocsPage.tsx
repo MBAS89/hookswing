@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Copy, Check } from 'lucide-react';
 import Logo from '../components/Logo';
+import { useTranslation } from '../i18n';
 
 function CodeBlock({ code, lang = 'bash' }: { code: string; lang?: string }) {
   const [copied, setCopied] = useState(false);
@@ -25,22 +26,7 @@ function CodeBlock({ code, lang = 'bash' }: { code: string; lang?: string }) {
   );
 }
 
-const sections = [
-  { id: 'quick-start', label: '1. Quick Start' },
-  { id: 'dashboard', label: '2. Dashboard Guide' },
-  { id: 'tester', label: '3. Webhook Tester' },
-  { id: 'cli', label: '4. CLI Reference' },
-  { id: 'web-cli', label: '5. Web CLI' },
-  { id: 'integrations', label: '6. Integrations' },
-  { id: 'teams', label: '7. Teams' },
-  { id: 'billing', label: '8. Billing & Plans' },
-  { id: 'security', label: '9. Security' },
-  { id: 'api', label: '10. API Reference' },
-  { id: 'troubleshooting', label: '11. Troubleshooting' },
-  { id: 'faq', label: '12. FAQ' },
-];
-
-function Sidebar({ active }: { active: string }) {
+function Sidebar({ active, sections }: { active: string; sections: { id: string; label: string }[] }) {
   const handleClick = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
@@ -71,6 +57,21 @@ function Sidebar({ active }: { active: string }) {
 }
 
 export default function DocsPage() {
+  const { t } = useTranslation();
+  const sections = [
+    { id: 'quick-start', label: t('docs.quickStart') },
+    { id: 'dashboard', label: t('docs.dashboardGuide') },
+    { id: 'tester', label: t('docs.webhookTester') },
+    { id: 'cli', label: t('docs.cliReference') },
+    { id: 'web-cli', label: t('docs.webCli') },
+    { id: 'integrations', label: t('docs.integrations') },
+    { id: 'teams', label: t('docs.teams') },
+    { id: 'billing', label: t('docs.billingPlans') },
+    { id: 'security', label: t('docs.security') },
+    { id: 'api', label: t('docs.apiReference') },
+    { id: 'troubleshooting', label: t('docs.troubleshooting') },
+    { id: 'faq', label: t('docs.faq') },
+  ];
   const [activeSection, setActiveSection] = useState('quick-start');
   const mainRef = useRef<HTMLElement>(null);
 
@@ -116,9 +117,9 @@ export default function DocsPage() {
               <span className="text-xl font-bold text-white">HookSwing</span>
             </Link>
             <div className="flex items-center gap-4">
-              <Link to="/docs" className="text-emerald-400 font-medium text-sm">Docs</Link>
-              <Link to="/login" className="text-slate-300 hover:text-white text-sm">Log In</Link>
-              <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold">Sign Up</Link>
+              <Link to="/docs" className="text-emerald-400 font-medium text-sm">{t("landing.nav.docs")}</Link>
+              <Link to="/login" className="text-slate-300 hover:text-white text-sm">{t("landing.nav.login")}</Link>
+              <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold">{t("landing.nav.signup")}</Link>
             </div>
           </div>
         </div>
@@ -126,12 +127,12 @@ export default function DocsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex gap-12">
-          <Sidebar active={activeSection} />
+          <Sidebar active={activeSection} sections={sections} />
 
           <main ref={mainRef} className="flex-1 min-w-0">
             <div className="mb-12">
-              <h1 className="text-4xl font-bold text-white mb-4">User Documentation</h1>
-              <p className="text-slate-400 text-lg">Get from signup to first successful webhook replay in under 5 minutes.</p>
+              <h1 className="text-4xl font-bold text-white mb-4">{t("docs.title")}</h1>
+              <p className="text-slate-400 text-lg">{t('docs.subtitle')}</p>
             </div>
 
             <Section id="quick-start" title="Quick Start">

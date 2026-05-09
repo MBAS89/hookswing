@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import Logo from '../components/Logo';
+import { useTranslation } from '../i18n';
 
 export default function AboutPage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-slate-950 text-slate-300">
       {/* Navbar */}
@@ -13,16 +15,16 @@ export default function AboutPage() {
               <span className="text-xl font-bold text-white">HookSwing</span>
             </Link>
             <div className="flex items-center gap-4">
-              <Link to="/docs" className="text-slate-300 hover:text-white text-sm transition-colors">Docs</Link>
-              <Link to="/login" className="text-slate-300 hover:text-white text-sm transition-colors">Log In</Link>
-              <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">Sign Up</Link>
+              <Link to="/docs" className="text-slate-300 hover:text-white text-sm transition-colors">{t('landing.nav.docs')}</Link>
+              <Link to="/login" className="text-slate-300 hover:text-white text-sm transition-colors">{t('landing.nav.login')}</Link>
+              <Link to="/register" className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">{t('landing.nav.signup')}</Link>
             </div>
           </div>
         </div>
       </nav>
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h1 className="text-3xl font-bold text-white mb-6">About HookSwing</h1>
+        <h1 className="text-3xl font-bold text-white mb-6">{t('pages.about.title')}</h1>
 
         <div className="space-y-6">
           <p className="leading-relaxed text-lg">
@@ -33,12 +35,12 @@ export default function AboutPage() {
             Our platform gives you a unique public URL that catches any HTTP webhook, stores it securely, and lets you inspect, replay, compare, and forward payloads in real time. Whether you're integrating Stripe, GitHub, Twilio, or a custom payment gateway — HookSwing makes webhook debugging painless.
           </p>
 
-          <h2 className="text-xl font-semibold text-white mt-8 mb-3">Our Mission</h2>
+          <h2 className="text-xl font-semibold text-white mt-8 mb-3">{t('pages.about.mission')}</h2>
           <p className="leading-relaxed">
             We believe developers deserve better tools for debugging integrations. Webhooks are the glue of the modern internet, yet the tooling around them hasn't evolved. We're changing that — one payload at a time.
           </p>
 
-          <h2 className="text-xl font-semibold text-white mt-8 mb-3">A Nuyvo LLC Platform</h2>
+          <h2 className="text-xl font-semibold text-white mt-8 mb-3">{t('pages.about.company')}</h2>
           <p className="leading-relaxed">
             HookSwing is a product of <a href="https://nuyvo.com" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">Nuyvo LLC</a>, a U.S.-registered technology company dedicated to developing intelligent, privacy-first SaaS platforms for professionals across the globe.
           </p>
