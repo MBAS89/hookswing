@@ -311,7 +311,7 @@ io.on('connection', (socket) => {
 
 function inferSource(headers: any): string | null {
   const ua = (headers['user-agent'] || '').toLowerCase();
-  const h = Object.fromEntries(
+  const h: Record<string, any> = Object.fromEntries(
     Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])
   );
 
@@ -363,7 +363,7 @@ function inferSource(headers: any): string | null {
 function inferEventType(headers: any, body: any, source: string | null): string | null {
   if (!body || typeof body !== 'object') return null;
 
-  const h = Object.fromEntries(
+  const h: Record<string, any> = Object.fromEntries(
     Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])
   );
 
