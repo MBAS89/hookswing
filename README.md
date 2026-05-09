@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://hookswing.com"><img src="https://img.shields.io/badge/Live-hookswing.com-%2310B981?style=flat-square" alt="Live"></a>
-  <a href="https://www.npmjs.com/package/hookswing-cli"><img src="https://img.shields.io/npm/v/hookswing-cli.svg?style=flat-square&color=%2310B981" alt="CLI npm"></a>
+  <a href="https://www.npmjs.com/package/hookswing"><img src="https://img.shields.io/npm/v/hookswing.svg?style=flat-square&color=%2310B981" alt="CLI npm"></a>
   <img src="https://img.shields.io/badge/Node.js-20%2B-green.svg?style=flat-square" alt="Node.js">
   <img src="https://img.shields.io/badge/React-18-61DAFB.svg?style=flat-square" alt="React">
   <img src="https://img.shields.io/badge/TypeScript-5.4-blue.svg?style=flat-square" alt="TypeScript">
