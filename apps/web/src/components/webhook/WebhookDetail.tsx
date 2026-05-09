@@ -33,6 +33,7 @@ export default function WebhookDetail({
   onClose,
   onDelete,
   onReplay,
+  onCommentChange,
   canReplay,
   isTeamProject,
 }: {
@@ -40,6 +41,7 @@ export default function WebhookDetail({
   onClose: () => void;
   onDelete: (id: string) => void;
   onReplay: (id: string, url: string) => void;
+  onCommentChange?: (webhookId: string, delta: number) => void;
   canReplay?: boolean;
   isTeamProject?: boolean;
 }) {
@@ -139,7 +141,7 @@ export default function WebhookDetail({
       await api.delete(`/webhooks/${webhook.id}/comments/${commentId}`);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
       setDeleteCommentId(null);
-      window.dispatchEvent(new CustomEvent('refresh-webhooks'));
+      onCommentChange?.(webhook.id, -1);
     } catch {
       toast.error('Failed to delete comment');
     }

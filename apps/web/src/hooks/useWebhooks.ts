@@ -74,5 +74,5 @@ export function useWebhooks(projectId: string | null) {
     }
   }, []);
 
-  return { webhooks, pagination, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook };
+  return { webhooks, setWebhooks, pagination, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook };
 }

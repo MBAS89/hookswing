@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Users, CreditCard, FolderGit2, Radio, Users2,
   Search, Loader2, Crown, ChevronLeft, ChevronRight,
   Shield, TrendingUp, Activity, DollarSign, BarChart3, Globe,
+  XCircle, AlertTriangle,
 } from 'lucide-react';
 import { methodColor } from '../lib/utils';
 import {
@@ -417,25 +418,148 @@ function SubscriptionsTab() {
     return acc;
   }, []);
 
+  const revenueChart = (data.revenueByMonth || []).map((r: any) => ({
+    month: r.month,
+    revenue: r.revenue,
+  }));
+
   const subs = data.stripeSubscriptions || [];
+  const planBreakdown = [
+    { name: 'Free', value: data.subscriptions.free?.total || 0, color: '#64748b' },
+    { name: 'Pro', value: data.subscriptions.pro.total, color: '#10b981' },
+    { name: 'Team', value: data.subscriptions.team.total, color: '#f59e0b' },
+  ];
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Revenue KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="w-4 h-4 text-slate-500" />
-            <span className="text-xs text-slate-500 uppercase tracking-wider">Estimated MRR</span>
+            <span className="text-xs text-slate-500 uppercase tracking-wider">Total Revenue</span>
+          </div>
+          <p className="text-2xl font-bold text-white">${(data.totalRevenue / 100).toLocaleString()}</p>
+          <p className="text-xs text-slate-500 mt-0.5">Lifetime</p>
+        </div>
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 text-slate-500" />
+            <span className="text-xs text-slate-500 uppercase tracking-wider">MRR</span>
           </div>
           <p className="text-2xl font-bold text-white">${data.estimatedMrr.toLocaleString()}</p>
+          <p className="text-xs text-slate-500 mt-0.5">ARR ~${data.estimatedArr?.toLocaleString() || 0}</p>
         </div>
         <StatCard icon={Crown} label="Pro Subscribers" value={data.subscriptions.pro.total} sub={`+${data.subscriptions.pro.newThisMonth} this month`} />
         <StatCard icon={Users2} label="Team Subscribers" value={data.subscriptions.team.total} sub={`+${data.subscriptions.team.newThisMonth} this month`} />
       </div>
 
+      {/* Subscription Health */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Activity className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs text-slate-500 uppercase tracking-wider">Active</span>
+          </div>
+          <p className="text-xl font-bold text-white">{data.activeSubscriptions}</p>
+        </div>
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <XCircle className="w-4 h-4 text-red-400" />
+            <span className="text-xs text-slate-500 uppercase tracking-wider">Canceled</span>
+          </div>
+          <p className="text-xl font-bold text-white">{data.canceledSubscriptions}</p>
+        </div>
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <span className="text-xs text-slate-500 uppercase tracking-wider">Past Due</span>
+          </div>
+          <p className="text-xl font-bold text-white">{data.pastDueSubscriptions}</p>
+        </div>
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="w-4 h-4 text-blue-400" />
+            <span className="text-xs text-slate-500 uppercase tracking-wider">Churn Rate</span>
+          </div>
+          <p className="text-xl font-bold text-white">{data.churnRate}%</p>
+          <p className="text-xs text-slate-500 mt-0.5">ARPU ${data.arpu}</p>
+        </div>
+      </div>
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Signups */}
+        <div className="lg:col-span-2 bg-slate-900 rounded-xl border border-slate-800 p-4">
+          <h3 className="text-sm font-semibold text-white mb-3">Signups by Plan (Monthly)</h3>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyChart}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="month" stroke="#475569" fontSize={11} tickLine={false} />
+                <YAxis stroke="#475569" fontSize={11} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }} />
+                <Bar dataKey="FREE" fill="#64748b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="PRO" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="TEAM" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Plan Distribution */}
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+          <h3 className="text-sm font-semibold text-white mb-3">Plan Distribution</h3>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={planBreakdown} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" stroke="none">
+                  {planBreakdown.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex justify-center gap-3 mt-2">
+            {planBreakdown.map((p) => (
+              <div key={p.name} className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+                <span className="text-xs text-slate-400">{p.name} ({p.value})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue trend */}
+      {revenueChart.length > 0 && (
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+          <h3 className="text-sm font-semibold text-white mb-3">Revenue Trend (Monthly)</h3>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueChart}>
+                <defs>
+                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="month" stroke="#475569" fontSize={11} tickLine={false} />
+                <YAxis stroke="#475569" fontSize={11} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }} formatter={(v: any) => [`$${Number(v).toLocaleString()}`, 'Revenue']} />
+                <Area type="monotone" dataKey="revenue" stroke="#10b981" fillOpacity={1} fill="url(#revGrad)" strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Stripe Subscriptions Table */}
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Active Subscriptions</h3>
+        <h3 className="text-sm font-semibold text-white mb-3">Stripe Subscriptions ({subs.length})</h3>
         {subs.length === 0 ? (
           <p className="text-sm text-slate-500">No Stripe subscriptions found.</p>
         ) : (
@@ -447,7 +571,7 @@ function SubscriptionsTab() {
                   <th className="py-2 pr-4 font-medium">Plan</th>
                   <th className="py-2 pr-4 font-medium">Status</th>
                   <th className="py-2 pr-4 font-medium">Started</th>
-                  <th className="py-2 pr-4 font-medium">Current Period End</th>
+                  <th className="py-2 pr-4 font-medium">Renews</th>
                   <th className="py-2 pr-4 font-medium">Amount</th>
                 </tr>
               </thead>
@@ -486,23 +610,6 @@ function SubscriptionsTab() {
             </table>
           </div>
         )}
-      </div>
-
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Signups by Plan (Monthly)</h3>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthlyChart}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="month" stroke="#475569" fontSize={11} tickLine={false} />
-              <YAxis stroke="#475569" fontSize={11} tickLine={false} />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }} />
-              <Bar dataKey="FREE" fill="#64748b" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="PRO" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="TEAM" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </div>
     </div>
   );

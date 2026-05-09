@@ -35,7 +35,7 @@ export default function ProjectPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [projectLoading, setProjectLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const { webhooks, pagination, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook } = useWebhooks(id || null);
+  const { webhooks, setWebhooks, pagination, loading, fetchWebhooks, addWebhook, deleteWebhook, replayWebhook } = useWebhooks(id || null);
   const [selectedWebhook, setSelectedWebhook] = useState<any>(null);
   const [filterMethod, setFilterMethod] = useState('');
   const [filterEventType, setFilterEventType] = useState('');
@@ -738,6 +738,15 @@ export default function ProjectPage() {
               } catch (err: any) {
                 toast.error(err.message || 'Replay failed');
               }
+            }}
+            onCommentChange={(webhookId, delta) => {
+              setWebhooks?.((prev: any) =>
+                prev.map((w: any) =>
+                  w.id === webhookId
+                    ? { ...w, _count: { ...w._count, comments: Math.max(0, (w._count?.comments || 0) + delta) } }
+                    : w
+                )
+              );
             }}
             canReplay={canReplay}
             isTeamProject={isTeamProject}

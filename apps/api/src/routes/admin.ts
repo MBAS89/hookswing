@@ -255,25 +255,28 @@ router.get('/teams', async (req: AuthRequest, res) => {
 router.get('/revenue', async (req: AuthRequest, res) => {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
 
   const [
     proUsers,
     teamUsers,
     proUsersThisMonth,
     teamUsersThisMonth,
+    totalFreeUsers,
   ] = await Promise.all([
     prisma.user.count({ where: { plan: 'PRO' } }),
     prisma.user.count({ where: { plan: 'TEAM' } }),
     prisma.user.count({ where: { plan: 'PRO', createdAt: { gte: monthStart } } }),
     prisma.user.count({ where: { plan: 'TEAM', createdAt: { gte: monthStart } } }),
+    prisma.user.count({ where: { plan: 'FREE' } }),
   ]);
 
   const proPrice = 19;
   const teamPrice = 49;
   const estimatedMrr = proUsers * proPrice + teamUsers * teamPrice;
+  const estimatedArr = estimatedMrr * 12;
 
   // Plan changes over last 6 months
-  const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
   const monthlySignups = await prisma.$queryRaw<
     Array<{ month: string; plan: string; count: bigint }>
   >`
@@ -286,6 +289,12 @@ router.get('/revenue', async (req: AuthRequest, res) => {
 
   // Fetch real Stripe subscriptions with user details
   let stripeSubscriptions: any[] = [];
+  let totalRevenue = 0;
+  let activeCount = 0;
+  let canceledCount = 0;
+  let pastDueCount = 0;
+  let revenueByMonth: Array<{ month: string; revenue: number }> = [];
+
   try {
     const subs = await stripe.subscriptions.list({
       status: 'all',
@@ -304,16 +313,36 @@ router.get('/revenue', async (req: AuthRequest, res) => {
 
     const userByCustomer = new Map(users.map((u) => [u.stripeCustomerId, u]));
 
+    // Calculate total revenue from all invoices
+    const invoices = await stripe.invoices.list({ limit: 100 });
+    totalRevenue = invoices.data.reduce((sum, inv) => sum + (inv.amount_paid || 0), 0);
+
+    // Revenue by month from invoices
+    const monthlyRevenueMap = new Map<string, number>();
+    for (const inv of invoices.data) {
+      if (inv.status === 'paid') {
+        const month = new Date(inv.created * 1000).toISOString().slice(0, 7);
+        monthlyRevenueMap.set(month, (monthlyRevenueMap.get(month) || 0) + inv.amount_paid);
+      }
+    }
+    revenueByMonth = Array.from(monthlyRevenueMap.entries())
+      .map(([month, revenue]) => ({ month, revenue: revenue / 100 }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+
     stripeSubscriptions = subs.data.map((sub) => {
       const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
       const user = userByCustomer.get(customerId);
+      const plan = (sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM || sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM_YEARLY) ? 'TEAM' : 'PRO';
+      if (sub.status === 'active') activeCount++;
+      else if (sub.status === 'canceled') canceledCount++;
+      else if (sub.status === 'past_due') pastDueCount++;
       return {
         id: sub.id,
         userId: user?.id,
         userName: user?.name || user?.email || 'Unknown',
         userEmail: user?.email,
         status: sub.status,
-        plan: (sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM || sub.items.data[0]?.price?.id === process.env.STRIPE_PRICE_TEAM_YEARLY) ? 'TEAM' : 'PRO',
+        plan,
         startDate: new Date(sub.start_date * 1000).toISOString(),
         currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
         currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
@@ -326,17 +355,30 @@ router.get('/revenue', async (req: AuthRequest, res) => {
     // Stripe may not be configured; ignore
   }
 
+  const paidUsers = proUsers + teamUsers;
+  const arpu = paidUsers > 0 ? estimatedMrr / paidUsers : 0;
+  const churnRate = activeCount + canceledCount > 0 ? (canceledCount / (activeCount + canceledCount)) * 100 : 0;
+
   res.json({
     subscriptions: {
       pro: { total: proUsers, newThisMonth: proUsersThisMonth, price: proPrice },
       team: { total: teamUsers, newThisMonth: teamUsersThisMonth, price: teamPrice },
+      free: { total: totalFreeUsers },
     },
     estimatedMrr,
+    estimatedArr,
+    totalRevenue,
+    arpu: Math.round(arpu * 100) / 100,
+    churnRate: Math.round(churnRate * 100) / 100,
+    activeSubscriptions: activeCount,
+    canceledSubscriptions: canceledCount,
+    pastDueSubscriptions: pastDueCount,
     monthlySignups: monthlySignups.map((m) => ({
       month: new Date(m.month).toISOString(),
       plan: m.plan,
       count: Number(m.count),
     })),
+    revenueByMonth,
     stripeSubscriptions,
   });
 });
