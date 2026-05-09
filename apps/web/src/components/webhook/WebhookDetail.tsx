@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2, Check, AlertCircle, Maximize2, RotateCcw, Code, Globe, FileJson, Link, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { methodColor, formatDate, formatBytes } from '../../lib/utils';
 import { api } from '../../lib/api';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
+import { useComments } from '../../hooks/useComments';
 import JsonViewer from './JsonViewer';
 import WebhookModal from './WebhookModal';
 import ConfirmModal from '../ui/ConfirmModal';
@@ -14,18 +15,6 @@ function formatReplayBody(rawBody: string | null | undefined, body: any): string
     try { return JSON.stringify(JSON.parse(rawBody), null, 2); } catch { return rawBody; }
   }
   return JSON.stringify(body || {}, null, 2);
-}
-
-interface Comment {
-  id: string;
-  content: string;
-  createdAt: string;
-  user: { id: string; name: string | null; email: string };
-  likes: number;
-  dislikes: number;
-  userReaction: 'like' | 'dislike' | null;
-  replies: Comment[];
-  _count?: { replies: number };
 }
 
 export default function WebhookDetail({
@@ -76,42 +65,23 @@ export default function WebhookDetail({
 
   // Comments (Team plan or team project)
   const isTeamPlan = user?.plan === 'TEAM' || !!isTeamProject;
-  const [comments, setComments] = useState<Comment[]>([]);
+  const { comments, loading: commentsLoading, addComment: addCommentHook, deleteComment: deleteCommentHook, reactComment: reactCommentHook } = useComments(isTeamPlan ? webhook.id : null);
   const [commentText, setCommentText] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
-  const [commentsLoading, setCommentsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
-  const fetchedCommentsForRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!isTeamPlan) return;
-    if (fetchedCommentsForRef.current === webhook.id) return;
-    fetchedCommentsForRef.current = webhook.id;
-    setCommentsLoading(true);
-    api.get(`/webhooks/${webhook.id}/comments`)
-      .then((res) => setComments(res.data))
-      .catch(() => setComments([]))
-      .finally(() => setCommentsLoading(false));
-  }, [webhook.id, isTeamPlan]);
 
   const addComment = async (parentId?: string) => {
     const text = parentId ? replyText : commentText;
     if (!text.trim()) return;
     if (parentId) setReplyLoading(true); else setCommentLoading(true);
     try {
-      const res = await api.post(`/webhooks/${webhook.id}/comments`, { content: text.trim(), parentId });
+      await addCommentHook(text, parentId);
       if (parentId) {
-        setComments((prev) => prev.map((c) =>
-          c.id === parentId
-            ? { ...c, replies: [...c.replies, res.data], _count: { ...(c._count || { replies: 0 }), replies: (c._count?.replies || 0) + 1 } }
-            : c
-        ));
         setReplyText('');
         setReplyingTo(null);
       } else {
-        setComments((prev) => [...prev, res.data]);
         setCommentText('');
       }
       onCommentChange?.(webhook.id, 1);
@@ -124,17 +94,7 @@ export default function WebhookDetail({
 
   const reactComment = async (commentId: string, type: 'like' | 'dislike') => {
     try {
-      const res = await api.post(`/webhooks/comments/${commentId}/react`, { type });
-      setComments((prev) => prev.map((c) => {
-        if (c.id === commentId) {
-          return { ...c, likes: res.data.likes, dislikes: res.data.dislikes, userReaction: res.data.userReaction };
-        }
-        return { ...c, replies: c.replies.map((r) =>
-          r.id === commentId
-            ? { ...r, likes: res.data.likes, dislikes: res.data.dislikes, userReaction: res.data.userReaction }
-            : r
-        )};
-      }));
+      await reactCommentHook(commentId, type);
     } catch {
       toast.error('Failed to react');
     }
@@ -142,8 +102,7 @@ export default function WebhookDetail({
 
   const deleteComment = async (commentId: string) => {
     try {
-      await api.delete(`/webhooks/${webhook.id}/comments/${commentId}`);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      await deleteCommentHook(commentId);
       setDeleteCommentId(null);
       onCommentChange?.(webhook.id, -1);
     } catch {
