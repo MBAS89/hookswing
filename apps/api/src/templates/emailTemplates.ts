@@ -127,3 +127,25 @@ export function teamInviteTemplate(inviterName: string, teamName: string, accept
   const text = `Team Invitation - HookSwing\n\n${inviterName || 'Someone'} has invited you to join ${teamName} as a ${role}.\n\nAccept your invitation:\n${acceptUrl}\n\nThis invitation expires in 7 days. If you don't have a HookSwing account yet, sign up with this email address and the invite will be waiting for you.\n\nNeed help? Contact support@hookswing.com`;
   return baseTemplate(title, content, text);
 }
+
+
+export function accountDeletionTemplate(deletionUrl: string, expiresMin: number) {
+  const title = 'Confirm Account Deletion - HookSwing';
+  const content = `
+    <div class="title">Delete Your Account</div>
+    <div class="body">
+      <p>We received a request to delete your HookSwing account. This action is permanent and cannot be undone. All your projects, webhooks, team memberships, and data will be permanently removed.</p>
+      <p style="margin-top:12px;">If you did not request this, you can safely ignore this email.</p>
+    </div>
+    <div style="text-align:center;">
+      <a href="${deletionUrl}" class="button" style="background:#ef4444;">Confirm Deletion</a>
+    </div>
+    <div class="body" style="text-align:center;">
+      <p>Or copy and paste this link:</p>
+      <p style="word-break:break-all; color:${mutedColor};">${deletionUrl}</p>
+      <p style="margin-top:16px;">This link expires in ${expiresMin} minutes.</p>
+    </div>
+  `;
+  const text = `Confirm Account Deletion - HookSwing\n\nWe received a request to delete your HookSwing account. This action is permanent and cannot be undone.\n\nConfirm deletion (expires in ${expiresMin} minutes):\n${deletionUrl}\n\nIf you did not request this, ignore this email.\n\nNeed help? Contact support@hookswing.com`;
+  return baseTemplate(title, content, text);
+}

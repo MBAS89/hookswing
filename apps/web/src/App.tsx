@@ -22,6 +22,7 @@ import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import CareersPage from './pages/CareersPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import DeleteAccountPage from './pages/DeleteAccountPage';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -55,6 +56,7 @@ function AppRoutes() {
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/careers" element={<CareersPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/delete-account" element={<DeleteAccountPage />} />
     </Routes>
   );
 }

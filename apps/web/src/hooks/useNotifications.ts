@@ -107,6 +107,13 @@ export function useNotifications() {
     if (wasUnread) setUnreadCount((c) => Math.max(0, c - 1));
   }, [notifications]);
 
+  // Delete all notifications
+  const clearAll = useCallback(async () => {
+    await api.delete('/notifications');
+    setNotifications([]);
+    setUnreadCount(0);
+  }, []);
+
   // Update preference
   const updatePreference = useCallback(async (type: string, enabled: boolean) => {
     await api.patch('/notifications/preferences', { type, enabled });
@@ -165,6 +172,7 @@ export function useNotifications() {
     markRead,
     markAllRead,
     deleteNotification,
+    clearAll,
     updatePreference,
     refresh,
   };

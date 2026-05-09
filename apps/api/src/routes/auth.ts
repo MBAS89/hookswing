@@ -6,12 +6,14 @@ import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import axios from 'axios';
 import { prisma } from '../lib/prisma';
-import { authRateLimit, emailRateLimit } from '../middleware/rateLimit';
-import type { AuthRequest } from '../middleware/auth';
+import { authRateLimit, emailRateLimit, apiRateLimit } from '../middleware/rateLimit';
+import { authMiddleware, type AuthRequest } from '../middleware/auth';
+import { stripe } from '../lib/stripe';
 import {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,
+  sendAccountDeletionEmail,
   canSendVerification,
   canSendPasswordReset,
   testSmtpConnection,
@@ -1283,6 +1285,85 @@ router.post('/reset-password', authRateLimit, async (req, res) => {
   await prisma.session.deleteMany({ where: { userId: user.id } });
 
   res.json({ success: true, message: 'Password updated successfully' });
+});
+
+// --- Request Account Deletion ---
+router.post('/delete-request', authMiddleware, apiRateLimit, async (req: AuthRequest, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.id },
+    select: { id: true, email: true },
+  });
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const deletionToken = jwt.sign(
+    { userId: user.id, action: 'account_deletion' },
+    process.env.JWT_SECRET!,
+    { expiresIn: '1h' }
+  );
+
+  const frontendUrl = process.env.FRONTEND_URL || 'https://hookswing.com';
+  const deletionUrl = `${frontendUrl}/delete-account?token=${encodeURIComponent(deletionToken)}`;
+
+  const emailResult = await Promise.race([
+    sendAccountDeletionEmail(user.email, deletionUrl, user.id),
+    new Promise<{ success: false; error: string }>((resolve) =>
+      setTimeout(() => resolve({ success: false, error: 'Email sending timed out' }), 12000)
+    ),
+  ]);
+
+  if (!emailResult.success) {
+    console.error('Failed to send deletion email:', emailResult.error);
+    return res.status(500).json({ error: 'Failed to send confirmation email' });
+  }
+
+  res.json({ success: true, message: 'Check your email for the confirmation link' });
+});
+
+// --- Confirm Account Deletion ---
+router.post('/delete-confirm', apiRateLimit, async (req, res) => {
+  const schema = z.object({ token: z.string().min(1) });
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid token' });
+  }
+
+  let decoded: any;
+  try {
+    decoded = jwt.verify(result.data.token, process.env.JWT_SECRET!);
+  } catch {
+    return res.status(400).json({ error: 'Invalid or expired token' });
+  }
+
+  if (decoded.action !== 'account_deletion' || !decoded.userId) {
+    return res.status(400).json({ error: 'Invalid token' });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.userId },
+    select: { id: true, stripeSubscriptionId: true },
+  });
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  // Cancel active Stripe subscription
+  if (user.stripeSubscriptionId) {
+    try {
+      await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+    } catch (err: any) {
+      console.error('[Account Deletion] Failed to cancel Stripe subscription:', err.message);
+    }
+  }
+
+  // Delete user — Prisma cascade handles related data
+  await prisma.user.delete({ where: { id: user.id } });
+
+  // Clean up orphaned webhooks
+  await prisma.webhook.deleteMany({ where: { projectId: null } });
+
+  res.json({ success: true, message: 'Account deleted permanently' });
 });
 
 export default router;

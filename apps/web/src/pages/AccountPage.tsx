@@ -25,6 +25,8 @@ import {
   ChevronRight,
   XCircle,
   Bell,
+  Trash2,
+  Mail,
 } from 'lucide-react';
 
 function getTabs(isGitHubUser: boolean) {
@@ -196,61 +198,159 @@ function ProfileTab({ user, updateUser }: { user: any; updateUser: (u: any) => v
   };
 
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
-      <h2 className="text-lg font-semibold text-white mb-4">Profile Information</h2>
+    <div className="space-y-6">
+      <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">Profile Information</h2>
 
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-400 mb-1.5">Name</label>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-1.5">Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+              placeholder="Your name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-1.5">Email</label>
+            <div className="relative">
+              <input
+                type="email"
+                value={email}
+                disabled
+                className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-400 text-sm cursor-not-allowed"
+                placeholder="you@example.com"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                {user?.emailVerified ? (
+                  <span className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    <Check className="w-3 h-3" />
+                    Verified
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                    <XCircle className="w-3 h-3" />
+                    Unverified
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-1.5">Email cannot be changed.</p>
+          </div>
+
+          {message && (
+            <p className={`text-sm ${message.includes('success') ? 'text-emerald-400' : 'text-red-400'}`}>{message}</p>
+          )}
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save Changes
+          </button>
+        </div>
+      </div>
+
+      <DangerZone user={user} />
+    </div>
+  );
+}
+
+/* ---------- Danger Zone ---------- */
+function DangerZone({ user }: { user: any }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<'confirm' | 'sent'>('confirm');
+  const [error, setError] = useState('');
+
+  const handleRequest = async () => {
+    if (confirmText !== 'DELETE') return;
+    setLoading(true);
+    setError('');
+    try {
+      await api.post('/auth/delete-request');
+      setStep('sent');
+      setConfirmText('');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to send confirmation email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-slate-900 rounded-xl border border-red-500/20 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <AlertTriangle className="w-5 h-5 text-red-400" />
+        <h2 className="text-lg font-semibold text-red-400">Danger Zone</h2>
+      </div>
+
+      <p className="text-sm text-slate-400 mb-4">
+        Once you delete your account, there is no going back. All your projects, webhooks, team memberships, and personal data will be permanently removed.
+      </p>
+
+      {!showConfirm ? (
+        <button
+          onClick={() => setShowConfirm(true)}
+          className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete Account
+        </button>
+      ) : step === 'confirm' ? (
+        <div className="space-y-3">
+          <p className="text-sm text-slate-300">
+            To confirm, type <span className="font-mono font-bold text-white">DELETE</span> below:
+          </p>
           <input
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-            placeholder="Your name"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="DELETE"
+            className="w-full bg-slate-800 border border-red-500/30 rounded-lg px-4 py-2.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-red-500"
+            autoFocus
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-400 mb-1.5">Email</label>
-          <div className="relative">
-            <input
-              type="email"
-              value={email}
-              disabled
-              className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-400 text-sm cursor-not-allowed"
-              placeholder="you@example.com"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-              {user?.emailVerified ? (
-                <span className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                  <Check className="w-3 h-3" />
-                  Verified
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                  <XCircle className="w-3 h-3" />
-                  Unverified
-                </span>
-              )}
-            </div>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRequest}
+              disabled={loading || confirmText !== 'DELETE'}
+              className="flex items-center gap-2 bg-red-500 hover:bg-red-400 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+              Send Confirmation Email
+            </button>
+            <button
+              onClick={() => { setShowConfirm(false); setConfirmText(''); setError(''); }}
+              className="text-sm text-slate-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
           </div>
-          <p className="text-xs text-slate-500 mt-1.5">Email cannot be changed.</p>
         </div>
-
-        {message && (
-          <p className={`text-sm ${message.includes('success') ? 'text-emerald-400' : 'text-red-400'}`}>{message}</p>
-        )}
-
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Save Changes
-        </button>
-      </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-emerald-400">
+            <Mail className="w-4 h-4" />
+            <p className="text-sm font-medium">Confirmation email sent to {user?.email}</p>
+          </div>
+          <p className="text-sm text-slate-400">
+            Click the link in the email to permanently delete your account. The link expires in 1 hour.
+          </p>
+          <button
+            onClick={() => { setShowConfirm(false); setStep('confirm'); }}
+            className="text-sm text-slate-400 hover:text-white transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      )}
     </div>
   );
 }

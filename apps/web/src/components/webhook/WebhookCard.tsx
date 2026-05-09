@@ -52,21 +52,22 @@ export default function WebhookCard({
   const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'query' | 'comments' | 'replay'>('body');
   const [cardComments, setCardComments] = useState<any[]>([]);
   const [cardCommentsLoading, setCardCommentsLoading] = useState(false);
-  const [commentCount, setCommentCount] = useState(webhook._count?.comments ?? 0);
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
   const toast = useToast();
 
-  // Fallback: fetch comment count client-side when backend _count isn't available yet
+  // Derive comment count directly from prop for real-time updates.
+  // Fallback fetch only when _count is missing from backend.
+  const [fallbackCount, setFallbackCount] = useState<number | undefined>(undefined);
   useEffect(() => {
     if (webhook._count !== undefined) {
-      setCommentCount(webhook._count.comments ?? 0);
+      setFallbackCount(undefined);
       return;
     }
     api.get(`/webhooks/${webhook.id}/comments`).then((res) => {
-      const count = Array.isArray(res.data) ? res.data.length : 0;
-      setCommentCount(count);
+      setFallbackCount(Array.isArray(res.data) ? res.data.length : 0);
     }).catch(() => {});
   }, [webhook.id, webhook._count]);
+  const commentCount = webhook._count?.comments ?? fallbackCount ?? 0;
 
   // Replay state
   const [replayUrl, setReplayUrl] = useState(() => localStorage.getItem('lastReplayUrl') || 'http://localhost:3000/webhook');

@@ -68,6 +68,14 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   res.json({ success: true });
 });
 
+// --- Delete all notifications ---
+router.delete('/', async (req: AuthRequest, res) => {
+  const { count } = await prisma.notification.deleteMany({
+    where: { userId: req.user!.id },
+  });
+  res.json({ success: true, count });
+});
+
 // --- Get preferences ---
 router.get('/preferences', async (req: AuthRequest, res) => {
   await seedDefaultPreferences(req.user!.id);

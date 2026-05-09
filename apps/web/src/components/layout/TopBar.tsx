@@ -82,6 +82,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
     markRead,
     markAllRead,
     deleteNotification,
+    clearAll,
     refresh,
   } = useNotifications();
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
@@ -144,6 +145,10 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
     await deleteNotification(id);
   };
 
+  const handleClearAll = async () => {
+    await clearAll();
+  };
+
   const handleNotifClick = (n: any) => {
     if (!n.read) {
       markRead(n.id);
@@ -191,15 +196,26 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
             <div ref={notifPanelRef} className="fixed right-4 top-16 w-[360px] max-h-[480px] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[9999] flex flex-col">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
                 <h3 className="text-sm font-semibold text-white">Notifications</h3>
-                {unreadCount > 0 && (
-                  <button
-                    onClick={handleMarkAllRead}
-                    className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
-                  >
-                    <CheckCheck className="w-3 h-3" />
-                    Mark all read
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={handleClearAll}
+                      className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Clear all
+                    </button>
+                  )}
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                    >
+                      <CheckCheck className="w-3 h-3" />
+                      Mark all read
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="overflow-y-auto flex-1">

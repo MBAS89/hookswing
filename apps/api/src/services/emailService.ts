@@ -212,3 +212,23 @@ export async function sendTeamInviteEmail(
     { userId: invitedById, to, subject: `You've been invited to ${teamName} on HookSwing`, type: 'team_invite' }
   );
 }
+
+
+export async function sendAccountDeletionEmail(
+  to: string,
+  deletionUrl: string,
+  userId?: string
+): Promise<{ success: boolean; error?: string }> {
+  const { html, text } = templates.accountDeletionTemplate(deletionUrl, 60);
+  return sendWithRetry(
+    {
+      from: getFrom(),
+      replyTo: FROM_EMAIL,
+      to,
+      subject: 'Confirm Account Deletion - HookSwing',
+      html,
+      text,
+    },
+    { userId, to, subject: 'Confirm Account Deletion - HookSwing', type: 'account_deletion' }
+  );
+}
