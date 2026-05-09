@@ -141,21 +141,15 @@ function Hero() {
               <span className="ml-2 text-xs text-slate-400 font-mono">hookswing forward project-1 3000</span>
             </div>
             <div className="p-6 font-mono text-sm text-left space-y-2">
-              <div className="text-slate-400">  _    _               ____                  _     </div>
-              <div className="text-slate-400"> | |  | |             / ___| _   _ ___  __ _| |    </div>
-              <div className="text-slate-400"> | |__| | _____      _\___ \| | | / __|/ _\` | |    </div>
-              <div className="text-slate-400"> |  __  |/ _ \ \ /\ / /___) | |_| \__ \ (_| | |    </div>
-              <div className="text-slate-400">{' | |  | | (_) \ V  V //___ \>  _ <| |_) \__,_| |    '}</div>
-              <div className="text-slate-400"> |_|  |_|\___/ \_/\_/ \____/_| \_\ .__/ \__, |_|    </div>
-              <div className="text-slate-400">                                 |_|    |___/      </div>
-              <div className="text-slate-400">   Target: http://localhost:3000</div>
+              <div className="text-emerald-400 font-semibold">🪝 HookSwing Forwarder</div>
+              <div className="text-slate-400">   Target:  http://localhost:3000</div>
               <div className="text-slate-400">   Project: My SaaS (project-1)</div>
-              <div className="text-slate-500 mt-4">   Session: 00:00:00  |  Requests: 0 / 500 ░░░░░░░░░░</div>
+              <div className="text-slate-500 mt-4">   [Press Ctrl+C to stop]</div>
               <div className="mt-4 space-y-1">
-                <div className="text-emerald-400">[03:17:42] POST   /api/stripe/webhook    200   (stripe)</div>
-                <div className="text-emerald-400">[03:18:15] POST   /api/paypal/webhook    200   (paypal)</div>
-                <div className="text-emerald-400">[03:18:22] POST   /api/stripe/webhook    200   (stripe)</div>
-                <div className="text-emerald-400">[03:19:01] POST   /api/paypal/webhook    200   (paypal)</div>
+                <div><span className="text-slate-600">[03:17:42]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/stripe/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(stripe)</span></div>
+                <div><span className="text-slate-600">[03:18:15]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/paypal/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(paypal)</span></div>
+                <div><span className="text-slate-600">[03:18:22]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/stripe/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(stripe)</span></div>
+                <div><span className="text-slate-600">[03:19:01]</span> <span className="bg-sky-500/20 text-sky-400 px-1 rounded text-xs font-bold">POST</span> <span className="text-slate-400">/api/paypal/webhook</span> <span className="text-emerald-400">200</span> <span className="text-slate-600">(paypal)</span></div>
               </div>
             </div>
           </div>
@@ -416,14 +410,8 @@ function PathPreservationDemo() {
                 <span className="ml-2 text-xs text-slate-500 font-mono">hookswing forward project-1 3000</span>
               </div>
               <div className="p-5 space-y-1 text-slate-300">
-                <div className="text-slate-500">  _    _               ____                  _     </div>
-                <div className="text-slate-500"> | |  | |             / ___| _   _ ___  __ _| |    </div>
-                <div className="text-slate-500"> | |__| | _____      _\___ \| | | / __|/ _\` | |    </div>
-                <div className="text-slate-500"> |  __  |/ _ \ \ /\ / /___) | |_| \__ \ (_| | |    </div>
-                <div className="text-slate-500">{' | |  | | (_) \ V  V //___ \>  _ <| |_) \__,_| |    '}</div>
-                <div className="text-slate-500"> |_|  |_|\___/ \_/\_/ \____/_| \_\ .__/ \__, |_|    </div>
-                <div className="text-slate-500">                                 |_|    |___/      </div>
-                <div className="text-slate-400 mt-3">  Target: http://localhost:3000</div>
+                <div className="text-emerald-400 font-semibold">🪝 HookSwing Forwarder</div>
+                <div className="text-slate-400 mt-2">  Target: http://localhost:3000</div>
                 <div className="text-slate-400">  Project: My SaaS (project-1)</div>
                 <div className="text-slate-500 mt-2">  Session: 00:12:34  |  Requests: 7 / 500 █░░░░░░░░░</div>
                 <div className="text-slate-500 mt-1">  [Press Ctrl+C to stop]</div>
