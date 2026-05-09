@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { methodColor, statusColor, formatDate, formatBytes } from '../../lib/utils';
 import { GitCompare, ChevronDown, ChevronUp, Copy, Play, RotateCcw, Globe, Hash, FileJson, Link2, Loader2, Check, AlertCircle, Zap, MessageSquare } from 'lucide-react';
 import JsonViewer from './JsonViewer';
@@ -56,17 +56,20 @@ export default function WebhookCard({
   const toast = useToast();
 
   // Derive comment count directly from prop for real-time updates.
-  // Fallback fetch only when _count is missing from backend.
+  // Fallback fetch only once when _count is missing from backend.
   const [fallbackCount, setFallbackCount] = useState<number | undefined>(undefined);
+  const fetchedFallbackRef = useRef<string | null>(null);
   useEffect(() => {
     if (webhook._count !== undefined) {
       setFallbackCount(undefined);
       return;
     }
+    if (fetchedFallbackRef.current === webhook.id) return;
+    fetchedFallbackRef.current = webhook.id;
     api.get(`/webhooks/${webhook.id}/comments`).then((res) => {
       setFallbackCount(Array.isArray(res.data) ? res.data.length : 0);
     }).catch(() => {});
-  }, [webhook.id, webhook._count]);
+  }, [webhook.id, webhook._count?.comments]);
   const commentCount = webhook._count?.comments ?? fallbackCount ?? 0;
 
   // Replay state
@@ -160,7 +163,7 @@ export default function WebhookCard({
             {(
               [{id:'overview',label:'Overview'},{id:'headers',label:'Headers'},{id:'body',label:'Body'},{id:'query',label:'Query'},{id:'comments',label:`Comments${commentCount > 0 ? ` (${commentCount})` : ''}`},...(canReplay?[{id:'replay',label:'Replay'}]:[{id:undefined,label:''}].filter(()=>false))] as {id:'overview'|'headers'|'body'|'query'|'comments'|'replay';label:string}[]
             ).map(t => (
-              <button key={t.id} onClick={() => { setActiveTab(t.id); if (t.id==='comments') { setCardCommentsLoading(true); api.get(`/webhooks/${webhook.id}/comments`).then(r=>setCardComments(r.data)).catch(()=>setCardComments([])).finally(()=>setCardCommentsLoading(false)); }}} className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${activeTab===t.id?'text-emerald-400 border-b-2 border-emerald-500':'text-slate-500 hover:text-slate-300'}`}>{t.label}</button>
+              <button key={t.id} onClick={() => { setActiveTab(t.id); if (t.id==='comments' && cardComments.length === 0 && !cardCommentsLoading) { setCardCommentsLoading(true); api.get(`/webhooks/${webhook.id}/comments`).then(r=>setCardComments(r.data)).catch(()=>setCardComments([])).finally(()=>setCardCommentsLoading(false)); }}} className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${activeTab===t.id?'text-emerald-400 border-b-2 border-emerald-500':'text-slate-500 hover:text-slate-300'}`}>{t.label}</button>
             ))}
           </div>
           <div className="p-4 max-h-[32rem] overflow-auto">

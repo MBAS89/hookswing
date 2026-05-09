@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useWebhooks } from '../hooks/useWebhooks';
 import { useSocket } from '../hooks/useSocket';
@@ -254,12 +254,17 @@ export default function ProjectPage() {
     }
   };
 
-  const eventTypes = Array.from(new Set(webhooks.map((w) => w.eventType).filter((et): et is string => !!et))).sort();
-  const filtered = webhooks.filter((w) => {
-    if (filterMethod && w.method.toUpperCase() !== filterMethod) return false;
-    if (filterEventType && w.eventType !== filterEventType) return false;
-    return true;
-  });
+  const eventTypes = useMemo(() =>
+    Array.from(new Set(webhooks.map((w) => w.eventType).filter((et): et is string => !!et))).sort(),
+    [webhooks]
+  );
+  const filtered = useMemo(() => {
+    return webhooks.filter((w) => {
+      if (filterMethod && w.method.toUpperCase() !== filterMethod) return false;
+      if (filterEventType && w.eventType !== filterEventType) return false;
+      return true;
+    });
+  }, [webhooks, filterMethod, filterEventType]);
 
   if (projectLoading) {
     return (

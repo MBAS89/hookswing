@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Copy, Play, Trash2, MessageSquare, Send, Loader2, Check, AlertCircle, Maximize2, RotateCcw, Code, Globe, FileJson, Link, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { methodColor, formatDate, formatBytes } from '../../lib/utils';
 import { api } from '../../lib/api';
@@ -83,9 +83,12 @@ export default function WebhookDetail({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
+  const fetchedCommentsForRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isTeamPlan) return;
+    if (fetchedCommentsForRef.current === webhook.id) return;
+    fetchedCommentsForRef.current = webhook.id;
     setCommentsLoading(true);
     api.get(`/webhooks/${webhook.id}/comments`)
       .then((res) => setComments(res.data))

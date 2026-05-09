@@ -153,7 +153,7 @@ async function handleHook(req: express.Request, res: express.Response, next: exp
 
     if (!isDropped) {
       // Socket.IO broadcast to project room
-      io.to(project.id).emit('webhook', { ...webhook, path: webhookPath });
+      io.to(project.id).emit('webhook', { ...webhook, path: webhookPath, _count: { comments: 0 } });
 
       // Broadcast to WebSocket clients (CLI)
       const connections = wsConnections.get(slug);
