@@ -196,7 +196,7 @@ export default function WebhookDetail({
       {showReplay && (
         <div className="p-4 border-b border-slate-800 bg-emerald-500/5 space-y-3">
           {/* Replay tabs */}
-          <div className="flex border-b border-slate-700/50">
+          <div className="flex flex-wrap border-b border-slate-700/50">
             {([
               { id: 'url' as const, label: 'URL', icon: Globe },
               { id: 'headers' as const, label: 'Headers', icon: Code },
@@ -443,7 +443,7 @@ export default function WebhookDetail({
         </div>
       )}
 
-      <div className="flex border-b border-slate-800">
+      <div className="flex flex-wrap border-b border-slate-800">
         {(['overview', 'headers', 'body', 'comments'] as const).map((tab) => (
           <button
             key={tab}
@@ -543,7 +543,7 @@ export default function WebhookDetail({
             ) : (
               <>
                 {/* Add comment */}
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={commentText}
@@ -624,7 +624,7 @@ export default function WebhookDetail({
 
                         {/* Reply input */}
                         {replyingTo === comment.id && (
-                          <div className="flex gap-2 mt-2">
+                          <div className="flex flex-col sm:flex-row gap-2 mt-2">
                             <input
                               type="text"
                               value={replyText}

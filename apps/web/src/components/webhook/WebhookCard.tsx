@@ -128,7 +128,7 @@ export default function WebhookCard({
   return (
     <div className={`rounded-lg border transition-all ${selected ? 'bg-emerald-500/5 border-emerald-500/30' : isCompareSelected ? 'bg-amber-500/5 border-amber-500/30' : 'bg-slate-800/50 border-slate-800 hover:border-slate-700'}`}>
       <button onClick={onClick} className="w-full text-left p-4">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
           <span className={`px-2 py-0.5 rounded text-xs font-mono font-semibold border ${methodColor(webhook.method)}`}>{webhook.method}</span>
           {webhook.statusCode && <span className={`w-2 h-2 rounded-full ${statusColor(webhook.statusCode)}`} />}
           {webhook.isReplay && <span className="text-xs text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">REPLAY</span>}
@@ -139,9 +139,9 @@ export default function WebhookCard({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-400">
-          <span>{webhook.source || 'custom'}</span><span>•</span><span>{formatBytes(bodySize)}</span><span>•</span><span className="font-mono">{webhook.ip}</span>
-          {webhook.statusCode && <><span>•</span><span className={`font-mono ${webhook.statusCode >= 200 && webhook.statusCode < 300 ? 'text-emerald-400' : webhook.statusCode >= 400 ? 'text-red-400' : 'text-amber-400'}`}>{webhook.statusCode}</span></>}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+          <span>{webhook.source || 'custom'}</span><span className="hidden sm:inline">•</span><span>{formatBytes(bodySize)}</span><span className="hidden sm:inline">•</span><span className="font-mono">{webhook.ip}</span>
+          {webhook.statusCode && <><span className="hidden sm:inline">•</span><span className={`font-mono ${webhook.statusCode >= 200 && webhook.statusCode < 300 ? 'text-emerald-400' : webhook.statusCode >= 400 ? 'text-red-400' : 'text-amber-400'}`}>{webhook.statusCode}</span></>}
           {commentCount > 0 && (
             <span className="flex items-center gap-1 text-xs font-bold text-white bg-sky-500 px-2 py-0.5 rounded-full shadow-sm shadow-sky-500/20">
               <MessageSquare className="w-3.5 h-3.5 fill-white/20" />{commentCount}
@@ -155,7 +155,7 @@ export default function WebhookCard({
 
       {expanded && (
         <div className="border-t border-slate-800">
-          <div className="flex border-b border-slate-800">
+          <div className="flex flex-wrap border-b border-slate-800">
             {(
               [{id:'overview',label:'Overview'},{id:'headers',label:'Headers'},{id:'body',label:'Body'},{id:'query',label:'Query'},{id:'comments',label:`Comments${commentCount > 0 ? ` (${commentCount})` : ''}`},...(canReplay?[{id:'replay',label:'Replay'}]:[{id:undefined,label:''}].filter(()=>false))] as {id:'overview'|'headers'|'body'|'query'|'comments'|'replay';label:string}[]
             ).map(t => (
@@ -240,7 +240,7 @@ export default function WebhookCard({
                 </div>
 
                 {/* Replay sub-tabs */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {([
                     {id:'url' as const, label:'Target URL', icon:Globe, color:'text-emerald-400', bg:'bg-emerald-500/10', border:'border-emerald-500/20'},
                     {id:'headers' as const, label:'Headers', icon:Hash, color:'text-sky-400', bg:'bg-sky-500/10', border:'border-sky-500/20'},

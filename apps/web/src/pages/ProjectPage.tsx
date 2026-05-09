@@ -273,7 +273,7 @@ export default function ProjectPage() {
     <div className="h-full flex flex-col">
       {/* Project Header */}
       <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 mb-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             {editingName ? (
               <div className="space-y-2">
@@ -329,8 +329,8 @@ export default function ProjectPage() {
               </div>
             )}
           </div>
-          <div className="flex items-start gap-3">
-            <div className="text-right shrink-0">
+          <div className="flex items-start gap-3 w-full sm:w-auto">
+            <div className="text-left sm:text-right shrink-0 ml-auto sm:ml-0">
               <p className="text-xs text-slate-500 uppercase tracking-wider">Webhooks this month</p>
               <p className="text-xl font-bold text-white">{project?.webhookCount || 0}</p>
               {project?.historyLimitDays && (
@@ -358,17 +358,17 @@ export default function ProjectPage() {
             <label className="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">
               Your Webhook URL — paste this into Stripe, GitHub, etc.
             </label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 flex items-center gap-3 min-w-0">
                 <SatelliteDish className="w-4 h-4 text-emerald-400 shrink-0" />
                 <code className="text-sm text-emerald-400 font-mono truncate">{project.webhookUrl}</code>
               </div>
               <button
                 onClick={copyUrl}
-                className="shrink-0 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                className="shrink-0 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
               >
                 {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                {copied ? 'Copied' : 'Copy'}
+                <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
           </div>
@@ -407,11 +407,11 @@ export default function ProjectPage() {
 
           {showAlertForm && (
             <div className="bg-slate-800 rounded-lg p-3 mb-2 space-y-2">
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={alertType}
                   onChange={(e) => setAlertType(e.target.value as 'slack' | 'discord' | 'telegram')}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm shrink-0"
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm shrink-0 w-full sm:w-auto"
                 >
                   <option value="slack">Slack</option>
                   <option value="discord">Discord</option>
@@ -465,8 +465,8 @@ export default function ProjectPage() {
 
           <div className="space-y-1.5">
             {alerts.map((alert) => (
-              <div key={alert.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg px-3 py-2">
-                <div className="flex items-center gap-2">
+              <div key={alert.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-800/50 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 min-w-0">
                   {alert.type === 'slack' && <MessageSquare className="w-4 h-4 text-purple-400" />}
                   {alert.type === 'discord' && <MessageSquare className="w-4 h-4 text-indigo-400" />}
                   {alert.type === 'telegram' && <Send className="w-4 h-4 text-sky-400" />}
@@ -506,17 +506,17 @@ export default function ProjectPage() {
         {/* Custom Slug */}
         <div className="mt-3 pt-3 border-t border-slate-800">
           {editingSlug ? (
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <Globe className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span className="text-sm text-slate-400">{window.location.origin}/hook/</span>
+                  <span className="text-sm text-slate-400 truncate">{window.location.origin}/hook/</span>
                   <input
                     type="text"
                     value={customSlugInput}
                     onChange={(e) => setCustomSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                     placeholder="my-company"
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-emerald-500 font-mono"
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-emerald-500 font-mono min-w-0"
                     autoFocus
                   />
                 </div>
@@ -537,7 +537,7 @@ export default function ProjectPage() {
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-slate-500" />
                 <span className="text-sm text-slate-400">Custom subdomain:</span>
@@ -574,8 +574,8 @@ export default function ProjectPage() {
       </div>
 
       {/* Webhook Feed */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl font-bold text-white">Webhook Feed</h2>
           {project?.historyLimitDays && (
             <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
@@ -591,7 +591,7 @@ export default function ProjectPage() {
             {pagination.total > 0 ? `${filtered.length} from ${pagination.total}` : `${filtered.length} webhooks`}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {compareMode && (
             <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded-full animate-pulse">
               Select 2 webhooks to compare
@@ -683,8 +683,8 @@ export default function ProjectPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex gap-4 min-h-0">
-        <div className="flex-1 overflow-auto">
+      <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0 relative">
+        <div className={`flex-1 overflow-auto ${selectedWebhook ? 'hidden md:block' : ''}`}>
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-6 h-6 text-emerald-400 animate-spin" />
@@ -728,29 +728,31 @@ export default function ProjectPage() {
         </div>
 
         {selectedWebhook && (
-          <WebhookDetail
-            webhook={selectedWebhook}
-            onClose={() => setSelectedWebhook(null)}
-            onDelete={(id) => { deleteWebhook(id); setSelectedWebhook(null); }}
-            onReplay={async (id, url) => {
-              try {
-                await replayWebhook(id, url);
-              } catch (err: any) {
-                toast.error(err.message || 'Replay failed');
-              }
-            }}
-            onCommentChange={(webhookId, delta) => {
-              setWebhooks?.((prev: any) =>
-                prev.map((w: any) =>
-                  w.id === webhookId
-                    ? { ...w, _count: { ...w._count, comments: Math.max(0, (w._count?.comments || 0) + delta) } }
-                    : w
-                )
-              );
-            }}
-            canReplay={canReplay}
-            isTeamProject={isTeamProject}
-          />
+          <div className="absolute inset-0 z-40 md:static md:z-auto">
+            <WebhookDetail
+              webhook={selectedWebhook}
+              onClose={() => setSelectedWebhook(null)}
+              onDelete={(id) => { deleteWebhook(id); setSelectedWebhook(null); }}
+              onReplay={async (id, url) => {
+                try {
+                  await replayWebhook(id, url);
+                } catch (err: any) {
+                  toast.error(err.message || 'Replay failed');
+                }
+              }}
+              onCommentChange={(webhookId, delta) => {
+                setWebhooks?.((prev: any) =>
+                  prev.map((w: any) =>
+                    w.id === webhookId
+                      ? { ...w, _count: { ...w._count, comments: Math.max(0, (w._count?.comments || 0) + delta) } }
+                      : w
+                  )
+                );
+              }}
+              canReplay={canReplay}
+              isTeamProject={isTeamProject}
+            />
+          </div>
         )}
       </div>
 
