@@ -242,7 +242,7 @@ export default function HookShieldPage() {
   }, [pollInterval]);
 
   const plan = user?.plan || 'FREE';
-  const scanLimit = plan === 'FREE' ? 50 : plan === 'PRO' ? 500 : 2000;
+  const scanLimit = plan === 'FREE' ? 30 : plan === 'PRO' ? 500 : 2000;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">

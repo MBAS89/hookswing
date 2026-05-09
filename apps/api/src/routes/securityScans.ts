@@ -12,7 +12,7 @@ router.use(apiRateLimit);
 
 // Rate limit config per plan
 const SCAN_LIMITS = {
-  FREE: { perHour: 5, perMonth: 50 },
+  FREE: { perHour: 5, perMonth: 30 },
   PRO: { perHour: 30, perMonth: 500 },
   TEAM: { perHour: 100, perMonth: 2000 },
 };
