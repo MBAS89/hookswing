@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Trash2, Laptop, GitCompare, SatelliteDish, Search, Repeat,
   Terminal, Users, MessageSquare, Check, ChevronDown, ChevronUp,
-  Menu, X, Github, Globe, LayoutDashboard, LogOut, User, Zap
+  Menu, X, Github, Globe, LayoutDashboard, LogOut, User, Zap,
+  ArrowRight, Copy
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
@@ -137,19 +138,25 @@ function Hero() {
               <div className="w-3 h-3 rounded-full bg-red-500" />
               <div className="w-3 h-3 rounded-full bg-amber-500" />
               <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span className="ml-2 text-xs text-slate-400 font-mono">hookswing forward abc123 3000</span>
+              <span className="ml-2 text-xs text-slate-400 font-mono">hookswing forward project-1 3000</span>
             </div>
             <div className="p-6 font-mono text-sm text-left space-y-2">
-              <div className="text-slate-400">🪝 HookSwing Forwarder</div>
-              <div className="text-slate-400">   Project: My SaaS (abc123)</div>
-              <div className="text-slate-400">   Target:  http://localhost:3000/webhook</div>
-              <div className="text-slate-500 mt-4">   [Press Ctrl+C to stop]</div>
+              <div className="text-slate-400">  _    _               ____                  _     </div>
+              <div className="text-slate-400"> | |  | |             / ___| _   _ ___  __ _| |    </div>
+              <div className="text-slate-400"> | |__| | _____      _\___ \| | | / __|/ _\` | |    </div>
+              <div className="text-slate-400"> |  __  |/ _ \ \ /\ / /___) | |_| \__ \ (_| | |    </div>
+              <div className="text-slate-400">{' | |  | | (_) \ V  V //___ \>  _ <| |_) \__,_| |    '}</div>
+              <div className="text-slate-400"> |_|  |_|\___/ \_/\_/ \____/_| \_\ .__/ \__, |_|    </div>
+              <div className="text-slate-400">                                 |_|    |___/      </div>
+              <div className="text-slate-400">   Target: http://localhost:3000</div>
+              <div className="text-slate-400">   Project: My SaaS (project-1)</div>
+              <div className="text-slate-500 mt-4">   Session: 00:00:00  |  Requests: 0 / 500 ░░░░░░░░░░</div>
               <div className="mt-4 space-y-1">
-                <div className="text-emerald-400">[03:17:42] POST  200  1.2KB  45ms  stripe:invoice.payment_succeeded</div>
-                <div className="text-red-400">[03:18:15] POST  500  0.8KB  12ms  github:push  ⚠️ Server Error</div>
-                <div className="text-emerald-400">[03:20:01] POST  200  2.4KB  89ms  custom:paygate_callback</div>
+                <div className="text-emerald-400">[03:17:42] POST   /api/stripe/webhook    200   (stripe)</div>
+                <div className="text-emerald-400">[03:18:15] POST   /api/paypal/webhook    200   (paypal)</div>
+                <div className="text-emerald-400">[03:18:22] POST   /api/stripe/webhook    200   (stripe)</div>
+                <div className="text-emerald-400">[03:19:01] POST   /api/paypal/webhook    200   (paypal)</div>
               </div>
-              <div className="text-slate-500 mt-4">Requests: 3  │  Success: 2  │  Failed: 1</div>
             </div>
           </div>
         </div>
@@ -282,6 +289,198 @@ function SolutionSection() {
               <p className="text-slate-400 leading-relaxed">{f.body}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PathPreservationDemo() {
+  const [copied, setCopied] = useState(false);
+  const hookUrl = 'https://hookswing.com/hook/project-1';
+
+  const copyUrl = () => {
+    navigator.clipboard.writeText(hookUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <section className="py-24 bg-slate-900/50 border-y border-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            One URL. Every Service. Your Localhost.
+          </h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            With HookSwing, everything is easy. Point Stripe, PayPal, GitHub — whatever you use — to a single URL. We preserve the path and forward it straight to your local server.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
+          {/* Left: Step-by-step flow */}
+          <div className="space-y-8">
+            {/* Step 1 */}
+            <div className="flex gap-4">
+              <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400 font-bold shrink-0">1</div>
+              <div>
+                <h3 className="text-white font-semibold mb-2">Copy your HookSwing URL</h3>
+                <div className="bg-slate-900 rounded-lg border border-slate-700 p-3 flex items-center gap-3">
+                  <code className="text-emerald-400 text-sm font-mono">{hookUrl}</code>
+                  <button
+                    onClick={copyUrl}
+                    className="ml-auto p-1.5 hover:bg-slate-800 rounded transition-colors"
+                    title="Copy URL"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-500" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="flex justify-center">
+              <ArrowRight className="w-5 h-5 text-slate-600 rotate-90 lg:rotate-0" />
+            </div>
+
+            {/* Step 2 */}
+            <div className="flex gap-4">
+              <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400 font-bold shrink-0">2</div>
+              <div className="flex-1">
+                <h3 className="text-white font-semibold mb-3">Paste it into your services</h3>
+                <div className="space-y-3">
+                  {/* Stripe */}
+                  <div className="bg-slate-900 rounded-lg border border-slate-700 p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center text-xs font-bold text-white">S</div>
+                      <span className="text-white font-medium">Stripe Dashboard</span>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Webhook URL:</span>
+                        <code className="text-emerald-400 font-mono">{hookUrl}</code>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Forwards to:</span>
+                        <code className="text-blue-400 font-mono">localhost:3000/api/stripe/webhook</code>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PayPal */}
+                  <div className="bg-slate-900 rounded-lg border border-slate-700 p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center text-xs font-bold text-white">P</div>
+                      <span className="text-white font-medium">PayPal Developer</span>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Webhook URL:</span>
+                        <code className="text-emerald-400 font-mono">{hookUrl}</code>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Forwards to:</span>
+                        <code className="text-blue-400 font-mono">localhost:3000/api/paypal/webhook</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="flex justify-center">
+              <ArrowRight className="w-5 h-5 text-slate-600 rotate-90 lg:rotate-0" />
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex gap-4">
+              <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400 font-bold shrink-0">3</div>
+              <div>
+                <h3 className="text-white font-semibold mb-2">Run one command</h3>
+                <div className="bg-slate-900 rounded-lg border border-slate-700 p-3">
+                  <code className="text-emerald-400 text-sm font-mono">hookswing forward project-1 3000</code>
+                </div>
+                <p className="text-slate-500 text-sm mt-2">That's it. Any port number works — 3000, 8080, 1337, whatever you use.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Terminal output */}
+          <div className="lg:sticky lg:top-24">
+            <div className="bg-slate-950 rounded-xl border border-slate-700 overflow-hidden font-mono text-sm shadow-2xl">
+              <div className="flex items-center gap-2 px-4 py-3 bg-slate-900 border-b border-slate-700">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <span className="ml-2 text-xs text-slate-500 font-mono">hookswing forward project-1 3000</span>
+              </div>
+              <div className="p-5 space-y-1 text-slate-300">
+                <div className="text-slate-500">  _    _               ____                  _     </div>
+                <div className="text-slate-500"> | |  | |             / ___| _   _ ___  __ _| |    </div>
+                <div className="text-slate-500"> | |__| | _____      _\___ \| | | / __|/ _\` | |    </div>
+                <div className="text-slate-500"> |  __  |/ _ \ \ /\ / /___) | |_| \__ \ (_| | |    </div>
+                <div className="text-slate-500">{' | |  | | (_) \ V  V //___ \>  _ <| |_) \__,_| |    '}</div>
+                <div className="text-slate-500"> |_|  |_|\___/ \_/\_/ \____/_| \_\ .__/ \__, |_|    </div>
+                <div className="text-slate-500">                                 |_|    |___/      </div>
+                <div className="text-slate-400 mt-3">  Target: http://localhost:3000</div>
+                <div className="text-slate-400">  Project: My SaaS (project-1)</div>
+                <div className="text-slate-500 mt-2">  Session: 00:12:34  |  Requests: 7 / 500 █░░░░░░░░░</div>
+                <div className="text-slate-500 mt-1">  [Press Ctrl+C to stop]</div>
+                <div className="mt-4 space-y-1.5">
+                  <div>
+                    <span className="text-slate-600">[14:32:10]</span>{' '}
+                    <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
+                    <span className="text-slate-400">/api/paypal/webhook</span>{' '}
+                    <span className="text-emerald-400">200</span>{' '}
+                    <span className="text-slate-600">(paypal)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">[14:32:15]</span>{' '}
+                    <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
+                    <span className="text-slate-400">/api/paypal/webhook</span>{' '}
+                    <span className="text-emerald-400">200</span>{' '}
+                    <span className="text-slate-600">(paypal)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">[14:32:22]</span>{' '}
+                    <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
+                    <span className="text-slate-400">/api/paypal/webhook</span>{' '}
+                    <span className="text-emerald-400">200</span>{' '}
+                    <span className="text-slate-600">(paypal)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">[14:33:01]</span>{' '}
+                    <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
+                    <span className="text-slate-400">/api/stripe/webhook</span>{' '}
+                    <span className="text-emerald-400">200</span>{' '}
+                    <span className="text-slate-600">(stripe)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">[14:33:08]</span>{' '}
+                    <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
+                    <span className="text-slate-400">/api/stripe/webhook</span>{' '}
+                    <span className="text-emerald-400">200</span>{' '}
+                    <span className="text-slate-600">(stripe)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">[14:33:15]</span>{' '}
+                    <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
+                    <span className="text-slate-400">/api/stripe/webhook</span>{' '}
+                    <span className="text-emerald-400">200</span>{' '}
+                    <span className="text-slate-600">(stripe)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-600">[14:34:02]</span>{' '}
+                    <span className="bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded text-xs font-bold">POST</span>{' '}
+                    <span className="text-slate-400">/api/stripe/webhook</span>{' '}
+                    <span className="text-emerald-400">200</span>{' '}
+                    <span className="text-slate-600">(stripe)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -703,6 +902,7 @@ export default function LandingPage() {
       <LogoBar />
       <ProblemSection />
       <SolutionSection />
+      <PathPreservationDemo />
       <DeepDiveSection />
       <HowItWorks />
       <PricingSection />
