@@ -159,6 +159,7 @@ export default function TeamPage() {
       setTransferTeam(null);
       setTransferUserId('');
       fetchTeams();
+      await refreshUser();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to transfer ownership');
     }
@@ -183,6 +184,7 @@ export default function TeamPage() {
       setMyInvites((prev) => prev.filter((i) => i.token !== token));
       fetchTeams();
       await refreshUser();
+      window.dispatchEvent(new CustomEvent('refresh-projects'));
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to accept invite');
     }
@@ -409,10 +411,10 @@ export default function TeamPage() {
                         >
                           <option value="">Select member...</option>
                           {team.members
-                            .filter((m) => m.role === 'ADMIN' && m.user.id !== user?.id)
+                            .filter((m) => m.user.id !== team.ownerId)
                             .map((m) => (
                               <option key={m.user.id} value={m.user.id}>
-                                {m.user.name || m.user.email}
+                                {m.user.name || m.user.email} {m.role === 'ADMIN' ? '(Admin)' : '(Member)'}
                               </option>
                             ))}
                         </select>

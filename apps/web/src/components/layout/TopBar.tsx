@@ -112,6 +112,7 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
       await api.post(`/teams/invites/${token}/accept`);
       await markRead(notifId);
       await refreshUser();
+      window.dispatchEvent(new CustomEvent('refresh-projects'));
       refresh();
     } catch (e) {
       // silent

@@ -31,6 +31,12 @@ export function useProjects() {
     fetchProjects();
   }, [fetchProjects]);
 
+  useEffect(() => {
+    const handler = () => fetchProjects();
+    window.addEventListener('refresh-projects', handler);
+    return () => window.removeEventListener('refresh-projects', handler);
+  }, [fetchProjects]);
+
   const createProject = useCallback(async (name: string, description?: string, teamId?: string) => {
     const res = await api.post('/projects', { name, description, teamId });
     setProjects((prev) => [res.data, ...prev]);
