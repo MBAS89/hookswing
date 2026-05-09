@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import axios from 'axios';
 import { prisma } from '../lib/prisma';
 import { stripe } from '../lib/stripe';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
@@ -167,11 +168,27 @@ router.patch('/users/:id/plan', async (req: AuthRequest, res) => {
     return res.status(400).json({ error: 'Invalid plan' });
   }
 
+  const previous = await prisma.user.findUnique({
+    where: { id: req.params.id },
+    select: { plan: true, email: true },
+  });
+
   const updated = await prisma.user.update({
     where: { id: req.params.id },
     data: { plan: result.data.plan },
     select: { id: true, email: true, name: true, plan: true },
   });
+
+  if (previous && previous.plan !== result.data.plan) {
+    const { fireAdminAlert } = await import('../lib/adminAlerts');
+    fireAdminAlert('plan_changed_by_admin', {
+      email: updated.email,
+      name: updated.name,
+      plan: updated.plan,
+      previousPlan: previous.plan,
+      adminEmail: req.user!.email,
+    }).catch(() => {});
+  }
 
   res.json(updated);
 });
@@ -381,6 +398,123 @@ router.get('/revenue', async (req: AuthRequest, res) => {
     revenueByMonth,
     stripeSubscriptions,
   });
+});
+
+// ── Admin Alert Configs ──
+router.get('/alerts', async (_req: AuthRequest, res) => {
+  const alerts = await prisma.adminAlertConfig.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ alerts });
+});
+
+router.post('/alerts', async (req: AuthRequest, res) => {
+  const schema = z.object({
+    type: z.literal('telegram'),
+    botToken: z.string().min(1),
+    chatId: z.string().min(1),
+    events: z.array(z.string()).min(1),
+  });
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const { botToken, chatId, events } = result.data;
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+  const alert = await prisma.adminAlertConfig.create({
+    data: {
+      type: 'telegram',
+      url,
+      config: { botToken, chatId },
+      events,
+    },
+  });
+
+  res.json({ alert });
+});
+
+router.patch('/alerts/:id', async (req: AuthRequest, res) => {
+  const schema = z.object({
+    enabled: z.boolean().optional(),
+    events: z.array(z.string()).optional(),
+    botToken: z.string().min(1).optional(),
+    chatId: z.string().min(1).optional(),
+  });
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid input' });
+  }
+
+  const existing = await prisma.adminAlertConfig.findUnique({
+    where: { id: req.params.id },
+  });
+  if (!existing) {
+    return res.status(404).json({ error: 'Alert not found' });
+  }
+
+  const update: any = {};
+  if (result.data.enabled !== undefined) update.enabled = result.data.enabled;
+  if (result.data.events !== undefined) update.events = result.data.events;
+
+  if (result.data.botToken || result.data.chatId) {
+    const cfg = (existing.config || {}) as any;
+    const botToken = result.data.botToken || cfg.botToken;
+    const chatId = result.data.chatId || cfg.chatId;
+    if (botToken) {
+      update.url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      update.config = { ...cfg, botToken, chatId };
+    }
+  }
+
+  const alert = await prisma.adminAlertConfig.update({
+    where: { id: req.params.id },
+    data: update,
+  });
+
+  res.json({ alert });
+});
+
+router.delete('/alerts/:id', async (req: AuthRequest, res) => {
+  await prisma.adminAlertConfig.delete({
+    where: { id: req.params.id },
+  });
+  res.json({ success: true });
+});
+
+// ── Test Admin Alert ──
+router.post('/alerts/:id/test', async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const config = await prisma.adminAlertConfig.findUnique({ where: { id } });
+  if (!config) {
+    return res.status(404).json({ error: 'Alert not found' });
+  }
+
+  try {
+    const cfg = (config.config || {}) as { chatId?: string; botToken?: string };
+    if (!cfg.chatId || !config.url) {
+      return res.status(400).json({ error: 'Missing chat ID or bot token' });
+    }
+
+    await axios.post(
+      config.url,
+      {
+        chat_id: cfg.chatId,
+        text: '<b>🧪 HookSwing Admin Alert Test</b>\n\nThis is a test message from your admin dashboard. If you see this, your alert is configured correctly!',
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+      },
+      { timeout: 5000 }
+    );
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[AdminAlert] Test failed:', err.message);
+    res.status(500).json({ error: 'Failed to send test message. Check your bot token and chat ID.' });
+  }
 });
 
 export default router;

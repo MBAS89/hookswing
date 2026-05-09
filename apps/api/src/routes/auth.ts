@@ -17,6 +17,7 @@ import {
   testSmtpConnection,
 } from '../services/emailService';
 import { seedDefaultPreferences } from '../lib/notification';
+import { fireAdminAlert } from '../lib/adminAlerts';
 
 const router = Router();
 
@@ -392,6 +393,7 @@ router.get('/github/callback', async (req, res) => {
         });
         await seedDefaultPreferences(user.id);
         console.log('[GitHub OAuth] New user created:', user.id);
+        fireAdminAlert('user_registered', { userId: user.id, email: user.email, name: user.name }).catch(() => {});
       }
     }
   } catch (err: any) {
@@ -461,6 +463,8 @@ router.post('/register', authRateLimit, async (req, res) => {
     data: { email, passwordHash, name },
     select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, githubId: true },
   });
+
+  fireAdminAlert('user_registered', { userId: user.id, email: user.email, name: user.name }).catch(() => {});
 
   // Send verification email (await with 12s timeout so user knows if it fails)
   const otp = generateOTP();

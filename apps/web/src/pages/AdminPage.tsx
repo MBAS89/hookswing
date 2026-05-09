@@ -6,7 +6,8 @@ import {
   LayoutDashboard, Users, CreditCard, FolderGit2, Radio, Users2,
   Search, Loader2, Crown, ChevronLeft, ChevronRight,
   Shield, TrendingUp, Activity, DollarSign, BarChart3, Globe,
-  XCircle, AlertTriangle,
+  XCircle, AlertTriangle, Bell, Send, Trash2, ToggleLeft, ToggleRight,
+  Check, Loader2 as LoaderIcon,
 } from 'lucide-react';
 import { methodColor } from '../lib/utils';
 import {
@@ -29,7 +30,7 @@ const STATUS_BADGES: Record<string, string> = {
 export default function AdminPage() {
   const { user } = useAuth();
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'subscriptions' | 'projects' | 'webhooks' | 'teams'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'subscriptions' | 'projects' | 'webhooks' | 'teams' | 'alerts'>('overview');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
 
@@ -66,6 +67,7 @@ export default function AdminPage() {
     { key: 'projects' as const, label: 'Projects', icon: FolderGit2 },
     { key: 'webhooks' as const, label: 'Webhooks', icon: Radio },
     { key: 'teams' as const, label: 'Teams', icon: Users2 },
+    { key: 'alerts' as const, label: 'Alerts', icon: Bell },
   ];
 
   return (
@@ -109,6 +111,7 @@ export default function AdminPage() {
         {activeTab === 'projects' && <ProjectsTab />}
         {activeTab === 'webhooks' && <WebhooksTab />}
         {activeTab === 'teams' && <TeamsTab />}
+        {activeTab === 'alerts' && <AlertsTab />}
       </div>
     </div>
   );
@@ -823,6 +826,255 @@ function TeamsTab() {
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
           <span className="text-sm text-slate-400">{page} / {pagination.totalPages}</span>
           <button onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ── Alerts Tab ──
+const ADMIN_ALERT_EVENT_OPTIONS = [
+  { value: 'user_registered', label: '👤 New User Registered' },
+  { value: 'subscription_created', label: '💳 New Subscription' },
+  { value: 'subscription_updated', label: '🔄 Subscription Updated' },
+  { value: 'subscription_cancelled', label: '❌ Subscription Cancelled' },
+  { value: 'payment_failed', label: '⚠️ Payment Failed' },
+  { value: 'payment_succeeded', label: '✅ Payment Succeeded' },
+  { value: 'plan_changed_by_admin', label: '🔧 Plan Changed by Admin' },
+];
+
+function AlertsTab() {
+  const toast = useToast();
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [botToken, setBotToken] = useState('');
+  const [chatId, setChatId] = useState('');
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState<string | null>(null);
+
+  const fetchAlerts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/alerts');
+      setAlerts(res.data.alerts || []);
+    } catch {
+      toast.error('Failed to load admin alerts');
+      setAlerts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
+
+  const toggleEvent = (event: string) => {
+    setSelectedEvents((prev) =>
+      prev.includes(event) ? prev.filter((e) => e !== event) : [...prev, event]
+    );
+  };
+
+  const addAlert = async () => {
+    if (!botToken.trim() || !chatId.trim() || selectedEvents.length === 0) {
+      toast.error('Bot token, chat ID, and at least one event are required');
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post('/admin/alerts', {
+        type: 'telegram',
+        botToken: botToken.trim(),
+        chatId: chatId.trim(),
+        events: selectedEvents,
+      });
+      toast.success('Admin alert created');
+      setBotToken('');
+      setChatId('');
+      setSelectedEvents([]);
+      setShowForm(false);
+      fetchAlerts();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to create alert');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleAlert = async (id: string, enabled: boolean) => {
+    try {
+      await api.patch(`/admin/alerts/${id}`, { enabled: !enabled });
+      setAlerts((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, enabled: !enabled } : a))
+      );
+      toast.success(enabled ? 'Alert disabled' : 'Alert enabled');
+    } catch {
+      toast.error('Failed to toggle alert');
+    }
+  };
+
+  const deleteAlert = async (id: string) => {
+    try {
+      await api.delete(`/admin/alerts/${id}`);
+      setAlerts((prev) => prev.filter((a) => a.id !== id));
+      toast.success('Alert deleted');
+    } catch {
+      toast.error('Failed to delete alert');
+    }
+  };
+
+  const testAlert = async (id: string) => {
+    setTesting(id);
+    try {
+      await api.post(`/admin/alerts/${id}/test`);
+      toast.success('Test message sent!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Test failed');
+    } finally {
+      setTesting(null);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-white">Admin Alerts</h3>
+          <p className="text-xs text-slate-500">Get notified on Telegram when platform events occur</p>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm font-medium transition-colors"
+        >
+          {showForm ? <XCircle className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+          {showForm ? 'Cancel' : 'Add Alert'}
+        </button>
+      </div>
+
+      {/* Add Form */}
+      {showForm && (
+        <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 space-y-4">
+          <h4 className="text-sm font-semibold text-white">New Telegram Alert</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">Bot Token</label>
+              <input
+                type="text"
+                value={botToken}
+                onChange={(e) => setBotToken(e.target.value)}
+                placeholder="123456:ABC-DEF..."
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 block mb-1">Chat ID</label>
+              <input
+                type="text"
+                value={chatId}
+                onChange={(e) => setChatId(e.target.value)}
+                placeholder="-1001234567890"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 block mb-2">Events to notify</label>
+            <div className="flex flex-wrap gap-2">
+              {ADMIN_ALERT_EVENT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => toggleEvent(opt.value)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                    selectedEvents.includes(opt.value)
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-300'
+                  }`}
+                >
+                  {selectedEvents.includes(opt.value) && <Check className="w-3 h-3" />}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={addAlert}
+              disabled={saving}
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+            >
+              {saving ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              Create Alert
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Alert List */}
+      {loading ? (
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+        </div>
+      ) : alerts.length === 0 ? (
+        <div className="text-center py-12 text-slate-500">
+          <Bell className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">No admin alerts configured</p>
+          <p className="text-xs mt-1">Add one to get notified on platform events</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {alerts.map((alert) => {
+            const cfg = (alert.config || {}) as { chatId?: string; botToken?: string };
+            return (
+              <div key={alert.id} className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                        Telegram
+                      </span>
+                      <span className="text-xs text-slate-500">Chat: <code className="text-slate-400">{cfg.chatId}</code></span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {alert.events.map((e: string) => {
+                        const opt = ADMIN_ALERT_EVENT_OPTIONS.find((o) => o.value === e);
+                        return (
+                          <span key={e} className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
+                            {opt?.label || e}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => testAlert(alert.id)}
+                      disabled={testing === alert.id}
+                      className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {testing === alert.id ? <LoaderIcon className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                      Test
+                    </button>
+                    <button
+                      onClick={() => toggleAlert(alert.id, alert.enabled)}
+                      className="text-slate-400 hover:text-white transition-colors"
+                      title={alert.enabled ? 'Disable' : 'Enable'}
+                    >
+                      {alert.enabled ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-5 h-5" />}
+                    </button>
+                    <button
+                      onClick={() => deleteAlert(alert.id)}
+                      className="text-slate-500 hover:text-red-400 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

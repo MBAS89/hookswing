@@ -146,6 +146,11 @@ export function useNotifications() {
     };
   }, []);
 
+  // Refresh both notifications and preferences
+  const refresh = useCallback(async () => {
+    await Promise.all([fetchNotifications(), fetchPreferences()]);
+  }, [fetchNotifications, fetchPreferences]);
+
   // Initial fetch
   useEffect(() => {
     fetchNotifications();
@@ -161,6 +166,6 @@ export function useNotifications() {
     markAllRead,
     deleteNotification,
     updatePreference,
-    refresh: fetchNotifications,
+    refresh,
   };
 }

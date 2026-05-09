@@ -323,3 +323,16 @@ model StripeEvent {
 
   @@map("stripe_events")
 }
+
+model AdminAlertConfig {
+  id        String   @id @default(cuid())
+  type      String   // 'telegram'
+  url       String
+  config    Json?    // { chatId, botToken }
+  enabled   Boolean  @default(true) @map("enabled")
+  events    String[] // e.g. ['user_registered', 'subscription_created']
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admin_alert_configs")
+}

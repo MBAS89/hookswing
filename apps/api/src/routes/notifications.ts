@@ -74,12 +74,12 @@ router.get('/preferences', async (req: AuthRequest, res) => {
   const prefs = await prisma.notificationPreference.findMany({
     where: { userId: req.user!.id },
   });
-  res.json(
-    prefs.map((p) => ({
+  res.json({
+    preferences: prefs.map((p) => ({
       ...p,
       label: notificationTypeLabels[p.type as keyof typeof notificationTypeLabels] || p.type,
-    }))
-  );
+    })),
+  });
 });
 
 // --- Update preferences ---

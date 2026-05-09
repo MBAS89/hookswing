@@ -111,6 +111,7 @@ export default function WebhookDetail({
         setComments((prev) => [...prev, res.data]);
         setCommentText('');
       }
+      onCommentChange?.(webhook.id, 1);
     } catch {
       toast.error('Failed to add comment');
     } finally {
