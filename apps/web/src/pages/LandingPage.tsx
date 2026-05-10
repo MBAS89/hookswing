@@ -378,13 +378,13 @@ function PathPreservationDemo() {
                       <span className="text-white font-medium">Stripe Dashboard</span>
                     </div>
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Webhook URL:</span>
-                        <code className="text-emerald-400 font-mono">{hookUrl}</code>
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span className="text-slate-500 shrink-0">Webhook URL:</span>
+                        <code className="text-emerald-400 font-mono text-xs sm:text-sm break-all">{hookUrl}</code>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">{t('landing.pathDemo.forwardsTo')}</span>
-                        <code className="text-blue-400 font-mono">localhost:3000/api/stripe/webhook</code>
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span className="text-slate-500 shrink-0">{t('landing.pathDemo.forwardsTo')}</span>
+                        <code className="text-blue-400 font-mono text-xs sm:text-sm break-all">localhost:3000/api/stripe/webhook</code>
                       </div>
                     </div>
                   </div>
@@ -396,13 +396,13 @@ function PathPreservationDemo() {
                       <span className="text-white font-medium">PayPal Developer</span>
                     </div>
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Webhook URL:</span>
-                        <code className="text-emerald-400 font-mono">{hookUrl}</code>
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span className="text-slate-500 shrink-0">Webhook URL:</span>
+                        <code className="text-emerald-400 font-mono text-xs sm:text-sm break-all">{hookUrl}</code>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">{t('landing.pathDemo.forwardsTo')}</span>
-                        <code className="text-blue-400 font-mono">localhost:3000/api/paypal/webhook</code>
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                        <span className="text-slate-500 shrink-0">{t('landing.pathDemo.forwardsTo')}</span>
+                        <code className="text-blue-400 font-mono text-xs sm:text-sm break-all">localhost:3000/api/paypal/webhook</code>
                       </div>
                     </div>
                   </div>
@@ -429,15 +429,15 @@ function PathPreservationDemo() {
           </div>
 
           {/* Right: Terminal output */}
-          <div className="lg:sticky lg:top-24">
-            <div className="bg-slate-950 rounded-xl border border-slate-700 overflow-hidden font-mono text-sm shadow-2xl">
+          <div className="lg:sticky lg:top-24 min-w-0">
+            <div className="bg-slate-950 rounded-xl border border-slate-700 overflow-x-auto font-mono text-xs sm:text-sm shadow-2xl">
               <div className="flex items-center gap-2 px-4 py-3 bg-slate-900 border-b border-slate-700">
                 <div className="w-3 h-3 rounded-full bg-red-500" />
                 <div className="w-3 h-3 rounded-full bg-amber-500" />
                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
                 <span className="ml-2 text-xs text-slate-500 font-mono">hookswing forward project-1 3000</span>
               </div>
-              <div className="p-5 space-y-1 text-slate-300">
+              <div className="p-4 sm:p-5 space-y-1 text-slate-300 min-w-[320px]">
                 <div className="text-emerald-400 font-semibold">🪝 HookSwing Forwarder</div>
                 <div className="text-slate-400 mt-2">  Target: http://localhost:3000</div>
                 <div className="text-slate-400">  Project: My SaaS (project-1)</div>
