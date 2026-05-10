@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && npm run prerender",
+    "build": "tsc && vite build && npx playwright install chromium && npm run prerender",
     "prerender": "tsx scripts/prerender.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
