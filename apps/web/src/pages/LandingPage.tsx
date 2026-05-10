@@ -1192,7 +1192,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-950">
       <SEO
-        title="HookSwing — The Best Webhook Debugger & ngrok Alternative (2025)"
+        title="HookSwing — The Best Webhook Debugger & ngrok Alternative (2026)"
         description="The permanent webhook inbox for developers. Catch any HTTP payload, inspect JSON in real time, replay against localhost, and share with your team. Free plan available."
         keywords="webhook debugger, ngrok alternative, webhook tester, webhook.site alternative, webhook testing, Stripe webhooks, GitHub webhooks"
         canonical="https://hookswing.com"
