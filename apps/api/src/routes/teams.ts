@@ -6,6 +6,7 @@ import { logActivity } from '../lib/activity';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 import { createNotification, notifyTeamAdmins } from '../lib/notification';
+import { decryptWebhooks } from '../lib/encryption';
 
 const router = createSafeRouter();
 
@@ -200,7 +201,7 @@ router.get('/:id/workspace', async (req: AuthRequest, res) => {
     aggregate: {
       totalProjects: team.projects.length,
       totalWebhooks,
-      recentWebhooks,
+      recentWebhooks: decryptWebhooks(recentWebhooks),
     },
   });
 });

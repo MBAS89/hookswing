@@ -25,6 +25,7 @@ import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { setIO, getIO } from './lib/socketio';
 import { createNotification } from './lib/notification';
+import { encryptWebhook, decryptWebhook } from './lib/encryption';
 
 // Request timeout middleware — prevents hanging requests from consuming connections
 const REQUEST_TIMEOUT_MS = 30000;
@@ -134,9 +135,9 @@ async function handleHook(req: express.Request, res: express.Response, next: exp
     const source = inferSource(req.headers);
     const eventType = inferEventType(req.headers, body, source);
 
-    // Store webhook
+    // Store webhook (encrypted at rest)
     const webhook = await prisma.webhook.create({
-      data: {
+      data: encryptWebhook({
         projectId: project.id,
         method: req.method,
         headers: req.headers as any,
@@ -147,15 +148,18 @@ async function handleHook(req: express.Request, res: express.Response, next: exp
         userAgent: req.headers['user-agent'] || null,
         source,
         eventType,
-      },
+      }),
     });
+
+    // Decrypt for real-time broadcasts (clients need plaintext)
+    const decryptedWebhook = decryptWebhook(webhook);
 
     // Compute original request path (after the slug) for CLI forwarding
     const webhookPath = req.params[0] ? `/${req.params[0]}` : '/';
 
     if (!isDropped) {
       // Socket.IO broadcast to project room
-      io.to(project.id).emit('webhook', { ...webhook, path: webhookPath, _count: { comments: 0 } });
+      io.to(project.id).emit('webhook', { ...decryptedWebhook, path: webhookPath, _count: { comments: 0 } });
 
       // Broadcast to WebSocket clients (CLI)
       const connections = wsConnections.get(slug);
@@ -164,12 +168,12 @@ async function handleHook(req: express.Request, res: express.Response, next: exp
         if (active.length > 1) {
           console.log(`[WS] Broadcasting webhook to ${active.length} connections for slug: ${slug}`);
         }
-        const payload = JSON.stringify({ type: 'webhook', data: { ...webhook, path: webhookPath } });
+        const payload = JSON.stringify({ type: 'webhook', data: { ...decryptedWebhook, path: webhookPath } });
         active.forEach((ws) => ws.send(payload));
       }
 
       // Fire alerts (async, don't block response)
-      fireAlerts(project.id, webhook, req.headers['host'] as string);
+      fireAlerts(project.id, decryptedWebhook, req.headers['host'] as string);
 
       // In-app notification for project owner
       const notifyUserId = project.userId || project.team?.ownerId;

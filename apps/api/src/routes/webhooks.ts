@@ -8,6 +8,7 @@ import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
 import { getIO } from '../lib/socketio';
 import { createNotification, notifyTeamMembers } from '../lib/notification';
+import { encryptWebhook, decryptWebhook, decryptWebhooks } from '../lib/encryption';
 
 function getHistoryCutoff(plan: string): Date | null {
   const now = new Date();
@@ -75,7 +76,7 @@ router.get('/projects/:projectId/webhooks', async (req: AuthRequest, res) => {
   ]);
 
   res.json({
-    webhooks,
+    webhooks: decryptWebhooks(webhooks),
     pagination: {
       page,
       limit,
@@ -102,7 +103,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
     return res.status(404).json({ error: 'Webhook not found' });
   }
 
-  res.json(webhook);
+  res.json(decryptWebhook(webhook));
 });
 
 router.post('/:id/replay', async (req: AuthRequest, res) => {
@@ -121,6 +122,8 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
   if (!webhook) {
     return res.status(404).json({ error: 'Webhook not found' });
   }
+
+  const decryptedWebhook = decryptWebhook(webhook);
 
   const effectivePlan = await getEffectivePlan(req.user!.id, webhook.projectId);
   if (effectivePlan === 'FREE') {
@@ -143,15 +146,15 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
   try {
     const start = Date.now();
     const response = await axios({
-      method: webhook.method as any,
+      method: decryptedWebhook.method as any,
       url: targetUrl,
       headers: {
-        ...(webhook.headers as Record<string, string>),
+        ...(decryptedWebhook.headers as Record<string, string>),
         ...headers,
       },
       data: body !== undefined
         ? JSON.stringify(body)
-        : (webhook.rawBody || (webhook.body ? JSON.stringify(webhook.body) : undefined)),
+        : (decryptedWebhook.rawBody || (decryptedWebhook.body ? JSON.stringify(decryptedWebhook.body) : undefined)),
       timeout: 30000,
       validateStatus: () => true,
       maxBodyLength: Infinity,
@@ -160,32 +163,32 @@ router.post('/:id/replay', async (req: AuthRequest, res) => {
     const responseTime = Date.now() - start;
 
     const createData: any = {
-      projectId: webhook.projectId,
-      method: webhook.method,
-      headers: { ...(webhook.headers as any), ...headers },
-      body: body || webhook.body,
-      query: webhook.query,
+      projectId: decryptedWebhook.projectId,
+      method: decryptedWebhook.method,
+      headers: { ...(decryptedWebhook.headers as any), ...headers },
+      body: body || decryptedWebhook.body,
+      query: decryptedWebhook.query,
       ip: '127.0.0.1',
       userAgent: 'HookSwing-Replay',
       statusCode: response.status,
       responseBody: typeof response.data === 'string' ? response.data : JSON.stringify(response.data),
       responseTime,
       isReplay: true,
-      originalId: webhook.id,
+      originalId: decryptedWebhook.id,
     };
-    const replayWebhook = await prisma.webhook.create({ data: createData });
+    const replayWebhook = await prisma.webhook.create({ data: encryptWebhook(createData) });
 
-    if (webhook.projectId) getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
+    if (decryptedWebhook.projectId) getIO()?.to(decryptedWebhook.projectId).emit('webhook', decryptWebhook(replayWebhook));
 
     // Log replay activity for team projects
-    const proj = webhook.projectId ? await prisma.project.findUnique({ where: { id: webhook.projectId }, select: { teamId: true } }) : null;
+    const proj = decryptedWebhook.projectId ? await prisma.project.findUnique({ where: { id: decryptedWebhook.projectId }, select: { teamId: true } }) : null;
     if (proj?.teamId) {
       await logActivity({
         teamId: proj.teamId,
         userId: req.user!.id,
         action: 'webhook_replayed',
         targetType: 'webhook',
-        targetId: webhook.id,
+        targetId: decryptedWebhook.id,
         metadata: { targetUrl, status: response.status },
       });
     }
@@ -222,6 +225,8 @@ router.post('/:id/replay-record', async (req: AuthRequest, res) => {
     return res.status(404).json({ error: 'Webhook not found' });
   }
 
+  const decryptedWebhook = decryptWebhook(webhook);
+
   const effectivePlan = await getEffectivePlan(req.user!.id, webhook.projectId);
   if (effectivePlan === 'FREE') {
     return res.status(403).json({ error: 'Replay requires Pro or Team plan' });
@@ -245,32 +250,32 @@ router.post('/:id/replay-record', async (req: AuthRequest, res) => {
   const { targetUrl, statusCode, responseTime, responseBody, headers, body, query } = result.data;
 
   const createData: any = {
-    projectId: webhook.projectId,
-    method: webhook.method,
-    headers: headers !== undefined ? headers : webhook.headers,
-    body: body !== undefined ? body : webhook.body,
-    query: query !== undefined ? query : webhook.query,
+    projectId: decryptedWebhook.projectId,
+    method: decryptedWebhook.method,
+    headers: headers !== undefined ? headers : decryptedWebhook.headers,
+    body: body !== undefined ? body : decryptedWebhook.body,
+    query: query !== undefined ? query : decryptedWebhook.query,
     ip: '127.0.0.1',
     userAgent: 'HookSwing-Replay',
     statusCode,
     responseBody: responseBody || null,
     responseTime,
     isReplay: true,
-    originalId: webhook.id,
+    originalId: decryptedWebhook.id,
   };
 
-  const replayWebhook = await prisma.webhook.create({ data: createData });
+  const replayWebhook = await prisma.webhook.create({ data: encryptWebhook(createData) });
 
-  if (webhook.projectId) getIO()?.to(webhook.projectId).emit('webhook', replayWebhook);
+  if (decryptedWebhook.projectId) getIO()?.to(decryptedWebhook.projectId).emit('webhook', decryptWebhook(replayWebhook));
 
-  const proj = webhook.projectId ? await prisma.project.findUnique({ where: { id: webhook.projectId }, select: { teamId: true } }) : null;
+  const proj = decryptedWebhook.projectId ? await prisma.project.findUnique({ where: { id: decryptedWebhook.projectId }, select: { teamId: true } }) : null;
   if (proj?.teamId) {
     await logActivity({
       teamId: proj.teamId,
       userId: req.user!.id,
       action: 'webhook_replayed',
       targetType: 'webhook',
-      targetId: webhook.id,
+      targetId: decryptedWebhook.id,
       metadata: { targetUrl, status: statusCode },
     });
   }
@@ -391,7 +396,7 @@ router.get('/projects/:projectId/export/json', async (req: AuthRequest, res) => 
 
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Content-Disposition', `attachment; filename="${project.name}-webhooks.json"`);
-  res.send(JSON.stringify(webhooks, null, 2));
+  res.send(JSON.stringify(decryptWebhooks(webhooks), null, 2));
 });
 
 // Export webhooks as CSV (Pro/Team only)
@@ -421,7 +426,7 @@ router.get('/projects/:projectId/export/csv', async (req: AuthRequest, res) => {
   });
 
   const headers = ['id', 'method', 'source', 'ip', 'status_code', 'body', 'headers', 'query', 'created_at'];
-  const rows = webhooks.map((w) => [
+  const rows = decryptWebhooks(webhooks).map((w) => [
     w.id,
     w.method,
     w.source || '',

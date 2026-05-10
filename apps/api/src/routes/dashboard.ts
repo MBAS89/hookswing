@@ -2,6 +2,7 @@ import { createSafeRouter } from '../middleware/safeRouter';
 import { prisma } from '../lib/prisma';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
+import { decryptWebhooks } from '../lib/encryption';
 
 const router = createSafeRouter();
 
@@ -147,7 +148,7 @@ router.get('/stats', async (req: AuthRequest, res) => {
     sourceBreakdown,
     hourlyVolume,
     dailyVolume,
-    recentWebhooks,
+    recentWebhooks: decryptWebhooks(recentWebhooks),
     planLimit: { used: planLimitUsed, limit },
     topProjects,
   });

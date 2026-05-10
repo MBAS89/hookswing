@@ -7,6 +7,7 @@ import { getIO } from '../lib/socketio';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import { apiRateLimit } from '../middleware/rateLimit';
+import { decryptWebhooks } from '../lib/encryption';
 
 const router = createSafeRouter();
 
@@ -246,7 +247,7 @@ router.get('/webhooks', async (req: AuthRequest, res) => {
   ]);
 
   res.json({
-    webhooks,
+    webhooks: decryptWebhooks(webhooks),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   });
 });

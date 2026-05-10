@@ -6,6 +6,7 @@ import { createNotification, notifyTeamMembers } from '../lib/notification';
 import { getEffectivePlan } from '../lib/permissions';
 import { authMiddleware, type AuthRequest } from '../middleware/auth';
 import { apiRateLimit } from '../middleware/rateLimit';
+import { decryptWebhooks } from '../lib/encryption';
 
 const router = createSafeRouter();
 
@@ -362,7 +363,7 @@ router.get('/:projectId/webhooks', async (req: AuthRequest, res) => {
   ]);
 
   res.json({
-    webhooks,
+    webhooks: decryptWebhooks(webhooks),
     pagination: {
       page,
       limit,
