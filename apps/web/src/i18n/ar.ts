@@ -654,9 +654,11 @@ export const ar = {
     teams: '7. الفرق',
     billingPlans: '8. الفوترة والخطط',
     security: '9. الأمان',
-    apiReference: '10. مرجع API',
-    troubleshooting: '11. استكشاف الأخطاء',
-    faq: '12. الأسئلة الشائعة',
+    hookshield: '10. HookShield',
+    hookshieldTitle: 'ماسح HookShield الأمني',
+    apiReference: '11. مرجع API',
+    troubleshooting: '12. استكشاف الأخطاء',
+    faq: '13. الأسئلة الشائعة',
   },
 
   // Admin Page

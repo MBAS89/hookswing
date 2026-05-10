@@ -69,6 +69,7 @@ export default function DocsPage() {
     { id: 'teams', label: t('docs.teams') },
     { id: 'billing', label: t('docs.billingPlans') },
     { id: 'security', label: t('docs.security') },
+    { id: 'hookshield', label: t('docs.hookshield') },
     { id: 'api', label: t('docs.apiReference') },
     { id: 'troubleshooting', label: t('docs.troubleshooting') },
     { id: 'faq', label: t('docs.faq') },
@@ -506,6 +507,84 @@ hookswing tester <provider> <event-type> <target-url>`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">9.4 Session Management</h3>
               <p className="text-slate-300">Changing your password invalidates all existing sessions. 2FA disable requires both your password and a valid 2FA code.</p>
+            </Section>
+
+            <Section id="hookshield" title={t('docs.hookshieldTitle')}>
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">What is HookShield?</h3>
+              <p className="text-slate-300">HookShield is a built-in webhook security scanner that tests your endpoint against real attack scenarios. It sends three test payloads to check whether your webhook handler properly verifies signatures, rejects invalid secrets, and refuses unsigned requests.</p>
+              <p className="text-slate-300 mt-3">Inspired by a 2024 security research finding that <strong className="text-white">1,542 production apps accepted forged Stripe webhooks</strong> without any signature verification, HookShield exists so you know whether you are vulnerable <em>before</em> an attacker does.</p>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">Running Your First Scan</h3>
+              <ol className="list-decimal list-inside space-y-2 text-slate-300">
+                <li>Go to <strong className="text-white">Dashboard → HookShield</strong> (or visit <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">/dashboard/hookshield</code>)</li>
+                <li>Enter your webhook endpoint URL</li>
+                <li>Select your provider (Stripe, GitHub, PayPal, Shopify, Twilio, Slack, Discord, or Custom)</li>
+                <li>Click <strong className="text-white">"Start Security Scan"</strong></li>
+                <li>HookShield runs three tests asynchronously and updates the score in real time</li>
+              </ol>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">The Three Tests</h3>
+              <div className="grid sm:grid-cols-3 gap-4 mt-4">
+                <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                  <p className="font-semibold text-red-400 mb-2">Test A — No Signature</p>
+                  <p className="text-sm text-slate-400">Sends a webhook with <strong className="text-white">no signature header</strong>. A secure server must reject this with a non-2xx status.</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                  <p className="font-semibold text-amber-400 mb-2">Test B — Invalid Signature</p>
+                  <p className="text-sm text-slate-400">Sends a webhook with a <strong className="text-white">signature that does not match</strong> the payload. A secure server must reject this.</p>
+                </div>
+                <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                  <p className="font-semibold text-emerald-400 mb-2">Test C — Wrong Secret</p>
+                  <p className="text-sm text-slate-400">Sends a webhook signed with a <strong className="text-white">different secret</strong>. A secure server must reject this.</p>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">Understanding Your Security Score</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-slate-300 border border-slate-700 rounded-lg">
+                  <thead className="bg-slate-800 text-slate-400">
+                    <tr><th className="px-4 py-3">Score</th><th className="px-4 py-3">Rating</th><th className="px-4 py-3">What It Means</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700">
+                    <tr><td className="px-4 py-3 font-semibold text-emerald-400">90–100</td><td className="px-4 py-3">Secure</td><td className="px-4 py-3">All tests passed. Your endpoint properly rejects forged webhooks.</td></tr>
+                    <tr><td className="px-4 py-3 font-semibold text-amber-400">70–89</td><td className="px-4 py-3">Mostly Safe</td><td className="px-4 py-3">Some tests passed. Review the failed test details.</td></tr>
+                    <tr><td className="px-4 py-3 font-semibold text-red-400">0–69</td><td className="px-4 py-3">Vulnerable</td><td className="px-4 py-3">Critical weakness detected. Immediate action recommended.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">Fix Code Snippets</h3>
+              <p className="text-slate-300 mb-3">If HookShield finds a vulnerability, it generates framework-specific fix code. Supported frameworks:</p>
+              <ul className="list-disc list-inside space-y-1 text-slate-300">
+                <li><strong className="text-white">Express.js</strong> (all plans)</li>
+                <li><strong className="text-white">FastAPI</strong> (Pro & Team)</li>
+                <li><strong className="text-white">Next.js</strong> (Pro & Team)</li>
+                <li><strong className="text-white">Django</strong> (Pro & Team)</li>
+              </ul>
+              <p className="text-slate-300 mt-3"><span className="text-amber-400 font-medium">Free plan:</span> Express.js fix code only. <span className="text-emerald-400 font-medium">Pro & Team:</span> All frameworks.</p>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">HookShield Verified Badge</h3>
+              <p className="text-slate-300 mb-3">Scoring 90 or above unlocks a <strong className="text-white">HookShield Verified</strong> badge — a dynamic SVG you can embed in your README, docs, or landing page:</p>
+              <CodeBlock code={`![HookShield Verified](https://hookswing.com/shield/scan_abc123.svg)`} />
+              <p className="text-slate-300 mt-3">The badge color updates automatically based on your latest score: green (90+), yellow (70–89), red (&lt;70), or gray (incomplete).</p>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">Scan Limits</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-slate-300 border border-slate-700 rounded-lg">
+                  <thead className="bg-slate-800 text-slate-400">
+                    <tr><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Scans/Month</th><th className="px-4 py-3">History</th><th className="px-4 py-3">Frameworks</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700">
+                    <tr><td className="px-4 py-3">Free</td><td className="px-4 py-3">5</td><td className="px-4 py-3">Last 3 scans</td><td className="px-4 py-3">Express only</td></tr>
+                    <tr><td className="px-4 py-3">Pro ($19/mo)</td><td className="px-4 py-3">30</td><td className="px-4 py-3">90 days</td><td className="px-4 py-3">All frameworks</td></tr>
+                    <tr><td className="px-4 py-3">Team ($49/mo)</td><td className="px-4 py-3">Unlimited</td><td className="px-4 py-3">Unlimited</td><td className="px-4 py-3">All frameworks</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-slate-300 mt-3">Usage resets on the 1st of each calendar month. Soft-deleting a scan hides it from history but still counts against your monthly limit.</p>
+
+              <h3 className="text-lg font-semibold text-white mt-6 mb-3">Export Report</h3>
+              <p className="text-slate-300"><span className="text-amber-400 font-medium">Pro & Team only.</span> Click <strong className="text-white">"Export Report"</strong> on any completed scan to download a Markdown report with the full test results, security score, detected framework, and recommended fixes. Perfect for compliance documentation and security audits.</p>
             </Section>
 
             <Section id="api" title="API Reference">

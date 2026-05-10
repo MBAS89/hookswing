@@ -1756,6 +1756,843 @@ Don't be #1,543.
 
 **[Scan your endpoint now →](/dashboard/hookshield)**`,
   },
+{
+    slug: 'stripe-webhook-signature-nodejs-2026',
+    title: 'How to Verify Stripe Webhook Signatures in Node.js (2026)',
+    excerpt:
+      'A step-by-step guide to implementing Stripe webhook signature verification in Node.js and Express. Includes working code, common mistakes, and how to test your endpoint for vulnerabilities.',
+    author: 'HookSwing Team',
+    date: '2026-01-05',
+    tags: ['Stripe webhooks', 'Node.js', 'Express', 'webhook security', 'signature verification'],
+    readingTime: '9 min read',
+    content: `## Why Signature Verification Matters
+
+In 2024, a security researcher sent forged Stripe webhooks to 6,000 websites. 1,542 of them — including production apps — accepted the fake events as real payments. They did not verify signatures. They just trusted whatever payload arrived.
+
+Stripe includes a \`Stripe-Signature\` header with every webhook. This header is a cryptographic proof that Stripe — and only Stripe — sent the payload. If you do not verify it, anyone on the internet can send a \`checkout.session.completed\` event to your server and trigger orders, activate accounts, or grant premium access.
+
+This guide shows you how to verify Stripe webhook signatures correctly in Node.js and Express, the mistakes that break verification, and how to test whether your endpoint is actually secure.
+
+---
+
+## The Correct Way: Express + Raw Body
+
+The #1 mistake developers make is using \`express.json()\` globally before verifying the signature. When \`express.json()\` parses the body into a JavaScript object, the raw bytes change. Stripe signed the raw bytes, not the parsed object. The signature will never match.
+
+### Solution: Use \`express.raw()\` on the webhook route
+
+\`\`\`javascript
+const express = require('express');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+const app = express();
+
+// ⚠️ express.raw() MUST come before express.json()
+// This preserves the raw body for signature verification
+app.use('/api/webhook/stripe', express.raw({ type: 'application/json' }));
+
+// Global JSON parser comes AFTER the raw route
+app.use(express.json());
+
+app.post('/api/webhook/stripe', (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(\`Webhook Error: \${err.message}\`);
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'invoice.payment_succeeded':
+      console.log('Payment succeeded:', event.data.object.id);
+      break;
+    case 'customer.subscription.created':
+      console.log('Subscription created:', event.data.object.id);
+      break;
+    default:
+      console.log(\`Unhandled event type: \${event.type}\`);
+  }
+
+  res.status(200).json({ received: true });
+});
+\`\`\`
+
+### Key Points
+
+| Rule | Why |
+|---|---|
+| \`express.raw()\` before \`express.json()\` | Preserves raw bytes for signature verification |
+| Use \`req.body\` (Buffer), not \`req.body\` (Object) | Stripe signed the raw payload, not the parsed JSON |
+| Return 400 on verification failure | Tells Stripe to retry; logs the error |
+| Return 200 fast | Do heavy work asynchronously; Stripe times out after 10s |
+
+---
+
+## Common Mistakes That Break Verification
+
+### Mistake 1: Global JSON Parser First
+
+\`\`\`javascript
+// ❌ WRONG: express.json() parses the body before verification
+app.use(express.json());
+app.post('/api/webhook/stripe', (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  // req.body is now a JavaScript object — signature will NEVER match
+  stripe.webhooks.constructEvent(req.body, sig, secret); // Throws every time
+});
+\`\`\`
+
+### Mistake 2: Using JSON.stringify(req.body)
+
+\`\`\`javascript
+// ❌ WRONG: Re-serializing changes whitespace, key order, and encoding
+const payload = JSON.stringify(req.body);
+stripe.webhooks.constructEvent(payload, sig, secret); // Unreliable
+\`\`\`
+
+### Mistake 3: Forgetting the Signature Header Check
+
+\`\`\`javascript
+// ❌ WRONG: Missing signature check means anyone can POST to this route
+app.post('/api/webhook/stripe', (req, res) => {
+  // No signature verification at all
+  handlePayment(req.body);
+  res.sendStatus(200);
+});
+\`\`\`
+
+### Mistake 4: Wrong Webhook Secret
+
+Each Stripe webhook endpoint has its own secret. The secret from your Dashboard → Developers → Webhooks → [Endpoint] → Signing secret is different from your test mode secret. Using the wrong one causes verification to fail.
+
+---
+
+## Testing Your Endpoint
+
+After implementing signature verification, test it with HookShield — a built-in security scanner in HookSwing:
+
+1. Go to \`/dashboard/hookshield\`
+2. Enter your webhook URL
+3. HookShield sends three test payloads:
+   - **No signature** → your server should return 400
+   - **Invalid signature** → your server should return 400
+   - **Wrong secret** → your server should return 400
+4. Get your security score (0–100)
+
+**[Test your Stripe endpoint now →](/dashboard/hookshield)**
+
+---
+
+## Summary
+
+Verifying Stripe webhook signatures in Node.js is straightforward if you follow one rule: **preserve the raw body**. Use \`express.raw()\` on your webhook route, call \`stripe.webhooks.constructEvent()\`, and return 400 immediately if verification fails.
+
+The 1,542 vulnerable apps all skipped this step. Don't be one of them.
+
+**[Start securing your webhooks →](/register)**`,
+  },
+
+  {
+    slug: 'webhook-security-best-practices-2026',
+    title: 'Webhook Security Best Practices: The Complete Checklist (2026)',
+    excerpt:
+      'A comprehensive security checklist for webhook integrations. Covers signature verification, idempotency, TLS, replay attacks, timeout handling, and secrets management for Stripe, GitHub, PayPal, and more.',
+    author: 'HookSwing Team',
+    date: '2026-01-12',
+    tags: ['webhook security', 'best practices', 'checklist', 'Stripe', 'GitHub', 'PayPal'],
+    readingTime: '12 min read',
+    content: `## Why Webhook Security Is Non-Negotiable
+
+Webhooks are HTTP requests sent from a service you trust to an endpoint you control. But HTTP is public. Anyone can send a POST request to your webhook URL. Without proper security, an attacker can forge payment events, trigger deployments, or exfiltrate data.
+
+This checklist covers every security measure you need for production webhook integrations. Print it, pin it, and run through it before every deployment.
+
+---
+
+## The Complete Webhook Security Checklist
+
+### 1. Verify Signatures
+
+Every major webhook provider signs their payloads. Your first line of defense is verifying that signature.
+
+- [ ] **Stripe** — Verify \`Stripe-Signature\` with \`stripe.webhooks.constructEvent()\`
+- [ ] **GitHub** — Verify \`X-Hub-Signature-256\` with HMAC-SHA256
+- [ ] **PayPal** — Verify \`PAYPAL-TRANSMISSION-ID\` + certificate chain
+- [ ] **Shopify** — Verify \`X-Shopify-Hmac-SHA256\` with HMAC-SHA256
+- [ ] **Twilio** — Verify \`X-Twilio-Signature\` with HMAC-SHA1
+- [ ] **Slack** — Verify \`X-Slack-Signature\` with HMAC-SHA256
+
+**Rule:** If signature verification fails, return **400 Bad Request**. Do not process the payload. Do not log it as a warning and continue.
+
+---
+
+### 2. Use HTTPS Only
+
+- [ ] Webhook endpoints must use \`https://\` in production
+- [ ] Reject \`http://\` requests at the load balancer or application level
+- [ ] Use TLS 1.2 or higher
+- [ ] HSTS headers enabled
+
+Unencrypted webhooks can be intercepted, modified, or replayed by anyone on the network path.
+
+---
+
+### 3. Implement Idempotency
+
+The same webhook can arrive multiple times due to retries. Without idempotency, you process the same event twice.
+
+- [ ] Extract the idempotency key from the payload or headers
+- [ ] Store processed event IDs in your database
+- [ ] Return 200 immediately if the event was already processed
+- [ ] Set a TTL on idempotency records (e.g., 24 hours)
+
+\`\`\`javascript
+// Example: Stripe idempotency via event ID
+const processed = await db.webhookEvents.findUnique({
+  where: { eventId: event.id }
+});
+
+if (processed) {
+  return res.status(200).json({ alreadyProcessed: true });
+}
+
+await handleEvent(event);
+await db.webhookEvents.create({ data: { eventId: event.id } });
+\`\`\`
+
+---
+
+### 4. Return 200 Fast, Process Async
+
+Webhook senders retry on non-2xx responses. If your handler takes too long, the sender may timeout and retry, causing duplicate processing.
+
+- [ ] Return 200 within 5 seconds
+- [ ] Queue heavy work (database writes, emails, API calls) to a background job
+- [ ] Use a message queue (BullMQ, SQS, Redis, RabbitMQ)
+
+---
+
+### 5. Validate Payload Schema
+
+Never assume the payload structure is what you expect. Providers update their APIs.
+
+- [ ] Use a schema validator (Zod, Joi, JSON Schema)
+- [ ] Validate required fields before processing
+- [ ] Log schema mismatches for monitoring
+
+\`\`\`javascript
+import { z } from 'zod';
+
+const stripeEventSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  data: z.object({
+    object: z.record(z.any())
+  })
+});
+
+const result = stripeEventSchema.safeParse(event);
+if (!result.success) {
+  return res.status(400).json({ error: 'Invalid payload schema' });
+}
+\`\`\`
+
+---
+
+### 6. Rotate Secrets Regularly
+
+- [ ] Rotate webhook secrets every 90 days
+- [ ] Support multiple secrets during rotation (grace period)
+- [ ] Store secrets in a secrets manager (AWS Secrets Manager, HashiCorp Vault, 1Password)
+- [ ] Never commit secrets to Git
+
+---
+
+### 7. IP Allowlisting
+
+Some providers publish IP ranges for their webhook servers.
+
+- [ ] Stripe: stripe.com/docs/ips
+- [ ] GitHub: api.github.com/meta
+- [ ] PayPal: IP ranges in dashboard
+
+Reject webhook requests from unexpected IPs at the firewall or application level.
+
+---
+
+### 8. Timeout and Rate Limiting
+
+- [ ] Set a strict request timeout (10 seconds max)
+- [ ] Rate-limit webhook endpoints per IP
+- [ ] Monitor for unusual spikes in webhook volume
+- [ ] Alert on repeated 4xx/5xx responses from your endpoint
+
+---
+
+### 9. Logging and Monitoring
+
+- [ ] Log every webhook: timestamp, sender IP, event type, signature status
+- [ ] Alert on signature verification failures
+- [ ] Alert on schema validation failures
+- [ ] Alert on timeout spikes
+- [ ] Retain logs for at least 30 days
+
+---
+
+### 10. Test Your Security
+
+Reading a checklist is not enough. You need to test your endpoint against real attack scenarios.
+
+**HookShield** is a free security scanner built into HookSwing. It tests your webhook endpoint in 10 seconds:
+
+1. **No signature** → should return 400
+2. **Invalid signature** → should return 400
+3. **Wrong secret** → should return 400
+
+**[Scan your endpoint free →](/dashboard/hookshield)**
+
+---
+
+## Security Scorecard by Provider
+
+| Provider | Signature | Idempotency Key | IP Allowlist | TLS Required |
+|---|---|---|---|---|
+| Stripe | HMAC-SHA256 | Event ID | Yes | Yes |
+| GitHub | HMAC-SHA256 | Delivery ID | Yes | Yes |
+| PayPal | RSA-SHA256 | Transmission ID | Yes | Yes |
+| Shopify | HMAC-SHA256 | — | No | Yes |
+| Twilio | HMAC-SHA1 | — | No | Yes |
+| Slack | HMAC-SHA256 | — | No | Yes |
+
+---
+
+## The Bottom Line
+
+Webhook security is not a feature you add later. It is a foundation you build on day one. Skip signature verification and you are one POST request away from a security incident. Skip idempotency and you are one retry away from duplicate charges. Skip HTTPS and you are one network hop away from a man-in-the-middle attack.
+
+Run through this checklist before your next deployment. Then test your endpoint with HookShield to make sure you didn't miss anything.
+
+**[Secure your webhooks today →](/register)**`,
+  },
+
+  {
+    slug: 'what-is-a-webhook-beginners-guide-2026',
+    title: 'What Is a Webhook? The Beginner\'s Guide for Developers (2026)',
+    excerpt:
+      'A plain-English explanation of webhooks for developers. Learn how webhooks work, when to use them, and how they differ from APIs and polling. Includes real-world examples from Stripe, GitHub, and Slack.',
+    author: 'HookSwing Team',
+    date: '2026-01-20',
+    tags: ['webhooks', 'beginner guide', 'API vs webhook', 'what is a webhook', 'developer basics'],
+    readingTime: '8 min read',
+    content: `## Webhooks Explained in Plain English
+
+Imagine you order a pizza. You have two options:
+
+**Option A (Polling):** Call the restaurant every 5 minutes. "Is my pizza ready?" "No." "Is my pizza ready?" "No." "Is my pizza ready?" "Yes."
+
+**Option B (Webhook):** Give the restaurant your phone number. They call you when the pizza is ready.
+
+Webhooks are Option B. Instead of asking a service if something happened, the service tells you when it happens.
+
+---
+
+## What Is a Webhook?
+
+A webhook is an HTTP POST request sent from one server to another when a specific event occurs. It is a "push" notification between computers.
+
+When something happens in Service A (e.g., a payment succeeds in Stripe), Service A sends an HTTP request to a URL you control (your webhook endpoint) with details about the event.
+
+Your server receives the request, processes the data, and responds with a 2xx status code to confirm receipt.
+
+---
+
+## Webhook vs API: What's the Difference?
+
+| | API | Webhook |
+|---|---|---|
+| Direction | You ask them | They tell you |
+| Timing | On demand | Event-driven |
+| Pattern | Request → Response | Event → Push |
+| Example | \`GET /orders/123\` | \`POST /your-webhook\` with order data |
+| Use case | Fetch data when you need it | React to events instantly |
+
+APIs are like checking your mailbox. Webhooks are like the mail carrier ringing your doorbell when a package arrives.
+
+---
+
+## Real-World Webhook Examples
+
+### Stripe
+When a customer pays, Stripe sends a \`invoice.payment_succeeded\` webhook to your server. Your server activates their account, sends a receipt, and updates your database.
+
+### GitHub
+When someone pushes code, GitHub sends a \`push\` webhook to your CI/CD server. Your CI server runs tests and deploys the code.
+
+### Slack
+When someone types a slash command, Slack sends a webhook to your bot server. Your bot processes the command and sends a response.
+
+### Shopify
+When a customer places an order, Shopify sends an \`orders/create\` webhook to your fulfillment system. Your system prints a shipping label.
+
+---
+
+## How Webhooks Work Under the Hood
+
+### Step 1: Register Your Endpoint
+You tell the service where to send webhooks. This is usually a URL like \`https://myapp.com/api/webhooks/stripe\`.
+
+### Step 2: The Event Occurs
+A customer pays, pushes code, or sends a message. The service detects the event.
+
+### Step 3: The Service Builds a Payload
+The service creates a JSON object with event details:
+
+\`\`\`json
+{
+  "id": "evt_1234567890",
+  "type": "invoice.payment_succeeded",
+  "data": {
+    "object": {
+      "id": "in_1234567890",
+      "amount_paid": 5000,
+      "customer": "cus_1234567890"
+    }
+  }
+}
+\`\`\`
+
+### Step 4: The Service Sends the Webhook
+The service sends an HTTP POST request to your URL:
+
+\`\`\`
+POST /api/webhooks/stripe HTTP/1.1
+Host: myapp.com
+Content-Type: application/json
+Stripe-Signature: t=1234567890,v1=abc123...
+
+{ "id": "evt_1234567890", ... }
+\`\`\`
+
+### Step 5: Your Server Processes It
+Your server receives the request, verifies the signature, handles the event, and responds:
+
+\`\`\`
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{ "received": true }
+\`\`\`
+
+### Step 6: Retries (If Needed)
+If your server returns a non-2xx status or times out, the service retries the webhook. Stripe retries up to 3 days with exponential backoff.
+
+---
+
+## When Should You Use Webhooks?
+
+Use webhooks when:
+- You need to react to events in real time
+- Polling would be wasteful (checking every 5 minutes for something that happens twice a day)
+- You want to avoid rate limits on the provider's API
+- You need to integrate with services that don't support real-time APIs
+
+Don't use webhooks when:
+- You need to fetch historical data (use the API)
+- The provider doesn't offer webhooks
+- You can't guarantee your endpoint is online 24/7
+
+---
+
+## Common Webhook Pitfalls
+
+### 1. Not Verifying Signatures
+Anyone can send a POST request to your webhook URL. Always verify the signature to prove the sender is legitimate.
+
+### 2. Processing Synchronously
+If your handler takes too long, the sender may timeout and retry. Return 200 fast, then process asynchronously.
+
+### 3. Ignoring Idempotency
+The same webhook can arrive multiple times. Use idempotency keys to prevent duplicate processing.
+
+### 4. No Logging
+When a webhook fails, you need logs to debug. Log every webhook: headers, body, response, timestamp.
+
+### 5. Localhost Endpoints
+Your localhost is not accessible from the internet. Use a webhook catcher like HookSwing to receive webhooks during development.
+
+---
+
+## Debugging Webhooks During Development
+
+Webhooks need a public URL. Your laptop does not have one. Here is how to debug webhooks locally:
+
+**Option 1: HookSwing (Recommended)**
+1. Create a free project at hookswing.com
+2. Copy your public webhook URL
+3. Paste it into Stripe/GitHub/Shopify dashboard
+4. Webhooks arrive in your HookSwing dashboard instantly
+5. Inspect headers, body, and replay them to localhost
+
+**Option 2: ngrok**
+1. Run \`ngrok http 3000\`
+2. Copy the public URL
+3. Paste it into your webhook provider
+4. Webhooks forward to your localhost
+
+**Why HookSwing beats ngrok for webhooks:**
+- Catches webhooks even when your laptop is asleep
+- Permanent URL that never changes
+- One-click replay of any past webhook
+- Structured JSON viewer and header inspection
+- Team sharing and discussion
+
+**[Start catching webhooks free →](/register)**
+
+---
+
+## Summary
+
+Webhooks are HTTP push notifications sent when events occur. They are more efficient than polling, enable real-time reactions, and are the standard integration pattern for modern SaaS platforms.
+
+The key to using webhooks well is:
+1. Verify signatures
+2. Return 200 fast
+3. Process asynchronously
+4. Handle idempotency
+5. Log everything
+6. Use a proper webhook debugger like HookSwing for local development`,
+  },
+
+  {
+    slug: 'debug-github-webhooks-locally-2026',
+    title: 'How to Debug GitHub Webhooks Locally: Step-by-Step Guide (2026)',
+    excerpt:
+      'A practical guide to catching, inspecting, and replaying GitHub webhooks during local development. Covers push events, pull requests, and signature verification without ngrok.',
+    author: 'HookSwing Team',
+    date: '2026-02-01',
+    tags: ['GitHub webhooks', 'local development', 'webhook debugging', 'push events', 'pull requests'],
+    readingTime: '7 min read',
+    content: `## The GitHub Webhook Localhost Problem
+
+You are building a CI pipeline that triggers on every GitHub push. You need to test it locally, but GitHub webhooks require a public HTTPS URL. Your \`localhost:3000\` is invisible to GitHub's servers.
+
+The classic solution is ngrok — but ngrok drops webhooks when your laptop sleeps, changes URLs every session, and gives you no way to replay a past event. When a teammate pushes code at 11 PM and you are offline, the webhook is gone forever.
+
+This guide shows a better workflow using HookSwing: permanent URLs, persistent storage, and one-click replay.
+
+---
+
+## Step 1: Create a HookSwing Project
+
+1. Sign up at hookswing.com (free plan works)
+2. Click **New Project** in the sidebar
+3. Name it \`GitHub CI\`
+4. Copy your webhook URL: \`https://hookswing.com/hook/your-slug\`
+
+This URL is permanent. It will not change when your laptop restarts, sleeps, or switches Wi-Fi.
+
+---
+
+## Step 2: Configure GitHub
+
+1. Go to your repository on GitHub
+2. Click **Settings → Webhooks → Add webhook**
+3. Paste your HookSwing URL into **Payload URL**
+4. Set **Content type** to \`application/json\`
+5. Choose which events to send:
+   - **Just the push event** — for basic CI triggers
+   - **Let me select individual events** — for PRs, issues, releases
+6. Click **Add webhook**
+
+GitHub will send a \`ping\` event immediately to verify the URL works.
+
+---
+
+## Step 3: Inspect the Payload
+
+Switch to your HookSwing dashboard. You will see the \`ping\` event with:
+
+- **Method:** POST
+- **Headers:** Including \`X-GitHub-Delivery\`, \`X-GitHub-Event\`, and \`X-Hub-Signature-256\`
+- **Body:** JSON with \`zen\` message and \`hook_id\`
+
+Click any webhook to expand:
+- **Overview** — URL, method, status, response time, IP
+- **Headers** — Full header table with signature
+- **Body** — Collapsible JSON tree
+- **Query** — Query parameters (usually empty for GitHub)
+
+---
+
+## Step 4: Verify the Signature
+
+GitHub signs every webhook with HMAC-SHA256. Here is how to verify it in Node.js:
+
+\`\`\`javascript
+const crypto = require('crypto');
+
+function verifyGitHubSignature(payload, signature, secret) {
+  const hmac = crypto.createHmac('sha256', secret);
+  const digest = 'sha256=' + hmac.update(payload).digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(digest),
+    Buffer.from(signature)
+  );
+}
+
+app.post('/api/webhook/github', express.raw({ type: 'application/json' }), (req, res) => {
+  const signature = req.headers['x-hub-signature-256'];
+  const secret = process.env.GITHUB_WEBHOOK_SECRET;
+
+  if (!verifyGitHubSignature(req.body, signature, secret)) {
+    return res.status(401).send('Unauthorized');
+  }
+
+  const event = req.headers['x-github-event'];
+  const delivery = req.headers['x-github-delivery'];
+
+  console.log(\`Received \${event} (\${delivery})\`);
+  res.status(200).send('OK');
+});
+\`\`\`
+
+**Important:** Use \`express.raw()\`, not \`express.json()\`, to preserve the raw body for signature verification.
+
+---
+
+## Step 5: Forward to Localhost
+
+When you are ready to debug your handler:
+
+**Option A: CLI**
+\`\`\`bash
+npm install -g hookswing
+hookswing forward your-slug http://localhost:3000
+\`\`\`
+
+**Option B: Web CLI (no install)**
+1. Go to \`/dashboard/cli\` in HookSwing
+2. Type: \`forward your-slug 3000\`
+3. GitHub webhooks flow to localhost:3000 automatically
+
+**Option C: Replay (no forwarding needed)**
+1. Open any webhook in your HookSwing feed
+2. Click **Replay**
+3. Enter \`http://localhost:3000/api/webhook/github\`
+4. Click **Send Replay**
+
+---
+
+## Step 6: Handle Different Event Types
+
+GitHub sends many event types. Here are the most common ones:
+
+### Push Event
+\`\`\`json
+{
+  "ref": "refs/heads/main",
+  "repository": {
+    "full_name": "myorg/myrepo"
+  },
+  "commits": [
+    { "id": "abc123", "message": "Fix login bug" }
+  ],
+  "pusher": { "name": "alice" }
+}
+\`\`\`
+
+### Pull Request Event
+\`\`\`json
+{
+  "action": "opened",
+  "number": 42,
+  "pull_request": {
+    "title": "Add dark mode",
+    "user": { "login": "bob" },
+    "head": { "ref": "feature/dark-mode" },
+    "base": { "ref": "main" }
+  }
+}
+\`\`\`
+
+### Release Event
+\`\`\`json
+{
+  "action": "published",
+  "release": {
+    "tag_name": "v1.2.0",
+    "name": "Version 1.2.0",
+    "prerelease": false
+  }
+}
+\`\`\`
+
+---
+
+## Pro Tips for GitHub Webhook Debugging
+
+1. **Use the Tester** — HookSwing's built-in tester can simulate GitHub \`push\`, \`pull_request\`, and \`release\` events without touching GitHub.
+
+2. **Compare payloads** — When GitHub updates their API, compare old and new payloads side by side with HookSwing's compare feature.
+
+3. **Team discussion** — Comment on specific webhooks so your teammates know which push caused a build failure.
+
+4. **Set up alerts** — Pro users get Slack/Discord notifications when a webhook arrives or returns a 500.
+
+---
+
+## Why HookSwing Beats ngrok for GitHub Webhooks
+
+| | ngrok | HookSwing |
+|---|---|---|
+| URL persistence | Changes every session | Permanent |
+| Catches while offline | No | Yes |
+| Replay | No | One-click |
+| JSON viewer | Basic terminal | Collapsible tree |
+| Team sharing | No | Real-time feed |
+| Signature inspection | Manual | Structured table |
+
+---
+
+## Summary
+
+Debugging GitHub webhooks locally does not have to be painful. With HookSwing, you get a permanent URL, persistent storage, and one-click replay — so you never miss a webhook, even when you are offline.
+
+**[Start debugging GitHub webhooks →](/register)**`,
+  },
+
+  {
+    slug: 'requestbin-vs-hookswing-2026',
+    title: 'RequestBin vs HookSwing: Webhook Capture Tools Compared (2026)',
+    excerpt:
+      'RequestBin by Pipedream is a popular webhook catcher, but its retention and feature set may not be enough for serious development. We compare RequestBin and HookSwing across 10 dimensions.',
+    author: 'HookSwing Team',
+    date: '2026-02-10',
+    tags: ['RequestBin', 'HookSwing', 'webhook catcher', 'comparison', 'Pipedream'],
+    readingTime: '6 min read',
+    content: `## RequestBin: The Simple Webhook Catcher
+
+RequestBin (now maintained by Pipedream) is one of the oldest webhook testing tools. Create a bin, get a URL, inspect payloads. It is simple, free, and reliable — which is exactly why so many developers start with it.
+
+But simplicity has tradeoffs. If you are doing real integration work, you quickly hit RequestBin's limits. This guide compares RequestBin and HookSwing so you can choose the right tool for your workflow.
+
+---
+
+## Feature Comparison
+
+| Feature | RequestBin Free | RequestBin Paid | HookSwing Free | HookSwing Pro |
+|---|---|---|---|---|
+| **URL lifetime** | ~48 hours | Unlimited | Unlimited | Unlimited |
+| **Payload retention** | ~48 hours | 30 days | 7 days | 90 days |
+| **Custom domain** | No | No | No | Yes |
+| **Replay payloads** | No | No | No | Yes |
+| **Team sharing** | No | No | Yes (on team projects) | Yes |
+| **Provider templates** | No | No | Yes (15+) | Yes |
+| **CLI forwarding** | No | No | Yes | Yes |
+| **Slack/Discord alerts** | No | No | No | Yes |
+| **Export JSON/CSV** | No | No | No | Yes |
+| **Security scanner** | No | No | Yes (HookShield) | Yes |
+
+---
+
+## Retention: The Critical Difference
+
+RequestBin free deletes payloads within 48 hours. Their paid plan keeps them for 30 days. HookSwing Free keeps them for 7 days — enough for a full work week — and Pro keeps them for 90 days.
+
+Why does retention matter? Because webhooks are part of a debugging timeline. When a bug report comes in on Friday and you need to compare the payload from Monday, RequestBin free has already deleted it. With HookSwing, Monday's webhook is still there.
+
+---
+
+## Replay: The Feature That Changes Everything
+
+Neither RequestBin free nor paid supports replay. HookSwing Pro does.
+
+Here is what replay means in practice:
+
+1. A GitHub \`push\` webhook arrives
+2. Your CI handler returns a 500 because of a config error
+3. You fix the config
+4. You click **Replay** in HookSwing
+5. The exact same payload hits your fixed handler
+6. You verify the fix without pushing more code
+
+With RequestBin, you wait for the next real push — or you manually reconstruct the payload. With HookSwing, you iterate in seconds.
+
+---
+
+## Team Workflows
+
+RequestBin URLs are single-use and single-user. If you share a bin URL with a teammate, they see the same feed — but there is no access control, no projects, and no discussion.
+
+HookSwing has team workspaces:
+- Multiple projects per team
+- Role-based access (Admin vs Member)
+- Real-time discussion feed on every webhook
+- Activity log showing who did what
+
+When your backend teammate sees a weird payload, they comment on it. Your DevOps teammate sees the comment. No Slack screenshots, no "check the bin from Tuesday" messages.
+
+---
+
+## Security Scanning
+
+RequestBin does not offer any security features. HookSwing includes **HookShield**, a built-in security scanner that tests your webhook endpoint against real attack scenarios:
+
+1. Sends a webhook with **no signature** → your server should reject it
+2. Sends a webhook with an **invalid signature** → your server should reject it
+3. Sends a webhook with the **wrong secret** → your server should reject it
+
+You get a security score (0–100) and framework-specific fix code if you are vulnerable.
+
+**[Scan your endpoint free →](/dashboard/hookshield)**
+
+---
+
+## Pricing Reality Check
+
+RequestBin by Pipedream is free for basic use, but paid Pipedream plans start at $19/month for features like longer retention and multi-step workflows.
+
+HookSwing pricing is transparent and webhook-focused:
+- **Free:** 3 projects, 500 webhooks/month, 7-day retention, HookShield, team projects
+- **Pro:** $19/month — unlimited projects, 10K webhooks, 90-day retention, replay, custom domains, alerts
+- **Team:** $49/month — everything in Pro plus unlimited team members, shared workspaces, priority support
+
+---
+
+## When to Use RequestBin
+
+Use RequestBin when:
+- You need a public URL in 30 seconds with zero signup
+- You are doing a one-time test that you will never revisit
+- You just want to see what a webhook looks like, once
+- You are already using Pipedream for automation
+
+---
+
+## When to Use HookSwing
+
+Use HookSwing when:
+- You are building or maintaining a webhook integration
+- You need to compare payloads across days or weeks
+- You want to replay failed webhooks after fixing your code
+- You work on a team that shares webhook debugging context
+- You need realistic test payloads from Stripe, GitHub, Shopify, or Twilio
+- You want to verify your webhook endpoint is secure
+
+---
+
+## The Bottom Line
+
+RequestBin is a sticky note. HookSwing is a notebook. If you just need to jot something down quickly, the sticky note is fine. If you need to keep records, search history, and present evidence to your team, you need a notebook.
+
+**[Try HookSwing free →](/register)**`,
+  },
 ];
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {

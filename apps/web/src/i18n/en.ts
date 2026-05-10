@@ -664,9 +664,11 @@ export const en = {
     teams: '7. Teams',
     billingPlans: '8. Billing & Plans',
     security: '9. Security',
-    apiReference: '10. API Reference',
-    troubleshooting: '11. Troubleshooting',
-    faq: '12. FAQ',
+    hookshield: '10. HookShield',
+    hookshieldTitle: 'HookShield Security Scanner',
+    apiReference: '11. API Reference',
+    troubleshooting: '12. Troubleshooting',
+    faq: '13. FAQ',
   },
 
   // Admin Page
