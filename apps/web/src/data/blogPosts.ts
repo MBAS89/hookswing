@@ -19,8 +19,8 @@ function renderMarkdown(text: string): string {
 
 export const blogPosts: BlogPost[] = [
   {
-    slug: 'best-ngrok-alternatives-2025',
-    title: '10 Best ngrok Alternatives for Local Development (2025)',
+    slug: 'best-ngrok-alternatives-2026',
+    title: '10 Best ngrok Alternatives for Local Development (2026)',
     excerpt:
       'ngrok is the default tunneling tool, but it is not always the best fit. We compare the top 10 ngrok alternatives — free and paid — including Cloudflare Tunnel, LocalTunnel, PageKite, and HookSwing for webhook-specific workflows.',
     author: 'HookSwing Team',
@@ -401,8 +401,8 @@ With ngrok or webhook.site, you would be stuck waiting for another real payment.
   },
 
   {
-    slug: 'webhook-testing-guide-2025',
-    title: 'The Complete Guide to Webhook Testing in 2025',
+    slug: 'webhook-testing-guide-2026',
+    title: 'The Complete Guide to Webhook Testing in 2026',
     excerpt:
       'Webhooks fail silently, expire quickly, and are hard to reproduce. This guide covers webhook testing strategies, tools, and best practices for building reliable integrations with Stripe, GitHub, PayPal, and more.',
     author: 'HookSwing Team',
@@ -415,7 +415,7 @@ Webhooks are the duct tape of the internet. They connect Stripe to your billing 
 
 Unlike REST APIs, where you send a request and get an immediate response, webhooks arrive unannounced. You cannot control the timing, the payload shape, or the retry behavior. When something breaks, you are debugging blind — unless you have the right tooling.
 
-This guide covers everything you need to test webhooks reliably in 2025.
+This guide covers everything you need to test webhooks reliably in 2026.
 
 ---
 
@@ -1137,7 +1137,7 @@ Webhooks fail silently but predictably. The five failure modes — timeout, sign
 
   {
     slug: 'cloudflare-tunnel-vs-ngrok',
-    title: 'Cloudflare Tunnel vs ngrok: Which Should You Choose in 2025?',
+    title: 'Cloudflare Tunnel vs ngrok: Which Should You Choose in 2026?',
     excerpt:
       'Cloudflare Tunnel is free, secure, and enterprise-ready. ngrok is polished and developer-friendly. We compare features, pricing, setup, and use cases to help you decide.',
     author: 'HookSwing Team',
@@ -1148,7 +1148,7 @@ Webhooks fail silently but predictably. The five failure modes — timeout, sign
 
 Cloudflare Tunnel and ngrok are the two most popular ways to expose localhost to the internet. They solve the same problem — giving your local server a public URL — but with fundamentally different architectures, pricing models, and target audiences.
 
-If you are choosing between them in 2025, this guide will save you from picking the wrong tool for your workflow.
+If you are choosing between them in 2026, this guide will save you from picking the wrong tool for your workflow.
 
 ---
 
