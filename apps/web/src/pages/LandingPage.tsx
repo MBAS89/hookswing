@@ -5,7 +5,7 @@ import {
   Terminal, Users, MessageSquare, Check, ChevronDown, ChevronUp,
   Menu, X, Github, Globe, LayoutDashboard, LogOut, User, Zap,
   ArrowRight, Copy, MessagesSquare, Sparkles, Heart, ShieldCheck,
-  AlertTriangle, Code2, Gauge, ClipboardList
+  AlertTriangle, Code2, Gauge, ClipboardList, Lock, EyeOff
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
@@ -1055,6 +1055,50 @@ function HookShieldFeatures() {
   );
 }
 
+function EncryptionSection() {
+  const { t } = useTranslation();
+  return (
+    <section className="py-24 bg-emerald-950/10 border-y border-emerald-500/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium mb-6">
+            <Lock className="w-3.5 h-3.5" />
+            {t('landing.encryption.badge')}
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">{t('landing.encryption.title')}</h2>
+          <p className="text-lg text-slate-400">{t('landing.encryption.subtitle')}</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 rounded-2xl mb-4 border border-emerald-500/20">
+              <Lock className="w-7 h-7 text-emerald-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('landing.encryption.card1Title')}</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">{t('landing.encryption.card1Body')}</p>
+          </div>
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 rounded-2xl mb-4 border border-emerald-500/20">
+              <EyeOff className="w-7 h-7 text-emerald-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('landing.encryption.card2Title')}</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">{t('landing.encryption.card2Body')}</p>
+          </div>
+          <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-500/10 rounded-2xl mb-4 border border-emerald-500/20">
+              <ShieldCheck className="w-7 h-7 text-emerald-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('landing.encryption.card3Title')}</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">{t('landing.encryption.card3Body')}</p>
+          </div>
+        </div>
+        <div className="mt-10 text-center">
+          <p className="text-sm text-slate-500">{t('landing.encryption.footer')}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HookShieldFixSnippet() {
   const [copied, setCopied] = useState(false);
   const { t } = useTranslation();
@@ -1164,6 +1208,7 @@ export default function LandingPage() {
       <HookShieldStory />
       <HookShieldFeatures />
       <HookShieldFixSnippet />
+      <EncryptionSection />
       <HowItWorks />
       <PricingSection />
       <Testimonials />

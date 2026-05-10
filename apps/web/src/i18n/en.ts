@@ -277,6 +277,18 @@ export const en = {
       trustIsolated: 'Scans run in isolated workers. No persistent access to your endpoint.',
       trustSecrets: "We don't store your webhook secrets. Ever.",
     },
+    encryption: {
+      badge: 'AES-256-GCM Encryption',
+      title: 'Your Webhooks Are Encrypted at Rest',
+      subtitle: 'Every webhook payload, header, and response body is encrypted with AES-256-GCM before it hits the database. Only you can read it.',
+      card1Title: 'AES-256-GCM Encryption',
+      card1Body: 'Industry-standard authenticated encryption. Each webhook gets a unique IV and authentication tag. Tamper-proof by design.',
+      card2Title: 'Transparent to You',
+      card2Body: 'Decryption happens automatically when you view webhooks in the dashboard, forward them to integrations, or export data. You never touch a key.',
+      card3Title: 'Backwards Compatible',
+      card3Body: 'Existing webhooks remain readable. New webhooks are encrypted automatically. No migration scripts, no downtime, no broken dashboards.',
+      footer: 'No configuration required. Encryption is enabled for all projects, all plans, at no extra cost.',
+    },
   },
 
   // Auth
