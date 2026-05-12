@@ -902,6 +902,7 @@ function Footer() {
             <ul className="space-y-2 text-sm text-slate-400">
               <li><Link to="/docs" className="hover:text-white transition-colors">{t('landing.footer.docs')}</Link></li>
               <li><Link to="/blog" className="hover:text-white transition-colors">Blog</Link></li>
+              <li><Link to="/tools/verify-signature" className="hover:text-white transition-colors">Webhook Signature Verifier</Link></li>
               <li><a href="https://github.com/MBAS89/hookswing-cli" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">{t('landing.footer.cliRepo')}</a></li>
               <li><Link to="/docs" className="hover:text-white transition-colors">{t('landing.footer.apiRef')}</Link></li>
             </ul>

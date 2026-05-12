@@ -32,6 +32,7 @@ import BeeceptorAlternativePage from './pages/alternatives/BeeceptorAlternativeP
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import DeleteAccountPage from './pages/DeleteAccountPage';
 import HookShieldPage from './pages/HookShieldPage';
+import VerifySignaturePage from './pages/tools/VerifySignaturePage';
 import DashboardLayout from './components/layout/DashboardLayout';
 import { usePageTracking } from './hooks/usePageTracking';
 
@@ -75,6 +76,7 @@ function AppRoutes() {
       <Route path="/alternatives/webhook-site" element={<WebhookSiteAlternativePage />} />
       <Route path="/alternatives/requestbin" element={<RequestBinAlternativePage />} />
       <Route path="/alternatives/beeceptor" element={<BeeceptorAlternativePage />} />
+      <Route path="/tools/verify-signature" element={<VerifySignaturePage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/delete-account" element={<DeleteAccountPage />} />
     </Routes>
