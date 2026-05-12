@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Shield, Mail, RotateCcw, ArrowLeft, KeyRound, Github } from 'lucide-react';
+import GoogleIcon from '../components/icons/GoogleIcon';
 import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
@@ -21,13 +22,17 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     if (urlError) {
       const messages: Record<string, string> = {
         github_denied: 'GitHub authorization was cancelled.',
+        google_denied: 'Google authorization was cancelled.',
         no_code: 'GitHub did not return an authorization code.',
         token_exchange_failed: 'Failed to exchange GitHub code for token. Check your GitHub app credentials.',
         oauth_failed: 'GitHub login failed. Please try again.',
         github_auth_failed: 'GitHub authentication failed after redirect.',
+        google_auth_failed: 'Google authentication failed after redirect.',
         oauth_not_configured: 'GitHub OAuth is not configured on the server.',
         github_no_email: 'Your GitHub account does not have a verified email. Please add one and try again.',
+        google_no_email: 'Your Google account does not have a verified email. Please add one and try again.',
         github_api_error: 'Could not fetch your GitHub profile. Try again.',
+        google_api_error: 'Could not fetch your Google profile. Try again.',
         github_email_error: 'Could not fetch your GitHub emails. Try again.',
         db_error: 'Database error while creating your account. Try again.',
         token_gen_error: 'Failed to create session. Try again.',
@@ -437,19 +442,35 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const apiUrl = (import.meta as any).env?.VITE_API_URL || window.location.origin;
-                  const githubUrl = `${apiUrl}/api/auth/github`;
-                  console.log('[GitHub OAuth] Navigating to:', githubUrl);
-                  window.location.href = githubUrl;
-                }}
-                className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2 border border-slate-700"
-              >
-                <Github className="w-5 h-5" />
-                {t('auth.github')}
-              </button>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const apiUrl = (import.meta as any).env?.VITE_API_URL || window.location.origin;
+                    const googleUrl = `${apiUrl}/api/auth/google`;
+                    console.log('[Google OAuth] Navigating to:', googleUrl);
+                    window.location.href = googleUrl;
+                  }}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2 border border-slate-700"
+                >
+                  <GoogleIcon className="w-5 h-5" />
+                  {t('auth.google')}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const apiUrl = (import.meta as any).env?.VITE_API_URL || window.location.origin;
+                    const githubUrl = `${apiUrl}/api/auth/github`;
+                    console.log('[GitHub OAuth] Navigating to:', githubUrl);
+                    window.location.href = githubUrl;
+                  }}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2 border border-slate-700"
+                >
+                  <Github className="w-5 h-5" />
+                  {t('auth.github')}
+                </button>
+              </div>
 
               <div className="mt-6 pt-6 border-t border-slate-800 text-center text-sm text-slate-400">
                 {mode === 'login' ? (

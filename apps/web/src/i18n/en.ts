@@ -306,6 +306,7 @@ export const en = {
     registerBtn: 'Create Account',
     orContinueWith: 'or continue with',
     github: 'GitHub',
+    google: 'Google',
     noAccount: "Don't have an account?",
     hasAccount: 'Already have an account?',
     signUp: 'Sign up',

@@ -6,6 +6,7 @@ import ToastContainer from './components/ui/ToastContainer';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import GitHubCallback from './pages/GitHubCallback';
+import GoogleCallback from './pages/GoogleCallback';
 import DocsPage from './pages/DocsPage';
 import DashboardPage from './pages/DashboardPage';
 import ProjectPage from './pages/ProjectPage';
@@ -50,6 +51,7 @@ function AppRoutes() {
       <Route path="/login" element={<AuthPage mode="login" />} />
       <Route path="/register" element={<AuthPage mode="register" />} />
       <Route path="/auth/github/callback" element={<GitHubCallback />} />
+      <Route path="/auth/google/callback" element={<GoogleCallback />} />
       <Route path="/docs" element={<DocsPage />} />
       <Route path="/dashboard" element={<PrivateRoute><DashboardLayout><DashboardPage /></DashboardLayout></PrivateRoute>} />
       <Route path="/dashboard/projects/:id" element={<PrivateRoute><DashboardLayout><ProjectPage /></DashboardLayout></PrivateRoute>} />

@@ -12,6 +12,7 @@ model User {
   email         String    @unique
   passwordHash  String?   @map("password_hash")
   githubId      String?   @unique @map("github_id")
+  googleId      String?   @unique @map("google_id")
   name          String?
   role          UserRole  @default(USER)
   plan          Plan      @default(FREE)

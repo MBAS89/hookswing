@@ -30,7 +30,7 @@ import {
   Mail,
 } from 'lucide-react';
 
-function getTabs(isGitHubUser: boolean) {
+function getTabs(isOAuthUser: boolean) {
   const all = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'password', label: 'Password', icon: Lock },
@@ -38,7 +38,7 @@ function getTabs(isGitHubUser: boolean) {
     { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'notifications', label: 'Notifications', icon: Bell },
   ];
-  if (isGitHubUser) {
+  if (isOAuthUser) {
     return all.filter((t) => t.id !== 'password');
   }
   return all;
@@ -58,8 +58,8 @@ function formatCurrency(amount: number, currency: string) {
 export default function AccountPage() {
   const { user, updateUser, logout } = useAuth();
   const [searchParams] = useSearchParams();
-  const isGitHubUser = !!user?.githubId;
-  const tabs = getTabs(isGitHubUser);
+  const isOAuthUser = !!user?.githubId || !!user?.googleId;
+  const tabs = getTabs(isOAuthUser);
   const [activeTab, setActiveTab] = useState(() => {
     const tab = searchParams.get('tab');
     if (tab && tabs.some((t) => t.id === tab)) return tab;
@@ -99,7 +99,7 @@ export default function AccountPage() {
         {/* Content */}
         <div className="flex-1 min-w-0">
           {activeTab === 'profile' && <ProfileTab user={user} updateUser={updateUser} />}
-          {activeTab === 'password' && !isGitHubUser && <PasswordTab />}
+          {activeTab === 'password' && !isOAuthUser && <PasswordTab />}
           {activeTab === 'security' && <SecurityTab user={user} updateUser={updateUser} logout={logout} />}
           {activeTab === 'billing' && <BillingTab />}
           {activeTab === 'notifications' && <NotificationsTab />}

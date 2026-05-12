@@ -446,6 +446,219 @@ router.get('/github/callback', async (req, res) => {
   }
 });
 
+// --- Google OAuth ---
+router.get('/google', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return res.status(500).json({ error: 'Google OAuth not configured' });
+  }
+
+  const redirectUri = `${process.env.FRONTEND_URL || 'https://hookswing.com'}/api/auth/google/callback`;
+  const mode = req.query.mode as string || 'web';
+  const callbackPort = req.query.callback_port as string | undefined;
+  const state = Buffer.from(JSON.stringify({ random: Math.random().toString(36).substring(2, 15), mode, callbackPort })).toString('base64');
+
+  const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  url.searchParams.set('client_id', clientId);
+  url.searchParams.set('redirect_uri', redirectUri);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('scope', 'openid email profile');
+  url.searchParams.set('state', state);
+  url.searchParams.set('access_type', 'online');
+
+  res.redirect(url.toString());
+});
+
+router.get('/google/callback', async (req, res) => {
+  const { code, state, error: googleError, error_description: googleErrorDesc } = req.query as { code?: string; state?: string; error?: string; error_description?: string };
+
+  let mode = 'web';
+  let callbackPort: string | undefined;
+  try {
+    if (state) {
+      const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+      mode = decoded.mode || 'web';
+      callbackPort = decoded.callbackPort;
+    }
+  } catch { /* ignore invalid state */ }
+
+  if (googleError) {
+    console.error('[Google OAuth] Google returned error:', googleError, googleErrorDesc);
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Google login denied or failed.'));
+    }
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=google_denied`);
+  }
+
+  if (!code) {
+    console.error('[Google OAuth] No code in query params');
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('No authorization code received from Google.'));
+    }
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=no_code`);
+  }
+
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    console.error('[Google OAuth] Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Google OAuth is not configured on the server.'));
+    }
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=oauth_not_configured`);
+  }
+
+  // --- Step 1: Exchange code for access token ---
+  let accessToken: string;
+  try {
+    const redirectUri = `${process.env.FRONTEND_URL || 'https://hookswing.com'}/api/auth/google/callback`;
+    console.log('[Google OAuth] Exchanging code for token, redirectUri:', redirectUri);
+
+    const tokenRes = await axios.post(
+      'https://oauth2.googleapis.com/token',
+      {
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    console.log('[Google OAuth] Token response:', JSON.stringify(tokenRes.data));
+
+    if (tokenRes.data.error) {
+      console.error('[Google OAuth] Google token error:', tokenRes.data.error, tokenRes.data.error_description);
+      if (mode === 'cli') {
+        return res.type('html').send(cliErrorPage(`Google token exchange failed: ${tokenRes.data.error}`));
+      }
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_exchange_failed&detail=${encodeURIComponent(tokenRes.data.error)}`);
+    }
+
+    accessToken = tokenRes.data.access_token;
+    if (!accessToken) {
+      console.error('[Google OAuth] No access token in response:', tokenRes.data);
+      if (mode === 'cli') {
+        return res.type('html').send(cliErrorPage('No access token received from Google.'));
+      }
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_exchange_failed`);
+    }
+  } catch (err: any) {
+    console.error('[Google OAuth] Token exchange error:', err.response?.data || err.message);
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_exchange_failed`);
+  }
+
+  // --- Step 2: Fetch user profile ---
+  let googleUser: any;
+  try {
+    console.log('[Google OAuth] Fetching user profile...');
+    const userRes = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    googleUser = userRes.data;
+    console.log('[Google OAuth] Google user:', JSON.stringify({ id: googleUser.id, name: googleUser.name, email: googleUser.email }));
+  } catch (err: any) {
+    console.error('[Google OAuth] Profile fetch error:', err.response?.data || err.message);
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Failed to fetch your Google profile.'));
+    }
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=google_api_error`);
+  }
+
+  const googleId = googleUser.id?.toString();
+  const name = googleUser.name || googleUser.given_name || googleUser.email?.split('@')[0];
+  const email = googleUser.email;
+
+  if (!googleId || !email) {
+    console.error('[Google OAuth] Missing googleId or email:', { googleId, email });
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Could not retrieve your Google email. Please make sure your email is verified on Google.'));
+    }
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=google_no_email`);
+  }
+
+  // --- Step 3: Find or create user ---
+  let user: any;
+  try {
+    console.log('[Google OAuth] Looking up user by googleId:', googleId);
+    user = await prisma.user.findUnique({ where: { googleId } });
+
+    if (!user) {
+      console.log('[Google OAuth] No user by googleId, checking email:', email);
+      const existingByEmail = await prisma.user.findUnique({ where: { email } });
+      if (existingByEmail) {
+        console.log('[Google OAuth] Linking Google to existing user:', existingByEmail.id);
+        user = await prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: { googleId },
+        });
+      } else {
+        console.log('[Google OAuth] Creating new user for Google login');
+        const passwordHash = await bcrypt.hash(generateRandomPassword(), 10);
+        user = await prisma.user.create({
+          data: {
+            email,
+            name,
+            googleId,
+            passwordHash,
+            emailVerified: true,
+          },
+        });
+        await seedDefaultPreferences(user.id);
+        console.log('[Google OAuth] New user created:', user.id);
+        fireAdminAlert('user_registered', { userId: user.id, email: user.email, name: user.name }).catch(() => {});
+      }
+    }
+  } catch (err: any) {
+    console.error('[Google OAuth] DB error:', err.message);
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Database error. Please try again.'));
+    }
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=db_error`);
+  }
+
+  // --- Step 4: Generate tokens and redirect ---
+  try {
+    const { accessToken: jwtAccess, refreshToken } = generateTokens(user.id);
+
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        token: refreshToken,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    if (mode === 'cli' && callbackPort) {
+      console.log('[Google OAuth] CLI mode — redirecting to localhost:' + callbackPort);
+      const redirectUrl = new URL(`http://localhost:${callbackPort}`);
+      redirectUrl.searchParams.set('accessToken', jwtAccess);
+      redirectUrl.searchParams.set('refreshToken', refreshToken);
+      return res.redirect(redirectUrl.toString());
+    }
+
+    if (mode === 'cli') {
+      console.log('[Google OAuth] CLI mode — showing token page');
+      return res.type('html').send(cliSuccessPage(jwtAccess, refreshToken));
+    }
+
+    const redirectUrl = new URL(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/auth/google/callback`);
+    redirectUrl.searchParams.set('accessToken', jwtAccess);
+    redirectUrl.searchParams.set('refreshToken', refreshToken);
+
+    console.log('[Google OAuth] Success! Redirecting to frontend');
+    res.redirect(redirectUrl.toString());
+  } catch (err: any) {
+    console.error('[Google OAuth] Token generation error:', err.message);
+    if (mode === 'cli') {
+      return res.type('html').send(cliErrorPage('Token generation failed. Please try again.'));
+    }
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://hookswing.com'}/login?error=token_gen_error`);
+  }
+});
+
 // --- Registration ---
 router.post('/register', authRateLimit, async (req, res) => {
   const result = registerSchema.safeParse(req.body);
@@ -463,7 +676,7 @@ router.post('/register', authRateLimit, async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: { email, passwordHash, name },
-    select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, githubId: true },
+    select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, githubId: true, googleId: true },
   });
 
   fireAdminAlert('user_registered', { userId: user.id, email: user.email, name: user.name }).catch(() => {});
@@ -715,7 +928,7 @@ router.get('/me', async (req: AuthRequest, res) => {
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
-        id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, emailVerified: true, githubId: true,
+        id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, emailVerified: true, githubId: true, googleId: true,
         teams: {
           select: { team: { select: { id: true, name: true } }, role: true },
         },
@@ -791,7 +1004,7 @@ router.patch('/me', async (req: AuthRequest, res) => {
     where: { id: userId },
     data,
     select: {
-      id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, githubId: true,
+      id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, githubId: true, googleId: true,
       teams: { include: { team: { select: { id: true, name: true } } } },
     },
   });

@@ -15,6 +15,7 @@ interface User {
   twoFactorEnabled: boolean;
   emailVerified: boolean;
   githubId?: string | null;
+  googleId?: string | null;
   teams?: TeamMembership[];
 }
 

@@ -305,6 +305,7 @@ export const ar = {
     registerBtn: 'إنشاء حساب',
     orContinueWith: 'أو تابع باستخدام',
     github: 'GitHub',
+    google: 'Google',
     noAccount: 'ليس لديك حساب؟',
     hasAccount: 'لديك حساب بالفعل؟',
     signUp: 'سجّل',
