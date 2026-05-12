@@ -83,6 +83,10 @@ export const en = {
         title: 'Path Preservation',
         body: 'Webhooks sent to /hook/abc123/api/webhook forward to localhost:3000/api/webhook automatically. Your routes stay intact.',
       },
+      verifier: {
+        title: 'Signature Verifier',
+        body: 'Instantly verify Stripe, GitHub, PayPal, and Shopify webhook signatures. Debug HMAC and signature mismatches with clear error messages and common fixes.',
+      },
     },
     pathDemo: {
       title: 'One URL. Every Service. Your Localhost.',
@@ -331,6 +335,7 @@ export const en = {
     cli: 'CLI',
     admin: 'Admin',
     hookshield: 'HookShield',
+    signatureVerifier: 'Signature Verifier',
     projects: 'Projects',
     newProject: 'New Project',
     workspaces: 'Workspaces',

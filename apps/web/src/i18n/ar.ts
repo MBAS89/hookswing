@@ -83,6 +83,10 @@ export const ar = {
         title: 'حفظ المسار',
         body: 'تُعاد webhooks المرسلة إلى /hook/abc123/api/webhook تلقائياً إلى localhost:3000/api/webhook. مساراتك تبقى سليمة.',
       },
+      verifier: {
+        title: 'مدقق التوقيع',
+        body: 'تحقق فوراً من توقيعات Stripe و GitHub و PayPal و Shopify. صحح أخطاء HMAC والتوقيعات مع رسائل واضحة وإصلاحات شائعة.',
+      },
     },
     pathDemo: {
       title: 'رابط واحد. كل الخدمات. جهازك المحلي.',
@@ -329,6 +333,7 @@ export const ar = {
     cli: 'CLI',
     admin: 'مدير',
     hookshield: 'HookShield',
+    signatureVerifier: 'مدقق التوقيع',
     projects: 'المشاريع',
     newProject: 'مشروع جديد',
     workspaces: 'مساحات العمل',

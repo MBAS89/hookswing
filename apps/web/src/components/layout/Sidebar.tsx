@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, ShieldCheck, Trash2, Zap, MessageSquare, Send, ChevronUp, ChevronDown, Loader2, Headphones, Maximize2, Minimize2,
+  LayoutDashboard, FolderGit2, Users, Settings, X, Plus, Users2, Globe, Terminal, Shield, ShieldCheck, Trash2, Zap, MessageSquare, Send, ChevronUp, ChevronDown, Loader2, Headphones, Maximize2, Minimize2, Lock,
 } from 'lucide-react';
 import Logo from '../Logo';
 import { useProjects } from '../../hooks/useProjects';
@@ -27,6 +27,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
     { icon: LayoutDashboard, label: t('layout.dashboard'), href: '/dashboard' },
     { icon: Zap, label: t('layout.tester'), href: '/dashboard/tester' },
     { icon: ShieldCheck, label: t('layout.hookshield'), href: '/dashboard/hookshield' },
+    { icon: Lock, label: t('layout.signatureVerifier'), href: '/tools/verify-signature' },
     { icon: Users, label: t('layout.team'), href: '/dashboard/team', badge: pendingInvites > 0 ? pendingInvites : undefined },
     { icon: Terminal, label: t('layout.cli'), href: '/dashboard/cli' },
     ...(user?.role === 'ADMIN' ? [{ icon: Shield, label: t('layout.admin'), href: '/dashboard/admin' }] : []),

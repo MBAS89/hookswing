@@ -294,6 +294,11 @@ function SolutionSection() {
       title: t('landing.features.path.title'),
       body: t('landing.features.path.body'),
     },
+    {
+      icon: <Lock className="w-10 h-10 text-orange-400" />,
+      title: t('landing.features.verifier.title'),
+      body: t('landing.features.verifier.body'),
+    },
   ];
 
   return (
