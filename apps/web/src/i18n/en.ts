@@ -639,6 +639,60 @@ export const en = {
     invalidJson: 'Custom payload is not valid JSON',
   },
 
+  // Signature Verifier Tool
+  signatureVerifier: {
+    title: 'Webhook Signature Verifier',
+    subtitle: 'Free tool. No signup required. Verify signatures for Stripe, GitHub, PayPal, Shopify, and generic HMAC.',
+    payloadLabel: 'Payload',
+    payloadHint: 'raw JSON or body text',
+    signatureLabel: 'Signature Header',
+    secretLabel: 'Secret Key',
+    show: 'Show',
+    hide: 'Hide',
+    verify: 'Verify Signature',
+    verifying: 'Verifying...',
+    commonIssues: 'Common Issues',
+    ctaTitle: 'Testing webhooks locally?',
+    ctaBody: 'HookSwing gives you a permanent URL to catch webhooks, 90-day storage, one-click replay against localhost, and the ability to edit payloads before replaying.',
+    ctaButton: 'Try Free — No Card Required',
+    footerNote: 'Your secret is used for verification only and is never stored.',
+    formats: {
+      stripe: 'Format: t=1234567890,v1=abc123...',
+      github: 'Format: sha256=abc123... (or just the hex value)',
+      paypal: 'Format: sha256=abc123... (or just the hex value)',
+      shopify: 'Format: Base64-encoded HMAC from X-Shopify-Hmac-SHA256 header',
+      generic: 'Format: Hex-encoded HMAC-SHA256 signature',
+    },
+    issues: {
+      stripe: [
+        'Did you use express.raw({ type: "application/json" }) for Stripe webhooks?',
+        'Is the payload modified by body-parser middleware before verification?',
+        'Is the secret from the correct Stripe environment (test vs live)?',
+        'Did you copy the full Stripe-Signature header including the timestamp?',
+      ],
+      github: [
+        'Did you use the raw request body, not a parsed JSON object?',
+        'Is the secret the webhook secret, not your personal access token?',
+        'Did you include the "sha256=" prefix in your comparison?',
+      ],
+      paypal: [
+        'PayPal production uses RSA-SHA256 with certificates — this tool uses simplified HMAC for debugging.',
+        'Did you use the raw webhook payload without any parsing or formatting?',
+        'Is the secret from the webhook configuration in your PayPal app?',
+      ],
+      shopify: [
+        'Did you use the raw request body, not a parsed JSON object?',
+        'Is the secret your Shopify Admin API secret key?',
+        'Did you compare against the X-Shopify-Hmac-SHA256 header?',
+      ],
+      generic: [
+        'Did you use the raw request body string, not a parsed object?',
+        'Is your secret key the same one used to generate the signature?',
+        'Did you use HMAC-SHA256 with hex encoding?',
+      ],
+    },
+  },
+
   // CLI Page
   cli: {
     title: 'HookSwing CLI',

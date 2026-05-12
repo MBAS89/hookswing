@@ -629,6 +629,60 @@ export const ar = {
     invalidJson: 'الـ payload المخصص ليس JSON صالحاً',
   },
 
+  // Signature Verifier Tool
+  signatureVerifier: {
+    title: 'مدقق توقيع Webhook',
+    subtitle: 'أداة مجانية. لا يشترط التسجيل. تحقق من توقيعات Stripe و GitHub و PayPal و Shopify و HMAC العام.',
+    payloadLabel: 'الـ Payload',
+    payloadHint: 'نص JSON خام أو نص الجسم',
+    signatureLabel: 'رأس التوقيع',
+    secretLabel: 'المفتاح السري',
+    show: 'إظهار',
+    hide: 'إخفاء',
+    verify: 'تحقق من التوقيع',
+    verifying: 'جاري التحقق...',
+    commonIssues: 'مشاكل شائعة',
+    ctaTitle: 'تختبر webhooks محلياً؟',
+    ctaBody: 'يعطيك HookSwing رابطاً دائماً لالتقاط webhooks، وتخزين 90 يوماً، وإعادة تشغيل بنقرة واحدة على localhost، وإمكانية تعديل الحمولات قبل إعادة التشغيل.',
+    ctaButton: 'جرب مجاناً — لا بطاقة مطلوبة',
+    footerNote: 'سرك يُستخدم للتحقق فقط ولن يُخزّن أبداً.',
+    formats: {
+      stripe: 'التنسيق: t=1234567890,v1=abc123...',
+      github: 'التنسيق: sha256=abc123... (أو القيمة السداسية فقط)',
+      paypal: 'التنسيق: sha256=abc123... (أو القيمة السداسية فقط)',
+      shopify: 'التنسيق: HMAC مشفر بـ Base64 من رأس X-Shopify-Hmac-SHA256',
+      generic: 'التنسيق: توقيع HMAC-SHA256 مشفر سداسياً',
+    },
+    issues: {
+      stripe: [
+        'هل استخدمت express.raw({ type: "application/json" }) لـ webhooks Stripe؟',
+        'هل تم تعديل الـ payload بواسطة وسيط body-parser قبل التحقق؟',
+        'هل السر من بيئة Stripe الصحيحة (اختبار مقابل إنتاج)؟',
+        'هل نسخت رأس Stripe-Signature كاملاً بما في ذلك الطابع الزمني؟',
+      ],
+      github: [
+        'هل استخدمت نص الطلب الخام، وليس كائن JSON محلل؟',
+        'هل السر هو سر webhook، وليس رمز الوصول الشخصي؟',
+        'هل تضمنت البادئة "sha256=" في المقارنة؟',
+      ],
+      paypal: [
+        'يستخدم PayPal في الإنتاج RSA-SHA256 مع شهادات — هذه الأداة تستخدم HMAC مبسط للتصحيح.',
+        'هل استخدمت حمولة webhook الخام دون أي تحليل أو تنسيق؟',
+        'هل السر من إعداد webhook في تطبيق PayPal الخاص بك؟',
+      ],
+      shopify: [
+        'هل استخدمت نص الطلب الخام، وليس كائن JSON محلل؟',
+        'هل السر هو مفتاح سر Shopify Admin API؟',
+        'هل قارنت برأس X-Shopify-Hmac-SHA256؟',
+      ],
+      generic: [
+        'هل استخدمت نص الجسم الخام، وليس كائناً محللاً؟',
+        'هل مفتاح السر هو نفسه المستخدم لتوليد التوقيع؟',
+        'هل استخدمت HMAC-SHA256 مع التشفير السداسي؟',
+      ],
+    },
+  },
+
   // CLI Page
   cli: {
     title: 'HookSwing CLI',

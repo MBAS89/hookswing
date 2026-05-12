@@ -18,35 +18,6 @@ const PROVIDERS = [
 
 type Provider = typeof PROVIDERS[number]['key'];
 
-const COMMON_ISSUES: Record<Provider, string[]> = {
-  stripe: [
-    'Did you use express.raw({ type: "application/json" }) for Stripe webhooks?',
-    'Is the payload modified by body-parser middleware before verification?',
-    'Is the secret from the correct Stripe environment (test vs live)?',
-    'Did you copy the full Stripe-Signature header including the timestamp?',
-  ],
-  github: [
-    'Did you use the raw request body, not a parsed JSON object?',
-    'Is the secret the webhook secret, not your personal access token?',
-    'Did you include the "sha256=" prefix in your comparison?',
-  ],
-  paypal: [
-    'PayPal production uses RSA-SHA256 with certificates — this tool uses simplified HMAC for debugging.',
-    'Did you use the raw webhook payload without any parsing or formatting?',
-    'Is the secret from the webhook configuration in your PayPal app?',
-  ],
-  shopify: [
-    'Did you use the raw request body, not a parsed JSON object?',
-    'Is the secret your Shopify Admin API secret key?',
-    'Did you compare against the X-Shopify-Hmac-SHA256 header?',
-  ],
-  generic: [
-    'Did you use the raw request body string, not a parsed object?',
-    'Is your secret key the same one used to generate the signature?',
-    'Did you use HMAC-SHA256 with hex encoding?',
-  ],
-};
-
 const PLACEHOLDERS: Record<Provider, { payload: string; signature: string; secret: string }> = {
   stripe: {
     payload: '{\n  "id": "evt_1234567890abcdef",\n  "object": "event",\n  "type": "invoice.payment_succeeded",\n  "data": { ... }\n}',
@@ -128,6 +99,8 @@ export default function VerifySignaturePage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
+  const { t, isRTL } = useTranslation();
+
   const handleVerify = async () => {
     setResult(null);
     setIsVerifying(true);
@@ -157,12 +130,13 @@ export default function VerifySignaturePage() {
   };
 
   const placeholders = PLACEHOLDERS[provider];
-  const issues = COMMON_ISSUES[provider];
+  const issues = t(`signatureVerifier.issues.${provider}`) as string[];
+  const formatHint = t(`signatureVerifier.formats.${provider}`) as string;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-950 text-white" dir={isRTL ? 'rtl' : 'ltr'}>
       <SEO
-        title="Free Webhook Signature Verifier — Stripe, GitHub, PayPal"
+        title={t('signatureVerifier.title')}
         description="Verify Stripe, GitHub, PayPal, and Shopify webhook signatures instantly. Free online tool. No signup required. Paste your payload, signature, and secret to check if your webhook verification is working correctly."
         keywords="stripe webhook signature verify, github webhook signature check, paypal webhook verify, shopify webhook signature, webhook signature verification online, stripe webhook test"
         canonical="https://hookswing.com/tools/verify-signature"
@@ -177,8 +151,8 @@ export default function VerifySignaturePage() {
           <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center ring-1 ring-emerald-500/20 mx-auto mb-4">
             <Shield className="w-7 h-7 text-emerald-400" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Webhook Signature Verifier</h1>
-          <p className="text-slate-400">Free tool. No signup required. Verify signatures for Stripe, GitHub, PayPal, Shopify, and generic HMAC.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('signatureVerifier.title')}</h1>
+          <p className="text-slate-400">{t('signatureVerifier.subtitle')}</p>
         </div>
 
         {/* Provider Selector */}
@@ -206,7 +180,7 @@ export default function VerifySignaturePage() {
           {/* Payload */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              1. Payload <span className="text-slate-500 font-normal">(raw JSON or body text)</span>
+              1. {t('signatureVerifier.payloadLabel')} <span className="text-slate-500 font-normal">({t('signatureVerifier.payloadHint')})</span>
             </label>
             <textarea
               value={payload}
@@ -220,7 +194,7 @@ export default function VerifySignaturePage() {
           {/* Signature */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              2. Signature Header
+              2. {t('signatureVerifier.signatureLabel')}
             </label>
             <input
               type="text"
@@ -229,19 +203,13 @@ export default function VerifySignaturePage() {
               placeholder={placeholders.signature}
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 font-mono text-sm transition-all"
             />
-            <p className="mt-1.5 text-xs text-slate-500">
-              {provider === 'stripe' && 'Format: t=1234567890,v1=abc123...'}
-              {provider === 'github' && 'Format: sha256=abc123... (or just the hex value)'}
-              {provider === 'paypal' && 'Format: sha256=abc123... (or just the hex value)'}
-              {provider === 'shopify' && 'Format: Base64-encoded HMAC from X-Shopify-Hmac-SHA256 header'}
-              {provider === 'generic' && 'Format: Hex-encoded HMAC-SHA256 signature'}
-            </p>
+            <p className="mt-1.5 text-xs text-slate-500">{formatHint}</p>
           </div>
 
           {/* Secret */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              3. Secret Key
+              3. {t('signatureVerifier.secretLabel')}
             </label>
             <div className="relative">
               <input
@@ -256,7 +224,7 @@ export default function VerifySignaturePage() {
                 onClick={() => setShowSecret(!showSecret)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
               >
-                {showSecret ? 'Hide' : 'Show'}
+                {showSecret ? t('signatureVerifier.hide') : t('signatureVerifier.show')}
               </button>
             </div>
           </div>
@@ -268,7 +236,7 @@ export default function VerifySignaturePage() {
             className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold transition-all hover:scale-[1.02] flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
           >
             {isVerifying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
-            {isVerifying ? 'Verifying...' : 'Verify Signature'}
+            {isVerifying ? t('signatureVerifier.verifying') : t('signatureVerifier.verify')}
           </button>
 
           {/* Result */}
@@ -313,7 +281,7 @@ export default function VerifySignaturePage() {
                 <div className="mt-4">
                   <h4 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-400" />
-                    Common Issues
+                    {t('signatureVerifier.commonIssues')}
                   </h4>
                   <ul className="space-y-1.5">
                     {issues.map((issue, i) => (
@@ -336,16 +304,14 @@ export default function VerifySignaturePage() {
               <Zap className="w-6 h-6 text-emerald-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-white mb-1">Testing webhooks locally?</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                HookSwing gives you a permanent URL to catch webhooks, 90-day storage, one-click replay against localhost, and the ability to edit payloads before replaying.
-              </p>
+              <h3 className="text-lg font-semibold text-white mb-1">{t('signatureVerifier.ctaTitle')}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">{t('signatureVerifier.ctaBody')}</p>
             </div>
             <Link
               to="/register"
               className="shrink-0 bg-emerald-500 hover:bg-emerald-400 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all hover:scale-[1.02] flex items-center gap-2 shadow-lg shadow-emerald-500/20"
             >
-              Try Free — No Card Required
+              {t('signatureVerifier.ctaButton')}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -353,7 +319,7 @@ export default function VerifySignaturePage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-600 mt-10">
-          Your secret is used for verification only and is never stored.
+          {t('signatureVerifier.footerNote')}
         </p>
       </div>
     </div>
