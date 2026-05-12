@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, X, Shield, Loader2, ArrowRight, AlertTriangle, Copy, CheckCircle2, Zap } from 'lucide-react';
+import { Check, X, Shield, Loader2, ArrowRight, AlertTriangle, Copy, CheckCircle2, Zap, LogOut, LayoutDashboard } from 'lucide-react';
 import Logo from '../../components/Logo';
 import SEO from '../../components/seo/SEO';
 import { api } from '../../lib/api';
+import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from '../../i18n';
+import { LanguageSwitcher } from '../../i18n/LanguageSwitcher';
 
 const PROVIDERS = [
   { key: 'stripe', label: 'Stripe', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
@@ -72,6 +75,49 @@ const PLACEHOLDERS: Record<Provider, { payload: string; signature: string; secre
   },
 };
 
+function Navbar() {
+  const { user, logout } = useAuth();
+  const { t } = useTranslation();
+
+  return (
+    <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <Logo className="w-7 h-7" />
+          <span className="font-bold text-white">HookSwing</span>
+        </Link>
+        <div className="flex items-center gap-4 text-sm">
+          <LanguageSwitcher />
+          <Link to="/docs" className="text-slate-400 hover:text-white transition-colors hidden sm:inline">Docs</Link>
+          {user ? (
+            <>
+              <Link
+                to="/dashboard"
+                className="text-slate-400 hover:text-white transition-colors hidden sm:flex items-center gap-1"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                {t('landing.nav.dashboard')}
+              </Link>
+              <button
+                onClick={logout}
+                className="text-slate-400 hover:text-white transition-colors flex items-center gap-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                {t('landing.nav.logout')}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="text-slate-400 hover:text-white transition-colors">{t('landing.nav.login')}</Link>
+              <Link to="/register" className="text-emerald-400 hover:text-emerald-300 font-medium">{t('landing.nav.signup')}</Link>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
 export default function VerifySignaturePage() {
   const [provider, setProvider] = useState<Provider>('stripe');
   const [payload, setPayload] = useState('');
@@ -123,18 +169,7 @@ export default function VerifySignaturePage() {
       />
 
       {/* Navbar */}
-      <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Logo className="w-7 h-7" />
-            <span className="font-bold text-white">HookSwing</span>
-          </Link>
-          <div className="flex items-center gap-4 text-sm">
-            <Link to="/docs" className="text-slate-400 hover:text-white transition-colors">Docs</Link>
-            <Link to="/login" className="text-emerald-400 hover:text-emerald-300 font-medium">Sign In</Link>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="max-w-3xl mx-auto px-4 py-12">
         {/* Header */}
