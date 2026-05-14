@@ -442,6 +442,7 @@ export const ar = {
     resetAll: 'إعادة تعيين الكل',
     replayFailed: 'فشلت إعادة التشغيل',
     replayRequiresPro: 'إعادة التشغيل تتطلب Pro أو Team',
+    commentsRequiresTeam: 'التعليقات تتطلب خطة Team',
     deleteWebhook: 'حذف الـ Webhook',
     deleteConfirm: 'هل أنت متأكد من حذف هذا الـ webhook؟',
     pick: 'اختيار',

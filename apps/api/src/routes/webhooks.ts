@@ -288,7 +288,25 @@ router.post('/:id/replay-record', async (req: AuthRequest, res) => {
 });
 
 router.delete('/:id', async (req: AuthRequest, res) => {
-  const webhook = await prisma.webhook.deleteMany({
+  // Query first to get projectId for activity log
+  const wh = await prisma.webhook.findFirst({
+    where: {
+      id: req.params.id,
+      project: {
+        OR: [
+          { userId: req.user!.id },
+          { team: { members: { some: { userId: req.user!.id } } } },
+        ],
+      },
+    },
+    select: { projectId: true },
+  });
+
+  if (!wh) {
+    return res.status(404).json({ error: 'Webhook not found' });
+  }
+
+  await prisma.webhook.deleteMany({
     where: {
       id: req.params.id,
       project: {
@@ -300,25 +318,15 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     },
   });
 
-  if (webhook.count === 0) {
-    return res.status(404).json({ error: 'Webhook not found' });
-  }
-
-  const wh = await prisma.webhook.findUnique({
-    where: { id: req.params.id },
-    select: { projectId: true },
-  });
-  if (wh) {
-    const proj = wh?.projectId ? await prisma.project.findUnique({ where: { id: wh.projectId }, select: { teamId: true } }) : null;
-    if (proj?.teamId) {
-      await logActivity({
-        teamId: proj.teamId,
-        userId: req.user!.id,
-        action: 'webhook_deleted',
-        targetType: 'webhook',
-        targetId: req.params.id,
-      });
-    }
+  const proj = wh.projectId ? await prisma.project.findUnique({ where: { id: wh.projectId }, select: { teamId: true } }) : null;
+  if (proj?.teamId) {
+    await logActivity({
+      teamId: proj.teamId,
+      userId: req.user!.id,
+      action: 'webhook_deleted',
+      targetType: 'webhook',
+      targetId: req.params.id,
+    });
   }
 
   res.json({ success: true });
@@ -489,7 +497,6 @@ router.get('/:id/comments', async (req: AuthRequest, res) => {
       user: { select: { id: true, name: true, email: true } },
       reactions: true,
       replies: {
-        take: 3,
         orderBy: { createdAt: 'asc' },
         include: {
           user: { select: { id: true, name: true, email: true } },

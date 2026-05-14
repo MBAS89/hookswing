@@ -23,8 +23,10 @@ const actionIcons: Record<string, React.ElementType> = {
   webhook_deleted: Trash2,
   member_invited: UserPlus,
   member_joined: UserCheck,
+  member_left: UserX,
   member_role_changed: UserCog,
   member_removed: UserX,
+  team_created: FolderPlus,
   team_renamed: PenLine,
   team_transferred: ArrowRightLeft,
   alert_added: BellPlus,
@@ -45,8 +47,10 @@ const actionLabels: Record<string, string> = {
   webhook_deleted: 'deleted a webhook',
   member_invited: 'invited a member',
   member_joined: 'joined the team',
+  member_left: 'left the team',
   member_role_changed: "changed a member's role",
   member_removed: 'removed a member',
+  team_created: 'created the team',
   team_renamed: 'renamed the team',
   team_transferred: 'transferred ownership',
   alert_added: 'added an alert',
@@ -179,10 +183,10 @@ export default function ActivityLog({ teamId, isOwner }: { teamId: string; isOwn
       })}
       <ConfirmModal
         open={clearConfirm}
-        title="Clear Activity Log"
-        message="Are you sure you want to clear all activity log entries? This cannot be undone."
-        confirmLabel="Clear"
-        cancelLabel="Cancel"
+        title={t('workspace.clearActivity')}
+        message={t('workspace.clearActivityConfirm')}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
         danger
         onConfirm={handleClear}
         onCancel={() => setClearConfirm(false)}

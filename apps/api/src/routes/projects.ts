@@ -346,7 +346,8 @@ router.get('/:projectId/webhooks', async (req: AuthRequest, res) => {
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
   const method = req.query.method as string | undefined;
-  const cutoff = getHistoryCutoff(req.user!.plan);
+  const effectivePlan = project.teamId ? 'TEAM' : req.user!.plan;
+  const cutoff = getHistoryCutoff(effectivePlan);
 
   const where: any = { projectId: req.params.projectId };
   if (method) where.method = method.toUpperCase();

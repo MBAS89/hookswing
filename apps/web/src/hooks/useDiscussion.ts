@@ -172,7 +172,23 @@ export function useDiscussion(teamId: string | null) {
   }, []);
 
   const react = useCallback(async (commentId: string, type: 'like' | 'dislike') => {
-    await api.post(`/webhooks/comments/${commentId}/react`, { type });
+    const res = await api.post(`/webhooks/comments/${commentId}/react`, { type });
+    const { likes, dislikes, userReaction } = res.data;
+
+    setComments((prev) => {
+      const next = prev.map((c) => {
+        if (c.id === commentId) {
+          return { ...c, likes, dislikes, userReaction };
+        }
+        return {
+          ...c,
+          replies: c.replies.map((r) =>
+            r.id === commentId ? { ...r, likes, dislikes, userReaction } : r
+          ),
+        };
+      });
+      return next;
+    });
   }, []);
 
   const deleteComment = useCallback(async (webhookId: string, commentId: string) => {

@@ -374,19 +374,20 @@ router.get('/github/callback', async (req, res) => {
 
     if (!user) {
       console.log('[GitHub OAuth] No user by githubId, checking email:', email);
-      const existingByEmail = await prisma.user.findUnique({ where: { email } });
+      const normalizedEmail = email.toLowerCase().trim();
+      const existingByEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
       if (existingByEmail) {
         console.log('[GitHub OAuth] Linking GitHub to existing user:', existingByEmail.id);
         user = await prisma.user.update({
           where: { id: existingByEmail.id },
-          data: { githubId },
+          data: { githubId, emailVerified: true },
         });
       } else {
         console.log('[GitHub OAuth] Creating new user for GitHub login');
         const passwordHash = await bcrypt.hash(generateRandomPassword(), 10);
         user = await prisma.user.create({
           data: {
-            email,
+            email: normalizedEmail,
             name,
             githubId,
             passwordHash,
@@ -587,19 +588,20 @@ router.get('/google/callback', async (req, res) => {
 
     if (!user) {
       console.log('[Google OAuth] No user by googleId, checking email:', email);
-      const existingByEmail = await prisma.user.findUnique({ where: { email } });
+      const normalizedEmail = email.toLowerCase().trim();
+      const existingByEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
       if (existingByEmail) {
         console.log('[Google OAuth] Linking Google to existing user:', existingByEmail.id);
         user = await prisma.user.update({
           where: { id: existingByEmail.id },
-          data: { googleId },
+          data: { googleId, emailVerified: true },
         });
       } else {
         console.log('[Google OAuth] Creating new user for Google login');
         const passwordHash = await bcrypt.hash(generateRandomPassword(), 10);
         user = await prisma.user.create({
           data: {
-            email,
+            email: normalizedEmail,
             name,
             googleId,
             passwordHash,
@@ -668,14 +670,15 @@ router.post('/register', authRateLimit, async (req, res) => {
 
   const { email, password, name } = result.data;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const normalizedEmail = email.toLowerCase().trim();
+  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existing) {
     return res.status(409).json({ error: 'Email already registered' });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
-    data: { email, passwordHash, name },
+    data: { email: normalizedEmail, passwordHash, name },
     select: { id: true, email: true, name: true, role: true, plan: true, twoFactorEnabled: true, githubId: true, googleId: true },
   });
 
@@ -721,7 +724,7 @@ router.post('/login', authRateLimit, async (req, res) => {
 
   const { email, password } = result.data;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
@@ -762,7 +765,7 @@ router.post('/login', authRateLimit, async (req, res) => {
 
   const [pendingInvites, unreadNotifications] = await Promise.all([
     prisma.teamInvite.count({
-      where: { email: user.email, status: 'PENDING', expiresAt: { gt: new Date() } },
+      where: { email: user.email.toLowerCase().trim(), status: 'PENDING', expiresAt: { gt: new Date() } },
     }),
     prisma.notification.count({ where: { userId: user.id, read: false } }),
   ]);
@@ -854,7 +857,7 @@ router.post('/login/2fa', authRateLimit, async (req, res) => {
 
   const [pendingInvites, unreadNotifications] = await Promise.all([
     prisma.teamInvite.count({
-      where: { email: user.email, status: 'PENDING', expiresAt: { gt: new Date() } },
+      where: { email: user.email.toLowerCase().trim(), status: 'PENDING', expiresAt: { gt: new Date() } },
     }),
     prisma.notification.count({ where: { userId: user.id, read: false } }),
   ]);
@@ -993,11 +996,12 @@ router.patch('/me', async (req: AuthRequest, res) => {
   const data: any = {};
   if (name !== undefined) data.name = name;
   if (email !== undefined) {
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = email.toLowerCase().trim();
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing && existing.id !== userId) {
       return res.status(409).json({ error: 'Email already in use' });
     }
-    data.email = email;
+    data.email = normalizedEmail;
   }
 
   const user = await prisma.user.update({
@@ -1234,7 +1238,7 @@ router.post('/send-verification', emailRateLimit, async (req: AuthRequest, res) 
   }
 
   const { email } = result.data;
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
 
   // Prevent enumeration: same response regardless of whether user exists
   if (!user) {
@@ -1288,7 +1292,7 @@ router.post('/verify-email', authRateLimit, async (req, res) => {
   }
 
   const { email, code } = result.data;
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
 
   if (!user || !user.emailVerificationToken || !user.emailVerificationExpires) {
     return res.status(400).json({ error: 'Invalid or expired code' });
@@ -1337,7 +1341,7 @@ router.post('/verify-email', authRateLimit, async (req, res) => {
 
   const [pendingInvites, unreadNotifications] = await Promise.all([
     prisma.teamInvite.count({
-      where: { email: user.email, status: 'PENDING', expiresAt: { gt: new Date() } },
+      where: { email: user.email.toLowerCase().trim(), status: 'PENDING', expiresAt: { gt: new Date() } },
     }),
     prisma.notification.count({ where: { userId: user.id, read: false } }),
   ]);
@@ -1361,7 +1365,7 @@ router.post('/forgot-password', emailRateLimit, async (req, res) => {
   }
 
   const { email } = result.data;
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
 
   // Prevent enumeration: same response regardless
   if (!user) {

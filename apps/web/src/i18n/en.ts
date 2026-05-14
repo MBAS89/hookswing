@@ -447,6 +447,7 @@ export const en = {
     resetAll: 'Reset All',
     replayFailed: 'Replay failed',
     replayRequiresPro: 'Replay requires Pro or Team plan',
+    commentsRequiresTeam: 'Comments require Team plan',
     deleteWebhook: 'Delete Webhook',
     deleteConfirm: 'Are you sure you want to delete this webhook?',
     pick: 'Pick',

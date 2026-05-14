@@ -511,7 +511,7 @@ export default function WebhookDetail({
             {!isTeamPlan ? (
               <div className="text-center py-8 text-slate-500">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">{t('webhook.replayRequiresPro')}</p>
+                <p className="text-sm">{t('webhook.commentsRequiresTeam')}</p>
               </div>
             ) : (
               <>

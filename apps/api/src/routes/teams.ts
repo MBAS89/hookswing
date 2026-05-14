@@ -68,6 +68,14 @@ router.post('/', async (req: AuthRequest, res) => {
     },
   });
 
+  await logActivity({
+    teamId: team.id,
+    userId: req.user!.id,
+    action: 'team_created',
+    targetType: 'team',
+    targetId: team.id,
+  });
+
   res.status(201).json(team);
 });
 
@@ -265,7 +273,6 @@ router.get('/:id/discussion', async (req: AuthRequest, res) => {
         select: { id: true, method: true, source: true, projectId: true },
       },
       replies: {
-        take: 3,
         orderBy: { createdAt: 'asc' },
         include: {
           user: { select: { id: true, name: true, email: true } },
@@ -362,6 +369,14 @@ router.post('/:id/leave', async (req: AuthRequest, res) => {
       title: 'Member Left',
       message: `${leaver?.name || leaver?.email || 'A member'} left ${teamBeforeLeave.name}.`,
       data: { teamId: req.params.id, userId: req.user!.id },
+    });
+    await logActivity({
+      teamId: req.params.id,
+      userId: req.user!.id,
+      action: 'member_left',
+      targetType: 'member',
+      targetId: req.user!.id,
+      metadata: { name: leaver?.name, email: leaver?.email },
     });
   }
 
@@ -601,7 +616,7 @@ router.get('/invites/me', async (req: AuthRequest, res) => {
 
   const invites = await prisma.teamInvite.findMany({
     where: {
-      email: user.email,
+      email: user.email.toLowerCase().trim(),
       status: 'PENDING',
       expiresAt: { gt: new Date() },
     },
@@ -629,7 +644,7 @@ router.post('/invites/:token/accept', async (req: AuthRequest, res) => {
   const invite = await prisma.teamInvite.findFirst({
     where: {
       token: req.params.token,
-      email: user.email,
+      email: user.email.toLowerCase().trim(),
       status: 'PENDING',
       expiresAt: { gt: new Date() },
     },
@@ -694,7 +709,7 @@ router.post('/invites/:token/decline', async (req: AuthRequest, res) => {
   }
 
   const declinedInvite = await prisma.teamInvite.findFirst({
-    where: { token: req.params.token, email: user.email, status: 'PENDING' },
+    where: { token: req.params.token, email: user.email.toLowerCase().trim(), status: 'PENDING' },
     include: { team: true },
   });
 

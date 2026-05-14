@@ -8,8 +8,10 @@ export type ActivityAction =
   | 'webhook_deleted'
   | 'member_invited'
   | 'member_joined'
+  | 'member_left'
   | 'member_role_changed'
   | 'member_removed'
+  | 'team_created'
   | 'team_renamed'
   | 'team_transferred'
   | 'alert_added'
@@ -60,8 +62,10 @@ export const actionLabels: Record<ActivityAction, string> = {
   webhook_deleted: 'deleted a webhook',
   member_invited: 'invited a member',
   member_joined: 'joined the team',
+  member_left: 'left the team',
   member_role_changed: "changed a member's role",
   member_removed: 'removed a member',
+  team_created: 'created the team',
   team_renamed: 'renamed the team',
   team_transferred: 'transferred team ownership',
   alert_added: 'added an alert',
