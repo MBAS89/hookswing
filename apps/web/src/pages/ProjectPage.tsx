@@ -752,7 +752,6 @@ export default function ProjectPage() {
                   onCompare={canCompare ? () => toggleCompare(webhook.id) : undefined}
                   compareMode={compareMode}
                   isCompareSelected={compareSelection.includes(webhook.id)}
-                  canReplay={canReplay}
                 />
               ))}
               {pagination.totalPages > pagination.page && (

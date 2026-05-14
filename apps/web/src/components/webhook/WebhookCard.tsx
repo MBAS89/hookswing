@@ -1,18 +1,6 @@
-import { useState, useEffect } from 'react';
 import { methodColor, statusColor, formatDate, formatBytes } from '../../lib/utils';
-import { GitCompare, ChevronDown, ChevronUp, Copy, Play, RotateCcw, Globe, Hash, FileJson, Link2, Loader2, Check, AlertCircle, Zap, MessageSquare } from 'lucide-react';
-import JsonViewer from './JsonViewer';
-import JsonEditor from './JsonEditor';
-import { api } from '../../lib/api';
-import { useToast } from '../../hooks/useToast';
+import { GitCompare, MessageSquare } from 'lucide-react';
 import { useTranslation } from '../../i18n';
-
-function formatReplayBody(rawBody: string | null | undefined, body: any): string {
-  if (rawBody) {
-    try { return JSON.stringify(JSON.parse(rawBody), null, 2); } catch { return rawBody; }
-  }
-  return JSON.stringify(body || {}, null, 2);
-}
 
 interface Webhook {
   id: string;
@@ -39,7 +27,6 @@ export default function WebhookCard({
   onCompare,
   compareMode,
   isCompareSelected,
-  canReplay,
 }: {
   webhook: Webhook;
   selected: boolean;
@@ -47,75 +34,10 @@ export default function WebhookCard({
   onCompare?: () => void;
   compareMode?: boolean;
   isCompareSelected?: boolean;
-  canReplay?: boolean;
 }) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    if (selected) setExpanded(true);
-  }, [selected]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'headers' | 'body' | 'query' | 'replay'>('body');
   const bodySize = webhook.body ? JSON.stringify(webhook.body).length : 0;
-  const toast = useToast();
   const commentCount = webhook._count?.comments ?? 0;
-
-  // Replay state
-  const [replayUrl, setReplayUrl] = useState(() => localStorage.getItem('lastReplayUrl') || 'http://localhost:3000/webhook');
-  const [replayHeaders, setReplayHeaders] = useState('');
-  const [replayBody, setReplayBody] = useState('');
-  const [replayQuery, setReplayQuery] = useState('');
-  const [replayLoading, setReplayLoading] = useState(false);
-  const [replayResult, setReplayResult] = useState<{status: number; responseTime: number} | null>(null);
-  const [replayJsonError, setReplayJsonError] = useState('');
-  const [replaySubTab, setReplaySubTab] = useState<'url' | 'headers' | 'body' | 'query'>('url');
-
-  useEffect(() => {
-    if (expanded && activeTab === 'replay') {
-      setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
-      setReplayBody(formatReplayBody(webhook.rawBody, webhook.body));
-      setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
-      setReplayJsonError('');
-    }
-  }, [expanded, activeTab, webhook]);
-
-  const handleReplay = async () => {
-    setReplayJsonError('');
-    let parsedHeaders: any, parsedBody: any, parsedQuery: any;
-    try { parsedHeaders = JSON.parse(replayHeaders || '{}'); } catch { setReplayJsonError(t('webhook.invalidHeaders')); setReplaySubTab('headers'); return; }
-    try { parsedBody = replayBody.trim() || undefined; try { parsedBody = JSON.parse(replayBody); } catch { /* raw string */ } } catch { setReplayJsonError(t('webhook.invalidBody')); setReplaySubTab('body'); return; }
-    try { parsedQuery = JSON.parse(replayQuery || '{}'); } catch { setReplayJsonError(t('webhook.invalidQuery')); setReplaySubTab('query'); return; }
-
-    setReplayLoading(true); setReplayResult(null);
-    try {
-      const headers: Record<string, string> = {};
-      for (const [k, v] of Object.entries(parsedHeaders)) { const key = k.toLowerCase(); if (['content-length','transfer-encoding','connection','host','expect','keep-alive'].includes(key)) continue; headers[k] = String(v); }
-      let url = replayUrl;
-      const qs = new URLSearchParams();
-      for (const [k, v] of Object.entries(parsedQuery || {})) { if (v !== undefined && v !== null) qs.append(k, String(v)); }
-      if (qs.toString()) url += (url.includes('?') ? '&' : '?') + qs.toString();
-      let body: string | undefined;
-      if (typeof parsedBody === 'string') body = parsedBody;
-      else if (parsedBody !== undefined) { body = JSON.stringify(parsedBody); headers['content-type'] = headers['content-type'] || 'application/json'; }
-      const start = performance.now();
-      const fetchRes = await fetch(url, { method: webhook.method, headers, body });
-      const responseTime = Math.round(performance.now() - start);
-      let responseBody = ''; try { responseBody = await fetchRes.text(); } catch { /* ignore */ }
-      const recordRes = await api.post(`/webhooks/${webhook.id}/replay-record`, { targetUrl: replayUrl, statusCode: fetchRes.status, responseTime, responseBody: responseBody.slice(0, 50000), headers: parsedHeaders, body: parsedBody, query: parsedQuery });
-      setReplayResult(recordRes.data);
-    } catch (err: any) {
-      setReplayResult({ status: 0, responseTime: 0 });
-      const msg = err.name === 'TypeError' && err.message?.includes('Failed to fetch') ? t('webhook.corsError') : (err.response?.data?.error || err.message || t('webhook.replayFailed'));
-      toast.error(msg);
-    } finally { setReplayLoading(false); }
-  };
-
-  const resetAll = () => {
-    setReplayHeaders(JSON.stringify(webhook.headers || {}, null, 2));
-    setReplayBody(formatReplayBody(webhook.rawBody, webhook.body));
-    setReplayQuery(JSON.stringify(webhook.query || {}, null, 2));
-    setReplayJsonError('');
-  };
 
   return (
     <div className={`rounded-lg border transition-all ${selected ? 'bg-emerald-500/5 border-emerald-500/30' : isCompareSelected ? 'bg-amber-500/5 border-amber-500/30' : 'bg-slate-800/50 border-slate-800 hover:border-slate-700'}`}>
@@ -139,126 +61,8 @@ export default function WebhookCard({
               <MessageSquare className="w-3.5 h-3.5 fill-white/20" />{commentCount}
             </span>
           )}
-          <button onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }} className="ml-auto flex items-center gap-1 text-slate-500 hover:text-emerald-400 transition-colors px-1.5 py-0.5 rounded hover:bg-slate-700/50">
-            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}<span className="text-[10px]">{expanded ? t('common.close') : t('common.confirm')}</span>
-          </button>
         </div>
       </button>
-
-      {expanded && (
-        <div className="border-t border-slate-800">
-          <div className="flex flex-wrap border-b border-slate-800">
-            {(
-              [{id:'overview',label:t('webhook.overview')},{id:'headers',label:t('webhook.headers')},{id:'body',label:t('webhook.body')},{id:'query',label:t('webhook.query')},...(canReplay?[{id:'replay',label:t('webhook.replay')}]:[{id:undefined,label:''}].filter(()=>false))] as {id:'overview'|'headers'|'body'|'query'|'replay';label:string}[]
-            ).map(t => (
-              <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${activeTab===t.id?'text-emerald-400 border-b-2 border-emerald-500':'text-slate-500 hover:text-slate-300'}`}>{t.label}</button>
-            ))}
-          </div>
-          <div className="p-4 max-h-[32rem] overflow-auto">
-            {activeTab==='overview'&&(
-              <div className="space-y-2.5 text-sm">
-                <div className="flex items-center justify-between"><span className="text-slate-500 text-xs uppercase tracking-wider">{t('webhook.id')}</span><div className="flex items-center gap-1.5"><code className="text-slate-300 font-mono text-xs">{webhook.id.slice(0,16)}…</code><button onClick={()=>navigator.clipboard.writeText(webhook.id)} className="text-slate-600 hover:text-white"><Copy className="w-3 h-3"/></button></div></div>
-                <div className="flex items-center justify-between"><span className="text-slate-500 text-xs uppercase tracking-wider">{t('webhook.timestamp')}</span><span className="text-slate-300">{new Date(webhook.createdAt).toLocaleString()}</span></div>
-                <div className="flex items-center justify-between"><span className="text-slate-500 text-xs uppercase tracking-wider">{t('webhook.ip')}</span><span className="text-slate-300 font-mono text-xs">{webhook.ip}</span></div>
-                {webhook.userAgent&&<div className="flex items-center justify-between"><span className="text-slate-500 text-xs uppercase tracking-wider">{t('webhook.userAgent')}</span><span className="text-slate-300 text-xs truncate max-w-[200px]">{webhook.userAgent}</span></div>}
-                {webhook.statusCode&&<div className="flex items-center justify-between"><span className="text-slate-500 text-xs uppercase tracking-wider">{t('webhook.response')}</span><span className="text-slate-300">{webhook.statusCode} {webhook.responseTime&&`• ${webhook.responseTime}ms`}</span></div>}
-                <div className="flex items-center justify-between"><span className="text-slate-500 text-xs uppercase tracking-wider">{t('webhook.size')}</span><span className="text-slate-300">{formatBytes(bodySize)}</span></div>
-              </div>
-            )}
-            {activeTab==='headers'&&(
-              <div className="space-y-1.5">
-                {webhook.headers&&typeof webhook.headers==='object'?Object.entries(webhook.headers).map(([k,v])=>(
-                  <div key={k} className="flex items-start gap-3 py-1.5 border-b border-slate-800/50 last:border-0"><span className="text-blue-400 text-xs font-mono shrink-0 w-28 truncate">{k}</span><span className="text-slate-300 text-xs break-all">{['authorization','cookie'].includes(k.toLowerCase())?'••••••••':String(v)}</span></div>
-                )):<p className="text-xs text-slate-500">{t('webhook.noHeaders')}</p>}
-              </div>
-            )}
-            {activeTab==='body'&&(<div>{webhook.body?<JsonViewer data={webhook.body}/>:<p className="text-xs text-slate-500">{t('webhook.noBody')}</p>}</div>)}
-            {activeTab==='query'&&(
-              <div className="space-y-1.5">
-                {webhook.query&&typeof webhook.query==='object'&&Object.keys(webhook.query).length>0?Object.entries(webhook.query).map(([k,v])=>(
-                  <div key={k} className="flex items-start gap-3 py-1.5 border-b border-slate-800/50 last:border-0"><span className="text-emerald-400 text-xs font-mono shrink-0 w-28 truncate">{k}</span><span className="text-slate-300 text-xs break-all">{String(v)}</span></div>
-                )):<p className="text-xs text-slate-500">{t('webhook.noQuery')}</p>}
-              </div>
-            )}
-
-            {/* ===== REPLAY TAB ===== */}
-            {activeTab==='replay'&&canReplay&&(
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className={`px-2 py-0.5 rounded text-xs font-mono font-semibold border ${methodColor(webhook.method)}`}>{webhook.method}</span>
-                  <span className="text-xs text-slate-500">{t('webhook.replay')}</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {([
-                    {id:'url' as const, label:t('webhook.targetUrl'), icon:Globe, color:'text-emerald-400', bg:'bg-emerald-500/10', border:'border-emerald-500/20'},
-                    {id:'headers' as const, label:t('webhook.headers'), icon:Hash, color:'text-sky-400', bg:'bg-sky-500/10', border:'border-sky-500/20'},
-                    {id:'body' as const, label:t('webhook.body'), icon:FileJson, color:'text-purple-400', bg:'bg-purple-500/10', border:'border-purple-500/20'},
-                    {id:'query' as const, label:t('webhook.query'), icon:Link2, color:'text-amber-400', bg:'bg-amber-500/10', border:'border-amber-500/20'},
-                  ]).map(tab => (
-                    <button key={tab.id} onClick={()=>setReplaySubTab(tab.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${replaySubTab===tab.id?`${tab.color} ${tab.bg} ${tab.border} border`:'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}>
-                      <tab.icon className="w-3.5 h-3.5"/>{tab.label}
-                    </button>
-                  ))}
-                </div>
-                {replaySubTab==='url'&&(
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-emerald-400 flex items-center gap-1.5"><Globe className="w-3.5 h-3.5"/>{t('webhook.targetUrl')}</label>
-                    <input type="text" value={replayUrl} onChange={e=>{setReplayUrl(e.target.value);localStorage.setItem('lastReplayUrl',e.target.value)}} placeholder="http://localhost:3000/webhook" className="w-full bg-slate-950 border border-emerald-500/20 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-mono"/>
-                    <p className="text-[11px] text-slate-500">{t('webhook.replay')}</p>
-                  </div>
-                )}
-                {replaySubTab==='headers'&&(
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-medium text-sky-400 flex items-center gap-1.5"><Hash className="w-3.5 h-3.5"/>{t('webhook.headers')} <span className="text-slate-600">{t('webhook.json')}</span></label>
-                      <button onClick={()=>setReplayHeaders(JSON.stringify(webhook.headers||{},null,2))} className="text-[10px] text-slate-500 hover:text-sky-400 flex items-center gap-1"><RotateCcw className="w-3 h-3"/>{t('webhook.resetAll')}</button>
-                    </div>
-                    <JsonEditor value={replayHeaders} onChange={setReplayHeaders} rows={10} accentColor="sky" />
-                  </div>
-                )}
-                {replaySubTab==='body'&&(
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-medium text-purple-400 flex items-center gap-1.5"><FileJson className="w-3.5 h-3.5"/>{t('webhook.body')}</label>
-                      <button onClick={()=>setReplayBody(formatReplayBody(webhook.rawBody, webhook.body))} className="text-[10px] text-slate-500 hover:text-purple-400 flex items-center gap-1"><RotateCcw className="w-3 h-3"/>{t('webhook.resetAll')}</button>
-                    </div>
-                    <JsonEditor value={replayBody} onChange={setReplayBody} rows={10} accentColor="purple" />
-                  </div>
-                )}
-                {replaySubTab==='query'&&(
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-medium text-amber-400 flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5"/>{t('webhook.query')} <span className="text-slate-600">{t('webhook.json')}</span></label>
-                      <button onClick={()=>setReplayQuery(JSON.stringify(webhook.query||{},null,2))} className="text-[10px] text-slate-500 hover:text-amber-400 flex items-center gap-1"><RotateCcw className="w-3 h-3"/>{t('webhook.resetAll')}</button>
-                    </div>
-                    <JsonEditor value={replayQuery} onChange={setReplayQuery} rows={6} accentColor="amber" />
-                  </div>
-                )}
-                {replayJsonError&&(
-                  <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20"><AlertCircle className="w-3.5 h-3.5"/>{replayJsonError}</div>
-                )}
-                <div className="flex items-center gap-3 pt-1">
-                  <button onClick={handleReplay} disabled={replayLoading} className="bg-emerald-500 hover:bg-emerald-400 text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02]">
-                    {replayLoading?<Loader2 className="w-4 h-4 animate-spin" />:<Zap className="w-4 h-4"/>}{t('webhook.sendReplay')}
-                  </button>
-                  <button onClick={resetAll} disabled={replayLoading} className="text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                    <RotateCcw className="w-3.5 h-3.5"/>{t('webhook.resetAll')}
-                  </button>
-                </div>
-                {replayResult&&(
-                  <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-xl font-medium ${replayResult.status>=200&&replayResult.status<300?'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20':replayResult.status===0?'bg-red-500/10 text-red-400 border border-red-500/20':'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
-                    {replayResult.status>=200&&replayResult.status<300?<Check className="w-4 h-4"/>:<AlertCircle className="w-4 h-4"/>}
-                    {replayResult.status===0?t('webhook.replayFailed'):`${t('webhook.response')}: ${replayResult.status} • ${replayResult.responseTime}ms`}
-                  </div>
-                )}
-              </div>
-            )}
-            {!canReplay&&activeTab==='replay'&&(
-              <div className="text-center py-8 text-slate-500"><Play className="w-8 h-8 mx-auto mb-2 opacity-50"/><p className="text-sm">{t('webhook.replayRequiresPro')}</p></div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
