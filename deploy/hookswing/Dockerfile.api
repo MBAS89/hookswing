@@ -14,10 +14,14 @@ COPY apps/api/package.json ./apps/api/
 # Install dependencies (ignore postinstall scripts — schema isn't copied yet)
 RUN npm ci --workspace=@hookswing/api --include-workspace-root --ignore-scripts
 
-# Copy source and build
+# Copy source
 COPY apps/api ./apps/api
-RUN npm run build --workspace=@hookswing/api
+
+# Generate Prisma client BEFORE TypeScript build
 RUN cd apps/api && npx prisma generate
+
+# Build TypeScript
+RUN npm run build --workspace=@hookswing/api
 
 # Production runner
 FROM node:20-alpine AS runner
