@@ -1,0 +1,17 @@
+[Unit]
+Description=HookSwing Env Admin Panel
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/projects/hookswing/deploy/admin
+Environment="ADMIN_PASSWORD=CHANGE_THIS_PASSWORD"
+Environment="ENV_PATH=/opt/projects/hookswing/deploy/hookswing/.env"
+Environment="PROJECT_DIR=/opt/projects/hookswing/deploy/hookswing"
+ExecStart=/usr/bin/node app.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

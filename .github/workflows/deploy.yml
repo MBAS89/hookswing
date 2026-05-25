@@ -23,4 +23,5 @@ jobs:
             npm run build --workspace=@hookswing/web
             cd deploy/hookswing
             docker compose -f docker-compose.prod.yml up -d --build
+            sudo systemctl restart hookswing-admin || true
             echo "Deployment complete"
