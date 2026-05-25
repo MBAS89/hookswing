@@ -11,8 +11,8 @@ RUN apk add --no-cache libc6-compat openssl
 COPY package.json package-lock.json* ./
 COPY apps/api/package.json ./apps/api/
 
-# Install dependencies (includes prisma since it's in dependencies)
-RUN npm ci --workspace=@hookswing/api --include-workspace-root
+# Install dependencies (ignore postinstall scripts — schema isn't copied yet)
+RUN npm ci --workspace=@hookswing/api --include-workspace-root --ignore-scripts
 
 # Copy source and build
 COPY apps/api ./apps/api
