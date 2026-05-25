@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/hookswing/Dockerfile.api
+    container_name: hookswing-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://hookswing:${POSTGRES_PASSWORD}@postgres:5432/hookswing?schema=public
+      REDIS_URL: redis://redis:6379
+    ports:
+      # Bind to localhost only — Nginx on the host will proxy to this
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - hookswing-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: hookswing-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hookswing
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: hookswing
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Expose on a non-standard port so it doesn't conflict with other projects
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hookswing"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hookswing-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: hookswing-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      # Expose on a non-standard port so it doesn't conflict with other projects
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hookswing-network
+
+networks:
+  hookswing-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

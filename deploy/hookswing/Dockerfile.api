@@ -1,0 +1,39 @@
+# HookSwing API — Production Dockerfile
+# Build context: repository root
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Install openssl for Prisma
+RUN apk add --no-cache libc6-compat openssl
+
+# Copy package manifests
+COPY package.json package-lock.json* ./
+COPY apps/api/package.json ./apps/api/
+
+# Install dependencies (includes prisma since it's in dependencies)
+RUN npm ci --workspace=@hookswing/api --include-workspace-root
+
+# Copy source and build
+COPY apps/api ./apps/api
+RUN npm run build --workspace=@hookswing/api
+RUN cd apps/api && npx prisma generate
+
+# Production runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+RUN apk add --no-cache openssl
+
+# Copy built artifacts and node_modules
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder /app/apps/api/start.js ./apps/api/start.js
+COPY --from=builder /app/package.json ./package.json
+
+EXPOSE 3000
+
+CMD ["node", "apps/api/start.js"]
