@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
@@ -46,6 +47,13 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   usePageTracking();
+  
+  // Remove SPA flicker-fix style on mount (for protected routes)
+  useEffect(() => {
+    const style = document.getElementById('spa-flicker-fix');
+    if (style) style.remove();
+  }, []);
+  
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />

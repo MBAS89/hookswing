@@ -25,6 +25,17 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
+  <style id="spa-flicker-fix">html{visibility:hidden}</style>
+  <script>
+    (function() {
+      var p = location.pathname;
+      var isPublic = p === '/' || p.startsWith('/blog/') || p === '/blog' || p === '/login' || p === '/register' || p === '/docs' || p === '/about' || p === '/contact' || p === '/careers' || p === '/privacy' || p === '/terms' || p === '/cookies' || p.startsWith('/alternatives/') || p === '/tools/verify-signature' || p === '/reset-password' || p === '/delete-account';
+      if (isPublic) {
+        var s = document.getElementById('spa-flicker-fix');
+        if (s) s.remove();
+      }
+    })();
+  </script>
 </head>
 
 <body class="bg-slate-950 text-slate-50 antialiased">

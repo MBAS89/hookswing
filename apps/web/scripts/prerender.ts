@@ -124,17 +124,6 @@ async function prerender() {
     }
   }
 
-  // ── SPA Fallback: inject route-aware loader into index.html ───────────
-  const indexPath = path.join(DIST, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    let indexHtml = fs.readFileSync(indexPath, 'utf8');
-    const loaderScript = `<script>(function(){var p=location.pathname;if(p!=='/'&&!p.startsWith('/blog')){var r=document.getElementById('root');if(r)r.innerHTML='<div style="min-height:100vh;background:#020617;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-family:Inter,sans-serif;"><div style="text-align:center;"><div style="width:40px;height:40px;border:3px solid #1e293b;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div><div>Loading...</div></div></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';}})();</script>`;
-    // Inject before closing </head> or after <div id="root">
-    indexHtml = indexHtml.replace('<div id="root"></div>', '<div id="root"></div>' + loaderScript);
-    fs.writeFileSync(indexPath, indexHtml);
-    console.log('🔄 Injected SPA route loader into index.html');
-  }
-
   await browser.close();
   server.close();
 
