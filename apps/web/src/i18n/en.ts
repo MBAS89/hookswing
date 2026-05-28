@@ -618,7 +618,7 @@ export const en = {
     provider: 'Provider',
     eventType: 'Event Type',
     targetUrl: 'Target URL',
-    placeholder: 'https://hookswing.com/hook/your-slug or any URL',
+    placeholder: 'https://hooks.hookswing.com/hook/your-slug or any URL',
     hint: 'Send to your HookSwing URL to inspect in the dashboard, or any external endpoint.',
     editPayload: 'Edit payload before sending',
     customPayload: 'Custom Payload (JSON)',

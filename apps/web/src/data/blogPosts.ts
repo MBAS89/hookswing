@@ -299,7 +299,7 @@ This guide shows a better workflow using HookSwing: catch Stripe webhooks perman
 1. Sign up at hookswing.com (free plan works fine)
 2. Click **New Project** in the sidebar
 3. Name it "Stripe Integration"
-4. Copy your webhook URL: \`https://hookswing.com/hook/your-slug\`
+4. Copy your webhook URL: \`https://hooks.hookswing.com/hook/your-slug\`
 
 This URL is permanent. It will not change when your laptop sleeps, restarts, or switches Wi-Fi networks.
 
@@ -2293,7 +2293,7 @@ This guide shows a better workflow using HookSwing: permanent URLs, persistent s
 1. Sign up at hookswing.com (free plan works)
 2. Click **New Project** in the sidebar
 3. Name it \`GitHub CI\`
-4. Copy your webhook URL: \`https://hookswing.com/hook/your-slug\`
+4. Copy your webhook URL: \`https://hooks.hookswing.com/hook/your-slug\`
 
 This URL is permanent. It will not change when your laptop restarts, sleeps, or switches Wi-Fi.
 

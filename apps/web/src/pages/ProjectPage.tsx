@@ -551,7 +551,7 @@ export default function ProjectPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <Globe className="w-4 h-4 text-slate-500 shrink-0" />
-                  <span className="text-sm text-slate-400 truncate">{window.location.origin}/hook/</span>
+                  <span className="text-sm text-slate-400 truncate">https://hooks.hookswing.com/hook/</span>
                   <input
                     type="text"
                     value={customSlugInput}

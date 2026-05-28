@@ -135,7 +135,7 @@ router.post('/', async (req: AuthRequest, res) => {
 
   res.status(201).json({
     ...project,
-    webhookUrl: `${req.protocol}://${req.get('host')}/hook/${slug}`,
+    webhookUrl: `https://hooks.hookswing.com/hook/${slug}`,
   });
 });
 

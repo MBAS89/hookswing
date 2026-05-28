@@ -608,7 +608,7 @@ export const ar = {
     provider: 'الموفّر',
     eventType: 'نوع الحدث',
     targetUrl: 'رابط الهدف',
-    placeholder: 'https://hookswing.com/hook/your-slug أو أي رابط',
+    placeholder: 'https://hooks.hookswing.com/hook/your-slug أو أي رابط',
     hint: 'أرسل إلى رابط HookSwing الخاص بك لفحصه في لوحة التحكم، أو إلى أي نقطة نهاية خارجية.',
     editPayload: 'تعديل الـ payload قبل الإرسال',
     customPayload: 'Payload مخصص (JSON)',

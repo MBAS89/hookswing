@@ -159,15 +159,15 @@ export default function DocsPage() {
                 <li>Name it: <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm">My First Project</code></li>
                 <li>We auto-generate your unique webhook URL</li>
               </ol>
-              <CodeBlock code={`https://hookswing.com/hook/abc123def456`} />
+              <CodeBlock code={`https://hooks.hookswing.com/hook/abc123def456`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">1.3 Custom Subdomain (Pro/Team)</h3>
               <p className="text-slate-300 mb-3">On Pro or Team plans, you can set a custom slug for a cleaner URL:</p>
-              <CodeBlock code={`https://hookswing.com/hook/my-company`} />
+              <CodeBlock code={`https://hooks.hookswing.com/hook/my-company`} />
 
               <h3 className="text-lg font-semibold text-white mt-6 mb-3">1.4 Send a Test Webhook</h3>
               <p className="text-slate-300 mb-3">Using curl:</p>
-              <CodeBlock code={`curl -X POST https://hookswing.com/hook/abc123def456 \\
+              <CodeBlock code={`curl -X POST https://hooks.hookswing.com/hook/abc123def456 \\
   -H "Content-Type: application/json" \\
   -d '{"test": true, "message": "hello world"}'`} />
 
@@ -635,7 +635,7 @@ Content-Type: application/json
 Content-Type: application/json
 
 {
-  "targetUrl": "https://hookswing.com/hook/abc123",
+  "targetUrl": "https://hooks.hookswing.com/hook/abc123",
   "provider": "stripe",
   "eventType": "invoice.payment_succeeded",
   "customPayload": { /* optional */ }
@@ -663,7 +663,7 @@ Content-Type: application/json
                 <li>Is the slug correct? Copy it fresh from the dashboard.</li>
                 <li>Test with curl first:</li>
               </ol>
-              <CodeBlock code={`curl -X POST https://hookswing.com/hook/YOUR_SLUG -d '{"test": true}'`} />
+              <CodeBlock code={`curl -X POST https://hooks.hookswing.com/hook/YOUR_SLUG -d '{"test": true}'`} />
               <ol className="list-decimal list-inside space-y-2 text-slate-300 mt-3" start={3}>
                 <li>Check usage bar in project settings.</li>
                 <li>We always return 200, so sender retries shouldn't be an issue.</li>

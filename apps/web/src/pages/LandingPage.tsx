@@ -323,7 +323,7 @@ function SolutionSection() {
 
 function PathPreservationDemo() {
   const [copied, setCopied] = useState(false);
-  const hookUrl = 'https://hookswing.com/hook/project-1';
+  const hookUrl = 'https://hooks.hookswing.com/hook/project-1';
   const { t } = useTranslation();
 
   const copyUrl = () => {
