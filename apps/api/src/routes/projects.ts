@@ -189,16 +189,14 @@ router.get('/:id', async (req: AuthRequest, res) => {
   });
   const webhookCount = ownerUsage?.count || 0;
 
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-
   res.json({
     ...project,
     isTeamAdmin,
     webhookCount,
     historyLimitDays: cutoff ? Math.round((Date.now() - cutoff.getTime()) / (24 * 60 * 60 * 1000)) : null,
     webhookUrl: project.customSlug
-      ? `${baseUrl}/hook/${project.customSlug}`
-      : `${baseUrl}/hook/${project.slug}`,
+      ? `https://hooks.hookswing.com/hook/${project.customSlug}`
+      : `https://hooks.hookswing.com/hook/${project.slug}`,
     customSlug: project.customSlug,
   });
 });
